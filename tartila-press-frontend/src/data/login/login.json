@@ -1,0 +1,21 @@
+[
+    {
+        "id": "email",
+        "name": "email",
+        "label": "Email",
+        "required": true,
+        "type": "email",
+        "placeholder": "jhondoe@mail.com",
+        "autocomplete": "on",
+        "error_message": "It should be a valid email address (eg. johndoe@emai.com)"
+    },
+    {
+        "id": "password",
+        "name": "password",
+        "label": "Password",
+        "required": true,
+        "type": "password",
+        "placeholder": "********",
+        "autocomplete": "on"
+    }
+]

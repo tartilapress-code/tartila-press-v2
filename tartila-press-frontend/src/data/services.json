@@ -1,0 +1,17 @@
+[
+    {
+        "id": 1,
+        "title": "Penerbitan Buku",
+        "description": "Layanan penerbitan buku profesional mulai dari naskah hingga terbit dengan resmi."
+    },
+    {
+        "id": 2,
+        "title": "Desain & Layout",
+        "description": "Pembuatan layout isi buku dan desain cover yang menarik dan profesional."
+    },
+    {
+        "id": 3,
+        "title": "Cetak Buku",
+        "description": "Pencetakan buku dengan kualitas tinggi dan berbagai pilihan jumlah cetak."
+    }
+]

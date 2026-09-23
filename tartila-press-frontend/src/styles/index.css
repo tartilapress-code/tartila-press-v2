@@ -1,0 +1,135 @@
+@import 'tailwindcss';
+@import 'custom-class.css';
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+        --primary-color: #003153;
+        --secondary-color: #003c63;
+        --tertiary-color: #005183;
+    }
+}
+
+@theme {
+    --color-primary: var(--primary-color);
+    --color-secondary: var(--secondary-color);
+    --color-accent: var(--tertiary-color);
+
+    --color-forest-moss-50: #f4f7ee;
+    --color-forest-moss-100: #e8efdc;
+    --color-forest-moss-200: #d2dfb9;
+    --color-forest-moss-300: #bbcf96;
+    --color-forest-moss-400: #a4bf73;
+    --color-forest-moss-500: #8eaf50;
+    --color-forest-moss-600: #718c40;
+    --color-forest-moss-700: #556930;
+    --color-forest-moss-800: #394620;
+    --color-forest-moss-900: #1c2310;
+    --color-forest-moss-950: #14180b;
+
+    --color-porcelain-50: #f8f8ed;
+    --color-porcelain-100: #f0f0db;
+    --color-porcelain-200: #e2e2b6;
+    --color-porcelain-300: #d3d392;
+    --color-porcelain-400: #c5c56d;
+    --color-porcelain-500: #b6b649;
+    --color-porcelain-600: #92923a;
+    --color-porcelain-700: #6d6d2c;
+    --color-porcelain-800: #49491d;
+    --color-porcelain-900: #24240f;
+    --color-porcelain-950: #1a1a0a;
+
+    --color-oxford-navy-50: #e6f1fe;
+    --color-oxford-navy-100: #cde4fe;
+    --color-oxford-navy-200: #9bc9fd;
+    --color-oxford-navy-300: #69aefc;
+    --color-oxford-navy-400: #3792fb;
+    --color-oxford-navy-500: #0577fa;
+    --color-oxford-navy-600: #045fc8;
+    --color-oxford-navy-700: #034896;
+    --color-oxford-navy-800: #023064;
+    --color-oxford-navy-900: #011832;
+    --color-oxford-navy-950: #011123;
+
+    --color-palm-leaf-50: #f3f6ef;
+    --color-palm-leaf-100: #e7edde;
+    --color-palm-leaf-200: #d0dabe;
+    --color-palm-leaf-300: #b8c89d;
+    --color-palm-leaf-400: #a1b67c;
+    --color-palm-leaf-500: #89a35c;
+    --color-palm-leaf-600: #6e8349;
+    --color-palm-leaf-700: #526237;
+    --color-palm-leaf-800: #374125;
+    --color-palm-leaf-900: #1b2112;
+    --color-palm-leaf-950: #13170d;
+
+    --color-oxford-navy-50: #e7f1fe;
+    --color-oxford-navy-100: #cfe4fc;
+    --color-oxford-navy-200: #9fc9f9;
+    --color-oxford-navy-300: #6eaef7;
+    --color-oxford-navy-400: #3e93f4;
+    --color-oxford-navy-500: #0e78f1;
+    --color-oxford-navy-600: #0b60c1;
+    --color-oxford-navy-700: #084891;
+    --color-oxford-navy-800: #063060;
+    --color-oxford-navy-900: #031830;
+    --color-oxford-navy-950: #021122;
+
+    --border-oxford-navy-50: #e7f1fe;
+    --border-oxford-navy-100: #cfe4fc;
+    --border-oxford-navy-200: #9fc9f9;
+    --border-oxford-navy-300: #6eaef7;
+    --border-oxford-navy-400: #3e93f4;
+    --border-oxford-navy-500: #0e78f1;
+    --border-oxford-navy-600: #0b60c1;
+    --border-oxford-navy-700: #084891;
+    --border-oxford-navy-800: #063060;
+    --border-oxford-navy-900: #031830;
+    --border-oxford-navy-950: #021122;
+}
+
+body {
+    position: relative;
+    margin: 0 auto;
+    box-sizing: content-box;
+    min-height: 100vh;
+    max-width: 1440px;
+    scroll-behavior: smooth;
+    background-color: #f1f5f8;
+}
+
+p,
+h1,
+h2 {
+    font-family: var(--font-family);
+    margin: 0;
+}
+
+*,
+*::before,
+*::after {
+    /*outline: 1px solid red;*/
+}
+
+/*custom tailwindcss utility*/
+@utility footer-hover {
+    @apply hover:bg-forest-moss-500 hover:duration-300 hover:text-oxford-navy-900;
+}
+
+@utility img-style {
+    @apply w-full h-full object-cover;
+}
+@utility hover-translate {
+    @apply hover:-translate-y-2 hover:duration-300;
+}
+@utility card-shadow {
+    @apply shadow-md/90 shadow-black;
+}
+
+.debug {
+    *,
+    *::before,
+    *::after {
+        outline: 1px solid red;
+    }
+}

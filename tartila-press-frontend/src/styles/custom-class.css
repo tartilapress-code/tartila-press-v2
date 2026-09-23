@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+
+@utility flex-col-4 {
+    @apply flex flex-col gap-4;
+}
+
+@utility flex-row-4 {
+    @apply flex flex-row gap-4 justify-center;
+}
+
+@utility flex-row-2-rounded-bg-center {
+    @apply flex flex-row gap-2 p-2 rounded-md bg-forest-moss-500 w-auto
+        hover:bg-forest-moss-400 duration-250 hover:cursor-pointer;
+}
+@utility base-card-container {
+    @apply p-2 rounded-lg border border-forest-moss-500  backdrop-blur-lg;
+}
+
+/*@utility navlink-active {
+    @apply 'text-white border-b-2 border-b-oxford-navy-100 hover:border-b-forest-moss-500';
+}
+
+@utility navlink-not-active {
+    @apply 'text-white text-[16px] hover:border-b-2 hover:border-b-forest-moss-500 hover:duration-400';
+}*/
+
+/*@utility bg-book-img {
+    @apply 'bg-[url(../assets/images/buku.png)] bg-cover bg-center bg-no-repeat';
+}*/

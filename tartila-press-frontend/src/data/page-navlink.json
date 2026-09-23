@@ -1,0 +1,22 @@
+[
+    {
+        "id": "2",
+        "label": "Layanan",
+        "links": "#layanan"
+    },
+    {
+        "id": "3",
+        "label": "Paket",
+        "links": "#paket"
+    },
+    {
+        "id": "4",
+        "label": "kontak",
+        "links": "#kontak"
+    },
+    {
+        "id": "5",
+        "label": "Tentang",
+        "links": "#tentang"
+    }
+]

@@ -1,0 +1,22 @@
+[
+    {
+        "id": 1,
+        "label": "tartilapress@gmail.com",
+        "icon": "ri-mail-line text-xl"
+    },
+    {
+        "id": 2,
+        "label": "+62 812-7034-8598",
+        "icon": "ri-phone-fill text-xl h-fit"
+    },
+    {
+        "id": 3,
+        "label": "Whatsapp",
+        "icon": "ri-whatsapp-line text-xl"
+    },
+    {
+        "id": 4,
+        "label": "Indonesia",
+        "icon": "ri-map-pin-line text-xl"
+    }
+]

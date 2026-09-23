@@ -1,0 +1,9 @@
+{
+    "id": "book search",
+    "name": "book search",
+    "label": "book search",
+    "required": false,
+    "type": "text",
+    "placeholder": "Search for book Titles / Authors ",
+    "autocomplete": "on"
+}

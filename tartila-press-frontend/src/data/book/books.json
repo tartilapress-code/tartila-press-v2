@@ -1,0 +1,57 @@
+[
+    {
+        "book_name": "The Silent Forest",
+        "author": "Aria Bennett",
+        "created_at": "2026-01-15",
+        "voters": 124,
+        "ratings": 4.7,
+        "price": 85000,
+        "description": "A mysterious journey through an ancient forest where forgotten secrets and unexpected friendships await.",
+        "front_cover_path": "src/assets/cover/1777355113.png",
+        "back_cover_path": "src/assets/cover/1777355114.png"
+    },
+    {
+        "book_name": "Beyond the Horizon",
+        "author": "Daniel Morgan",
+        "created_at": "2026-02-03",
+        "voters": 98,
+        "ratings": 4.5,
+        "price": 92000,
+        "description": "An inspiring story about courage, exploration, and the determination to discover what lies beyond the familiar.",
+        "front_cover_path": "src/assets/cover/1777355381.png",
+        "back_cover_path": "src/assets/cover/1777355383.png"
+    },
+    {
+        "book_name": "Letters from Yesterday",
+        "author": "Clara Wilson",
+        "created_at": "2026-03-21",
+        "voters": 76,
+        "ratings": 4.3,
+        "price": 78000,
+        "description": "A heartfelt collection of letters that connects two generations and reveals a story that was never meant to be forgotten.",
+        "front_cover_path": "src/assets/cover/1777355113.png",
+        "back_cover_path": "src/assets/cover/1777355114.png"
+    },
+    {
+        "book_name": "The Art of Beginning",
+        "author": "Michael Carter",
+        "created_at": "2026-04-10",
+        "voters": 215,
+        "ratings": 4.8,
+        "price": 105000,
+        "description": "A practical and motivational guide for overcoming fear, building confidence, and taking the first step toward meaningful change.",
+        "front_cover_path": "src/assets/cover/1777366620.png",
+        "back_cover_path": "src/assets/cover/1777366621.png"
+    },
+    {
+        "book_name": "Moonlight Over Java",
+        "author": "Nadia Pratama",
+        "created_at": "2026-05-27",
+        "voters": 187,
+        "ratings": 4.6,
+        "price": 88000,
+        "description": "A captivating story of love, family, and tradition set against the beautiful landscapes and rich culture of Java.",
+        "front_cover_path": "src/assets/cover/1777355113.png",
+        "back_cover_path": "src/assets/cover/1777355114.png"
+    }
+]

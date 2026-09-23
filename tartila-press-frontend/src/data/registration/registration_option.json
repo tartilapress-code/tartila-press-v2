@@ -1,0 +1,24 @@
+[
+    {
+        "id": "education_level",
+        "name": "education_level",
+        "label": "Tingkat Pendidikan",
+        "required": true,
+        "value": [
+            { "value": "SMA", "label": "SMA / Sederajat" },
+            { "value": "S1", "label": "Sarjana (S1)" },
+            { "value": "S2", "label": "Magister (S2)" },
+            { "value": "S3", "label": "Doktor (S3)" }
+        ]
+    },
+    {
+        "id": "gender",
+        "name": "gender",
+        "label": "Jenis Kelamin",
+        "required": true,
+        "value": [
+            { "value": "male", "label": "Laki-laki" },
+            { "value": "female", "label": "Perempuan" }
+        ]
+    }
+]

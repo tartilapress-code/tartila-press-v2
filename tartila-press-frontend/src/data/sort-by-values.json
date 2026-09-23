@@ -1,0 +1,52 @@
+[
+    {
+        "value": "judul_buku",
+        "label": "Judul Buku",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "penulis",
+        "label": "Penulis",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "penerbit",
+        "label": "Penerbit",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "kategori",
+        "label": "Kategori",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "tahun_terbit",
+        "label": "Tahun Terbit",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "rating",
+        "label": "Rating",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "harga",
+        "label": "Harga",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "total_halaman",
+        "label": "Total Halaman",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "isbn",
+        "label": "ISBN",
+        "directions": ["asc", "desc"]
+    },
+    {
+        "value": "bahasa_buku",
+        "label": "Bahasa Buku",
+        "directions": ["asc", "desc"]
+    }
+]

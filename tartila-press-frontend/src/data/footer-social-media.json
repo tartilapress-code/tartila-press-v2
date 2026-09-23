@@ -1,0 +1,26 @@
+[
+    {
+        "id": 1,
+        "name": "Instagram",
+        "icon": "ri-instagram-line",
+        "link": "https://instagram.com"
+    },
+    {
+        "id": 2,
+        "name": "Facebook",
+        "icon": "ri-facebook-box-fill",
+        "link": "https://facebook.com"
+    },
+    {
+        "id": 3,
+        "name": "Tiktok",
+        "icon": "ri-tiktok-fill",
+        "link": "https://tiktok.com"
+    },
+    {
+        "id": 4,
+        "name": "Youtube",
+        "icon": "ri-youtube-line ",
+        "link": "https://youtube.com"
+    }
+]

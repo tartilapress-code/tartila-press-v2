@@ -1,0 +1,39 @@
+[
+    {
+        "id": 1,
+        "title": "Getting Started with React",
+        "type": "Technology",
+        "description": "Learn the fundamental concepts of React, including components, JSX, props, and state, and how they work together to build modern user interfaces.",
+        "created_at": "26 June 2026",
+        "read_duration": "5 min",
+        "writer": "Medi Rahmat"
+    },
+    {
+        "id": 2,
+        "title": "Understanding Modern Web Development",
+        "type": "Web Development",
+        "description": "An introduction to the essential technologies behind modern websites, from HTML and CSS to JavaScript frameworks and backend services.",
+        "created_at": "28 June 2026",
+        "read_duration": "7 min",
+        "writer": "Andi Pratama"
+    },
+    {
+        "id": 3,
+        "title": "Why Good Design Matters",
+        "type": "Design",
+        "description": "Explore how visual hierarchy, typography, spacing, color, and consistency can improve the usability and overall experience of a digital product.",
+        "created_at": "2 July 2026",
+        "read_duration": "4 min",
+        "writer": "Sarah Wijaya"
+    },
+
+    {
+        "id": 4,
+        "title": "Building Better Habits for Learning",
+        "type": "Education",
+        "description": "Discover practical approaches to creating sustainable learning habits, managing your time, and maintaining consistency when learning new skills.",
+        "created_at": "12 July 2026",
+        "read_duration": "6 min",
+        "writer": "Budi Santoso"
+    }
+]

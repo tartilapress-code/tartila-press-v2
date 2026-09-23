@@ -1,0 +1,42 @@
+{
+    "id": 1,
+    "name": "registration page 1",
+    "label": "Registration Page 1",
+    "field": [
+        {
+            "id": "email",
+            "name": "email",
+            "label": "Email",
+            "required": true,
+            "type": "text",
+            "placeholder": "jhondoe@mail.com",
+            "autocomplete": "on",
+            "input_state": "valid",
+            "state_validation_message": "valid"
+        },
+        {
+            "id": "password",
+            "name": "password",
+            "label": "Password",
+            "required": true,
+            "type": "password",
+            "placeholder": "********",
+            "autocomplete": "on",
+            "input_state": "valid",
+            "state_validation_message": "valid",
+            "max_length": 8
+        },
+        {
+            "id": "reenter password",
+            "name": " reenter password",
+            "label": "Reenter Password",
+            "required": true,
+            "type": "password",
+            "placeholder": "********",
+            "autocomplete": "on",
+            "input_state": "valid",
+            "state_validation_message": "valid",
+            "max_length": 8
+        }
+    ]
+}

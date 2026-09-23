@@ -1,0 +1,158 @@
+
+    // {
+    //     "id": 4,
+    //     "title": "Building Better Habits for Learning",
+    //     "type": "Education",
+    //     "description": "Discover practical approaches to creating sustainable learning habits, managing your time, and maintaining consistency when learning new skills.",
+    //     "created_at": "12 July 2026",
+    //     "read_duration": "6 min",
+    //     "writer": "Budi Santoso"
+    // },
+    // {
+    //     "id": 5,
+    //     "title": "The Future of Digital Publishing",
+    //     "type": "Publishing",
+    //     "description": "A look at how digital technology is transforming publishing, from electronic books and online distribution to new opportunities for authors.",
+    //     "created_at": "26 June 2026",
+    //     "read_duration": "8 min",
+    //     "writer": "Dewi Lestari"
+    // }
+]
+
+                        return (
+                            <div className="flex flex-col">
+                                <div
+                                    className="
+                                    flex flex-row gap-6   bg-oxford-navy-900 rounded-md p-6 relative card-shadow
+                            hover:-translate-y-2 duration-200
+                            "
+                                >
+                                    <div
+                                        className="w-38 h-60 z-200 absolute -top-5
+                                hover:-translate-y-2 duration-200
+                                "
+                                    >
+                                        <div
+                                            className="perspective-[1000px] w-full h-full  "
+                                            onClick={() =>
+                                                toggleFlipped(book.judul_buku)
+                                            }
+                                        >
+                                            <div
+                                                className={`transition-transform transform-3d duration-700 w-full h-full
+                                        ${isFlipped ? 'rotate-y-180' : ''}`}
+                                            >
+                                                <img
+                                                    className={`absolute backface-hiddenh- h-full w-auto object-cover `}
+                                                    src={book.front_cover}
+                                                    alt={book.judul_buku}
+                                                />
+                                                <img
+                                                    className="absolute backface-hidden h-full w-auto object-cover rotate-y-180"
+                                                    src={book.back_cover}
+                                                    alt={book.judul_buku}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div
+                                        className="
+                                ml-44 flex flex-col gap-4 text-oxford-navy-100
+                                "
+                                    >
+                                        <div className="flex flex-col gap-1">
+                                            <h5
+                                                className="
+                                         text-xl font-bold
+                                        "
+                                            >
+                                                {book.judul_buku}
+                                            </h5>
+                                            <h6>
+                                                <span className="text-forest-moss-500 ">
+                                                    by {book.penulis}
+                                                </span>
+                                            </h6>
+                                        </div>
+
+                                        <p className="font-light text-sm">
+                                            {book.sinopsis}
+                                        </p>
+                                        <h4 className="text-2xl ">
+                                            {rupiahFormatter.format(book.harga)}
+                                        </h4>
+
+                                        <div
+                                            className="
+                                            mt-4 flex flex-col gap-4 self-start h-fit
+                                            "
+                                        >
+                                            <div className="block h-fit">
+                                                <Button variant="outline2">
+                                                    Read More
+                                                </Button>
+                                            </div>
+                                            <Button variant="primary">
+                                                Checkout
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-row gap-2 items-center self-start">
+                                        <h5 className="text-yellow-200 font-semibold">
+                                            {book.rating}
+                                        </h5>
+                                        <RiStarFill color="yellow" size={20} />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                        })
+
+
+                            .filter(
+                                (book) =>
+                                    dynamicRegex.test(book.judul_buku) ||
+                                    (dynamicRegex.test(book.penulis) &&
+                                        book.kategori === selectedCategory)
+                            )
+
+
+if ( kategori !== '' )
+filter by kategori
+
+
+                                    <label
+                                        className="text-white"
+                                        htmlFor={field.id}
+                                    >
+                                        {field.label}
+                                    </label>
+                                    <input
+                                        id={field.id}
+                                        name={field.name}
+                                        autoComplete={field.autocomplete}
+                                        className="
+                                        w-full px-4 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
+                                                   focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500
+                                                   disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none
+
+                                                   invalid:border-red-500 invalid:text-red-600
+                                                   focus:invalid:border-red-500 focus:invalid:ring-red-500"
+                                        type={field.type}
+                                        placeholder={field.placeholder}
+                                        required={field.required}
+                                    />
+
+
+                                /*<InputField
+                                    id={field.id}
+                                    label={field.label}
+                                    placeholder={field.placeholder}
+                                    stateValidationMessage={
+                                        field.state_validation_message
+                                    }
+                                    maxLength={field.max_length}
+                                    pattern={field.pattern}
+                                    variant="invalid"
+                                />*/

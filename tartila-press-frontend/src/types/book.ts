@@ -1,0 +1,26 @@
+export type Book = {
+    id: string;
+    judul_buku: string;
+    sinopsis: string;
+    isbn: string;
+    penulis: string;
+    editor: string;
+    penyunting: string;
+    desain_sampul_tata_letak: string;
+    penerbit: string;
+    kategori: string;
+    tahun_terbit: number;
+    total_halaman: number;
+    rating: number;
+    front_cover: string;
+    back_cover: string;
+    bahasa_buku: string;
+    harga: number;
+    diskon: number;
+    jumlah_pembelian: number;
+    cart: number;
+    beli_sekarang: boolean;
+    preview_buku: string;
+    sitasi: string;
+    keyword: string[];
+};

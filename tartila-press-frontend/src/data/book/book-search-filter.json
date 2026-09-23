@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "value": "bidang ilmu",
+        "label": "Bidang Ilmu"
+    },
+    {
+        "id": 2,
+        "value": "fiksi",
+        "label": "Fiksi"
+    },
+    {
+        "id": 3,
+        "value": "non fiksi",
+        "label": "Non Fiksi"
+    },
+    {
+        "id": 4,
+        "value": "genre",
+        "label": "Genre"
+    },
+    {
+        "id": 5,
+        "value": "tahun terbit",
+        "label": "Tahun Terbit"
+    },
+    {
+        "id": 6,
+        "value": "bahasa",
+        "label": "Bahasa"
+    },
+    {
+        "id": 7,
+        "value": "jenis buku",
+        "label": "Jenis Buku"
+    }
+]
