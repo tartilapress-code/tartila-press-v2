@@ -78,7 +78,7 @@ function PreviewUploader({
                 type="file"
                 accept="application/pdf"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="text-white text-xs w-40"
+                className="text-oxford-navy-900 text-xs w-40"
             />
             <Button
                 variant="outline2"
@@ -231,7 +231,7 @@ export default function BooksPage() {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-row items-center justify-between">
-                <h5 className="text-white text-xl font-semibold">Buku</h5>
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Buku</h5>
                 <Link to="/admin/books/gabung-bab">
                     <Button variant="outline2">
                         Gabungkan Naskah jadi Book Chapter
@@ -239,13 +239,13 @@ export default function BooksPage() {
                 </Link>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     {editingBook ? `Ubah "${editingBook.title}"` : 'Tambah Buku Manual'}
                 </h5>
 
                 {editingBook?.manuscript_id ? (
-                    <p className="text-white/60 text-sm">
+                    <p className="text-oxford-navy-900/65 text-sm">
                         Judul &amp; penulis buku ini berasal dari naskah,
                         tidak bisa diubah di sini.
                     </p>
@@ -403,7 +403,7 @@ export default function BooksPage() {
                 />
 
                 {statusMessage && (
-                    <p className="text-red-400 text-sm">{statusMessage}</p>
+                    <p className="text-red-600 text-sm">{statusMessage}</p>
                 )}
 
                 <div className="flex flex-row gap-2">
@@ -426,38 +426,38 @@ export default function BooksPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Daftar Buku
                 </h5>
 
                 {isLoading ? (
-                    <p className="text-white/70 text-sm">Memuat...</p>
+                    <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
                 ) : (
                     <div className="flex flex-col gap-3">
                         {books.map((book) => (
                             <div
                                 key={book.id}
-                                className="flex flex-col gap-3 bg-oxford-navy-900/40 rounded-lg p-4"
+                                className="flex flex-col gap-3 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                             >
                                 <div className="flex flex-row items-center justify-between gap-4">
                                     <div>
-                                        <p className="text-white font-semibold">
+                                        <p className="text-oxford-navy-900 font-semibold">
                                             {book.title}{' '}
                                             {!book.is_active && (
-                                                <span className="text-red-400 text-xs">
+                                                <span className="text-red-600 text-xs">
                                                     (nonaktif)
                                                 </span>
                                             )}
                                             {book.is_chapter_compilation && (
-                                                <span className="text-forest-moss-300 text-xs">
+                                                <span className="text-forest-moss-700 text-xs">
                                                     {' '}
                                                     (Book Chapter,{' '}
                                                     {book.chapters.length} bab)
                                                 </span>
                                             )}
                                         </p>
-                                        <p className="text-white/60 text-sm">
+                                        <p className="text-oxford-navy-900/65 text-sm">
                                             {book.authors_text} — Rp{' '}
                                             {book.price} (diskon{' '}
                                             {book.discount}%)

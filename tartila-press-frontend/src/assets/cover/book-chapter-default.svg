@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="1050" viewBox="0 0 740 1050" role="img" aria-label="Sampul Book Chapter Tartila Press">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.55" y2="1">
+      <stop offset="0" stop-color="#0d4f7c"/>
+      <stop offset="0.55" stop-color="#03304f"/>
+      <stop offset="1" stop-color="#011a2c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#b0d1a4" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#b0d1a4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pageL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f7f2e6"/>
+      <stop offset="1" stop-color="#e4dcc7"/>
+    </linearGradient>
+    <linearGradient id="pageR" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#f7f2e6"/>
+      <stop offset="1" stop-color="#e4dcc7"/>
+    </linearGradient>
+    <path id="leaf" d="M0 0C8-10 26-11 40 0C26 11 8 10 0 0Z"/>
+  </defs>
+
+  <!-- Latar -->
+  <rect width="740" height="1050" fill="url(#bg)"/>
+  <circle cx="655" cy="140" r="240" fill="#2c6f9e" opacity="0.16"/>
+  <circle cx="60" cy="985" r="220" fill="#8fb88a" opacity="0.11"/>
+  <ellipse cx="370" cy="470" rx="340" ry="300" fill="url(#glow)"/>
+
+  <!-- Bingkai -->
+  <rect x="34" y="34" width="672" height="982" rx="10" fill="none" stroke="#b0d1a4" stroke-opacity="0.4" stroke-width="2"/>
+  <rect x="50" y="50" width="640" height="950" rx="6" fill="none" stroke="#b0d1a4" stroke-opacity="0.16" stroke-width="1.5"/>
+
+  <!-- Label atas -->
+  <text x="370" y="112" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="23" letter-spacing="9" fill="#b0d1a4">ANTOLOGI KOLABORASI</text>
+  <path d="M312 136H428" stroke="#e6c26a" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Bayangan buku -->
+  <ellipse cx="370" cy="700" rx="262" ry="20" fill="#000" opacity="0.3"/>
+
+  <!-- Penanda bab (menyembul dari atas halaman) -->
+  <g>
+    <rect x="196" y="378" width="28" height="96" rx="4" fill="#6f9a6a"/>
+    <rect x="232" y="366" width="28" height="108" rx="4" fill="#3f86b4"/>
+    <rect x="428" y="372" width="28" height="102" rx="4" fill="#b0d1a4"/>
+    <rect x="464" y="358" width="28" height="116" rx="4" fill="#e6c26a"/>
+    <rect x="500" y="376" width="28" height="98" rx="4" fill="#8fb88a"/>
+    <rect x="536" y="392" width="28" height="82" rx="4" fill="#2c6f9e"/>
+    <g fill="#fff" opacity="0.28">
+      <rect x="203" y="386" width="4" height="30" rx="2"/>
+      <rect x="239" y="374" width="4" height="30" rx="2"/>
+      <rect x="435" y="380" width="4" height="30" rx="2"/>
+      <rect x="471" y="366" width="4" height="30" rx="2"/>
+      <rect x="507" y="384" width="4" height="30" rx="2"/>
+      <rect x="543" y="400" width="4" height="30" rx="2"/>
+    </g>
+  </g>
+
+  <!-- Sampul buku (hijau tosca gelap) -->
+  <path d="M370 494C315 452 225 442 134 468V648C225 622 315 634 370 676Z" fill="#0f6a8b" stroke="#b0d1a4" stroke-opacity="0.5" stroke-width="1.5"/>
+  <path d="M370 494C425 452 515 442 606 468V648C515 622 425 634 370 676Z" fill="#0f6a8b" stroke="#b0d1a4" stroke-opacity="0.5" stroke-width="1.5"/>
+
+  <!-- Tebal halaman -->
+  <path d="M150 620C230 597 320 609 370 645V661C320 625 230 613 150 636Z" fill="#cfc5ad"/>
+  <path d="M590 620C510 597 420 609 370 645V661C420 625 510 613 590 636Z" fill="#cfc5ad"/>
+
+  <!-- Halaman -->
+  <path d="M370 476C320 436 230 426 150 450V620C230 597 320 609 370 645Z" fill="url(#pageL)"/>
+  <path d="M370 476C420 436 510 426 590 450V620C510 597 420 609 370 645Z" fill="url(#pageR)"/>
+  <path d="M370 476V645" stroke="#bdb197" stroke-width="3"/>
+
+  <!-- Garis tulisan pada halaman -->
+  <g fill="none" stroke="#9fb0bd" stroke-width="5" stroke-linecap="round" opacity="0.85">
+    <path d="M178 484C232 470 296 478 346 506"/>
+    <path d="M178 508C232 494 296 502 346 530"/>
+    <path d="M178 532C232 518 296 526 340 552"/>
+    <path d="M178 556C232 542 290 550 328 572"/>
+    <path d="M178 580C226 568 268 574 300 590"/>
+    <path d="M562 484C508 470 444 478 394 506"/>
+    <path d="M562 508C508 494 444 502 394 530"/>
+    <path d="M562 532C508 518 444 526 400 552"/>
+    <path d="M562 556C508 542 450 550 412 572"/>
+    <path d="M562 580C514 568 472 574 440 590"/>
+  </g>
+
+  <!-- Ranting tumbuh dari punggung buku -->
+  <path d="M370 478C364 428 384 378 374 322" fill="none" stroke="#8fb88a" stroke-width="4" stroke-linecap="round"/>
+  <g>
+    <use href="#leaf" transform="translate(367 452) rotate(-28) scale(1.5)" fill="#b0d1a4"/>
+    <use href="#leaf" transform="translate(367 428) rotate(206) scale(1.4)" fill="#8fb88a"/>
+    <use href="#leaf" transform="translate(372 402) rotate(-38) scale(1.55)" fill="#b0d1a4"/>
+    <use href="#leaf" transform="translate(373 376) rotate(216) scale(1.4)" fill="#6f9a6a"/>
+    <use href="#leaf" transform="translate(377 350) rotate(-52) scale(1.35)" fill="#8fb88a"/>
+    <use href="#leaf" transform="translate(375 326) rotate(-92) scale(1.1)" fill="#b0d1a4"/>
+  </g>
+
+  <!-- Percikan cahaya -->
+  <g fill="#f5f0e4">
+    <circle cx="262" cy="330" r="4" opacity="0.6"/>
+    <circle cx="500" cy="300" r="3" opacity="0.5"/>
+    <circle cx="560" cy="350" r="4.5" opacity="0.55"/>
+    <circle cx="190" cy="392" r="3" opacity="0.45"/>
+    <circle cx="300" cy="278" r="2.5" opacity="0.5"/>
+  </g>
+
+  <!-- Judul -->
+  <text x="370" y="800" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="96" font-weight="700" letter-spacing="10" fill="#f5f0e4">BOOK</text>
+  <text x="370" y="888" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="96" font-weight="700" letter-spacing="10" fill="#f5f0e4">CHAPTER</text>
+  <path d="M302 918H438" stroke="#8fb88a" stroke-width="3" stroke-linecap="round"/>
+  <text x="370" y="958" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="27" fill="#b0d1a4">Satu Buku, Banyak Penulis</text>
+
+  <!-- Penerbit -->
+  <text x="370" y="1000" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="21" letter-spacing="9" fill="#f5f0e4" opacity="0.85">TARTILA PRESS</text>
+</svg>

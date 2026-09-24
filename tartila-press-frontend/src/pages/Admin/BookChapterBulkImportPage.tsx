@@ -45,16 +45,16 @@ export default function BookChapterBulkImportPage() {
         <div className="flex flex-col gap-6">
             <Link
                 to="/admin/book-chapter-projects"
-                className="text-forest-moss-300 text-sm hover:text-forest-moss-200 self-start"
+                className="text-forest-moss-700 text-sm hover:text-forest-moss-800 self-start"
             >
                 ← Kembali ke Daftar Proyek
             </Link>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Import CSV Book Chapter
                 </h5>
-                <p className="text-white/60 text-sm">
+                <p className="text-oxford-navy-900/65 text-sm">
                     Kolom yang dikenali (semua opsional kecuali title):
                     title, book_category_id, field_category_id, price,
                     discount, chapter_count, estimated_publish_date,
@@ -69,11 +69,11 @@ export default function BookChapterBulkImportPage() {
                     type="file"
                     accept=".csv,text/csv"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    className="text-white text-sm"
+                    className="text-oxford-navy-900 text-sm"
                 />
 
                 {statusMessage && (
-                    <p className="text-red-400 text-sm">{statusMessage}</p>
+                    <p className="text-red-600 text-sm">{statusMessage}</p>
                 )}
 
                 <Button
@@ -87,19 +87,19 @@ export default function BookChapterBulkImportPage() {
             </div>
 
             {result && (
-                <div className="flex flex-col gap-3 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                    <p className="text-forest-moss-300 font-semibold">
+                <div className="flex flex-col gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <p className="text-forest-moss-700 font-semibold">
                         {result.created} proyek berhasil dibuat.
                     </p>
                     {result.errors.length > 0 && (
                         <div className="flex flex-col gap-1">
-                            <p className="text-red-400 text-sm font-semibold">
+                            <p className="text-red-600 text-sm font-semibold">
                                 {result.errors.length} baris gagal:
                             </p>
                             {result.errors.map((error) => (
                                 <p
                                     key={error.row}
-                                    className="text-red-400 text-sm"
+                                    className="text-red-600 text-sm"
                                 >
                                     Baris {error.row}: {error.message}
                                 </p>

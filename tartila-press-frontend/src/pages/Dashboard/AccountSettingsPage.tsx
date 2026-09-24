@@ -4,6 +4,8 @@ import Button from '@/components/Button/Button';
 import { useAuth } from '@/context/useAuth';
 import { hasAnyRole } from '@/context/AuthContext';
 import { ApiError } from '@/lib/http';
+import { useResendVerification } from '@/hooks/useResendVerification';
+import { PASSWORD_HINT, validatePassword } from '@/lib/passwordPolicy';
 import * as profileApi from '@/data/profile/profileApi';
 import * as roleRequestApi from '@/data/roleRequest/roleRequestApi';
 import type { RequestedRole } from '@/data/roleRequest/roleRequestApi';
@@ -16,8 +18,8 @@ function Card({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-            <h5 className="text-white text-xl font-semibold">{title}</h5>
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">{title}</h5>
             {children}
         </div>
     );
@@ -71,18 +73,18 @@ function RoleUpgradeRow({ role }: { role: RequestedRole }) {
     }
 
     return (
-        <div className="flex flex-col gap-2 bg-oxford-navy-900/40 rounded-lg p-4">
+        <div className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4">
             <div className="flex flex-row items-center justify-between gap-4">
-                <p className="text-white font-semibold">
+                <p className="text-oxford-navy-900 font-semibold">
                     {roleLabels[role]}
                 </p>
 
                 {isLoading ? null : alreadyHasRole ? (
-                    <span className="text-forest-moss-300 text-sm">
+                    <span className="text-forest-moss-700 text-sm">
                         Sudah aktif
                     </span>
                 ) : latestRequest?.status === 'pending' ? (
-                    <span className="text-white/70 text-sm">
+                    <span className="text-oxford-navy-900/70 text-sm">
                         Menunggu persetujuan
                     </span>
                 ) : (
@@ -100,14 +102,14 @@ function RoleUpgradeRow({ role }: { role: RequestedRole }) {
             </div>
 
             {!isLoading && !alreadyHasRole && latestRequest?.status === 'rejected' && (
-                <p className="text-red-400 text-sm">
+                <p className="text-red-600 text-sm">
                     Permintaan sebelumnya ditolak
                     {latestRequest.note ? `: ${latestRequest.note}` : '.'}
                 </p>
             )}
 
             {errorMessage && (
-                <p className="text-red-400 text-sm">{errorMessage}</p>
+                <p className="text-red-600 text-sm">{errorMessage}</p>
             )}
         </div>
     );
@@ -115,6 +117,13 @@ function RoleUpgradeRow({ role }: { role: RequestedRole }) {
 
 export default function AccountSettingsPage() {
     const { user, logout } = useAuth();
+    const {
+        send: resendVerification,
+        isSending: isResending,
+        cooldown: resendCooldown,
+        message: resendMessage,
+        isError: resendIsError,
+    } = useResendVerification();
 
     const [name, setName] = useState<string>(user?.name ?? '');
     const [nameStatus, setNameStatus] = useState<string>('');
@@ -152,7 +161,9 @@ export default function AccountSettingsPage() {
         setEmailSubmitting(true);
         setEmailStatus('');
 
-        const formData = new FormData(e.currentTarget);
+        // e.currentTarget bernilai null setelah await, jadi ambil form-nya dulu.
+        const form = e.currentTarget;
+        const formData = new FormData(form);
 
         try {
             await profileApi.requestEmailChange({
@@ -160,9 +171,9 @@ export default function AccountSettingsPage() {
                 current_password: String(formData.get('current_password')),
             });
             setEmailStatus(
-                'Link konfirmasi telah dikirim ke email baru. Silakan cek email tersebut.'
+                'Link konfirmasi telah dikirim ke email baru. Buka email tersebut dan klik link-nya. Setelah itu Anda perlu masuk kembali dengan email baru.'
             );
-            e.currentTarget.reset();
+            form.reset();
         } catch (error) {
             setEmailStatus(
                 error instanceof ApiError
@@ -186,6 +197,13 @@ export default function AccountSettingsPage() {
             formData.get('password_confirmation')
         );
 
+        const passwordProblem = validatePassword(password);
+        if (passwordProblem) {
+            setPasswordError(passwordProblem);
+            setPasswordSubmitting(false);
+            return;
+        }
+
         if (password !== passwordConfirmation) {
             setPasswordError('Konfirmasi password tidak sesuai.');
             setPasswordSubmitting(false);
@@ -208,11 +226,19 @@ export default function AccountSettingsPage() {
 
             await logout();
         } catch (error) {
-            setPasswordError(
-                error instanceof ApiError
-                    ? error.message
-                    : 'Terjadi kesalahan. Silakan coba lagi.'
-            );
+            if (error instanceof ApiError) {
+                // Pesan per-field lebih jelas daripada ringkasan
+                // "... (and N more errors)" dari server.
+                const messages = error.errors
+                    ? Object.values(error.errors).flat()
+                    : [];
+
+                setPasswordError(
+                    messages.length > 0 ? messages.join(' ') : error.message
+                );
+            } else {
+                setPasswordError('Terjadi kesalahan. Silakan coba lagi.');
+            }
         } finally {
             setPasswordSubmitting(false);
         }
@@ -233,7 +259,7 @@ export default function AccountSettingsPage() {
                         required
                     />
                     {nameStatus && (
-                        <p className="text-sm text-forest-moss-300">
+                        <p className="text-sm text-forest-moss-700">
                             {nameStatus}
                         </p>
                     )}
@@ -249,17 +275,49 @@ export default function AccountSettingsPage() {
             </Card>
 
             <Card title="Email">
-                <p className="text-white text-sm">
+                <p className="text-oxford-navy-900 text-sm">
                     Email saat ini: <strong>{user?.email}</strong>
                     {' — '}
                     {user?.email_verified_at ? (
-                        <span className="text-forest-moss-300">
+                        <span className="text-forest-moss-700">
                             Terverifikasi
                         </span>
                     ) : (
-                        <span className="text-red-400">Belum diverifikasi</span>
+                        <span className="text-red-600">Belum diverifikasi</span>
                     )}
                 </p>
+                {!user?.email_verified_at && (
+                    <div className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4">
+                        <p className="text-oxford-navy-900/80 text-sm">
+                            Kirim link verifikasi ke email ini, lalu buka email
+                            dan klik tombol verifikasi (cek juga folder spam).
+                        </p>
+                        <Button
+                            type="button"
+                            variant="outline2"
+                            className="self-start"
+                            onClick={resendVerification}
+                            disabled={isResending || resendCooldown > 0}
+                        >
+                            {isResending
+                                ? 'Mengirim...'
+                                : resendCooldown > 0
+                                  ? `Kirim ulang (${resendCooldown} dtk)`
+                                  : 'Kirim Email Verifikasi'}
+                        </Button>
+                        {resendMessage && (
+                            <p
+                                className={`text-sm ${
+                                    resendIsError
+                                        ? 'text-red-600'
+                                        : 'text-forest-moss-700'
+                                }`}
+                            >
+                                {resendMessage}
+                            </p>
+                        )}
+                    </div>
+                )}
                 <form
                     onSubmit={handleEmailSubmit}
                     className="flex flex-col gap-4"
@@ -277,7 +335,7 @@ export default function AccountSettingsPage() {
                         required
                     />
                     {emailStatus && (
-                        <p className="text-sm text-forest-moss-300">
+                        <p className="text-sm text-forest-moss-700">
                             {emailStatus}
                         </p>
                     )}
@@ -309,6 +367,9 @@ export default function AccountSettingsPage() {
                         type="password"
                         required
                     />
+                    <small className="text-oxford-navy-900/70 -mt-2">
+                        {PASSWORD_HINT}
+                    </small>
                     <Input
                         label="Konfirmasi Password Baru"
                         name="password_confirmation"
@@ -316,12 +377,12 @@ export default function AccountSettingsPage() {
                         required
                     />
                     {passwordError && (
-                        <p className="text-sm text-red-400">
+                        <p className="text-sm text-red-600">
                             {passwordError}
                         </p>
                     )}
                     {passwordStatus && (
-                        <p className="text-sm text-forest-moss-300">
+                        <p className="text-sm text-forest-moss-700">
                             {passwordStatus}
                         </p>
                     )}
@@ -339,7 +400,7 @@ export default function AccountSettingsPage() {
             </Card>
 
             <Card title="Jadi Penulis / Editor">
-                <p className="text-white/70 text-sm">
+                <p className="text-oxford-navy-900/70 text-sm">
                     Ajukan untuk membuka fitur Penulis dan/atau Editor.
                     Permintaan akan ditinjau oleh Admin.
                 </p>

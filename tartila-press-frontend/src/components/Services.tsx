@@ -1,32 +1,45 @@
-import services from '../data/services.json';
+import ServiceItemCard, {
+    ServiceItemCardSkeleton,
+} from '@/components/service/ServiceItemCard';
+import { useCustomItems } from '@/hooks/useCustomItems';
 
-export default function Services() {
-    return (
-        <>
-            <div
-                className="
-                lg:grid lg:grid-cols-3 lg:auto-rows-fr lg:gap-6
-                md:grid md:grid-cols-2 md:auto-rows-fr md:gap-6
-                sm:grid sm:grid-cols-1 sm:auto-rows-fr sm:gap-6
-                grid grid-cols-1 auto-rows-fr gap-6
-                "
-            >
-                {services.map((service) => (
-                    <div
-                        key={service.id}
-                        className="flex flex-col gap-4 py-10 px-4 justify-center border border-forest-moss-500 rounded-xl shadow-md
-                        transition-transform hover:-translate-y-2 duration-200 bg-white
-                        "
-                    >
-                        <h5 className="text-xl font-semibold">
-                            {service.title}
-                        </h5>
-                        <p className="text-sm font-light">
-                            {service.description}
-                        </p>
-                    </div>
+const COUNT = 6;
+
+/**
+ * Cuplikan layanan di beranda: item custom yang tersedia (layanan dulu, lalu
+ * fasilitas) dengan harganya. Daftar lengkap ada di halaman Layanan.
+ */
+export default function Services({ limit = COUNT }: { limit?: number }) {
+    const { items, isLoading } = useCustomItems();
+
+    if (isLoading) {
+        return (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <ServiceItemCardSkeleton key={index} />
                 ))}
             </div>
-        </>
+        );
+    }
+
+    if (items.length === 0) {
+        return (
+            <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
+                Belum ada layanan yang ditampilkan.
+            </p>
+        );
+    }
+
+    const ordered = [
+        ...items.filter((item) => item.type === 'service'),
+        ...items.filter((item) => item.type === 'facility'),
+    ];
+
+    return (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {ordered.slice(0, limit).map((item) => (
+                <ServiceItemCard key={item.id} item={item} showType />
+            ))}
+        </div>
     );
 }

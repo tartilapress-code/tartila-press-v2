@@ -98,16 +98,16 @@ export default function TakePackagePage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6 max-w-xl">
-            <h5 className="text-white text-xl font-semibold">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 max-w-xl">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                 Ambil Paket: {pkg.name}
             </h5>
 
-            <p className="text-white/80">
+            <p className="text-oxford-navy-900/80">
                 Harga paket: {rupiahFormatter.format(pkg.final_price)}
             </p>
 
-            <label className="flex flex-row items-center gap-2 text-white">
+            <label className="flex flex-row items-center gap-2 text-oxford-navy-900">
                 <input
                     type="checkbox"
                     checked={wantsOwnEditor}
@@ -122,14 +122,14 @@ export default function TakePackagePage() {
             {wantsOwnEditor && (
                 <div className="flex flex-col gap-2">
                     {editors.length === 0 ? (
-                        <p className="text-white/70 text-sm">
+                        <p className="text-oxford-navy-900/70 text-sm">
                             Belum ada editor yang tersedia.
                         </p>
                     ) : (
                         editors.map((editor) => (
                             <label
                                 key={editor.user_id}
-                                className="flex flex-row items-center justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-3 text-white cursor-pointer"
+                                className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3 text-oxford-navy-900 cursor-pointer"
                             >
                                 <div className="flex flex-row items-center gap-2">
                                     <input
@@ -147,7 +147,7 @@ export default function TakePackagePage() {
                                     />
                                     <span>{editor.name}</span>
                                 </div>
-                                <span className="text-forest-moss-300 text-sm">
+                                <span className="text-forest-moss-700 text-sm">
                                     +{rupiahFormatter.format(
                                         Number(editor.fee)
                                     )}
@@ -158,14 +158,14 @@ export default function TakePackagePage() {
                 </div>
             )}
 
-            <div className="border-t border-white/20 pt-4">
-                <p className="text-white text-lg font-semibold">
+            <div className="border-t border-forest-moss-200 pt-4">
+                <p className="text-oxford-navy-900 text-lg font-semibold">
                     Total: {rupiahFormatter.format(total)}
                 </p>
             </div>
 
             {errorMessage && (
-                <p className="text-red-400 text-sm">{errorMessage}</p>
+                <p className="text-red-600 text-sm">{errorMessage}</p>
             )}
 
             <Button

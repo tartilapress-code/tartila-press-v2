@@ -10,6 +10,10 @@ export default function BookChapterSettingsPage() {
     const [maxChapters, setMaxChapters] = useState<string>('');
     const [minPrice, setMinPrice] = useState<string>('0');
     const [maxDiscount, setMaxDiscount] = useState<string>('100');
+    const [hkiCost, setHkiCost] = useState<string>('0');
+    const [isbnPrintCost, setIsbnPrintCost] = useState<string>('0');
+    const [isbnElectronicCost, setIsbnElectronicCost] = useState<string>('0');
+    const [minBookCost, setMinBookCost] = useState<string>('0');
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
@@ -20,9 +24,17 @@ export default function BookChapterSettingsPage() {
             .then((response) => {
                 const data = response.data;
                 setMinChapters(String(data.min_chapters));
-                setMaxChapters(data.max_chapters ? String(data.max_chapters) : '');
+                setMaxChapters(
+                    data.max_chapters ? String(data.max_chapters) : ''
+                );
                 setMinPrice(String(data.min_price));
                 setMaxDiscount(String(data.max_discount));
+                setHkiCost(String(Number(data.hki_cost ?? 0)));
+                setIsbnPrintCost(String(Number(data.isbn_print_cost ?? 0)));
+                setIsbnElectronicCost(
+                    String(Number(data.isbn_electronic_cost ?? 0))
+                );
+                setMinBookCost(String(Number(data.min_book_cost ?? 0)));
             })
             .finally(() => setIsLoading(false));
     }, []);
@@ -37,6 +49,10 @@ export default function BookChapterSettingsPage() {
                 max_chapters: maxChapters ? Number(maxChapters) : undefined,
                 min_price: minPrice,
                 max_discount: Number(maxDiscount),
+                hki_cost: hkiCost || 0,
+                isbn_print_cost: isbnPrintCost || 0,
+                isbn_electronic_cost: isbnElectronicCost || 0,
+                min_book_cost: minBookCost || 0,
             });
             setStatusMessage('Pengaturan berhasil disimpan.');
         } catch (error) {
@@ -51,25 +67,26 @@ export default function BookChapterSettingsPage() {
     }
 
     if (isLoading) {
-        return <p className="text-white/70">Memuat...</p>;
+        return <p className="text-oxford-navy-900/70">Memuat...</p>;
     }
 
     return (
         <div className="flex flex-col gap-6">
             <Link
                 to="/admin/book-chapter-projects"
-                className="text-forest-moss-300 text-sm hover:text-forest-moss-200 self-start"
+                className="text-forest-moss-700 text-sm hover:text-forest-moss-800 self-start"
             >
                 ← Kembali ke Daftar Proyek
             </Link>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Pengaturan Book Chapter
                 </h5>
-                <p className="text-white/60 text-sm">
-                    Batas ini hanya berlaku untuk proyek Book Chapter yang
-                    dibuat sendiri oleh Editor. Admin tidak dibatasi.
+                <p className="text-oxford-navy-900/65 text-sm">
+                    Batas jumlah bab, harga, dan diskon hanya berlaku untuk
+                    proyek Book Chapter yang dibuat sendiri oleh Editor. Admin
+                    tidak dibatasi saat membuat proyek.
                 </p>
 
                 <Input
@@ -95,9 +112,70 @@ export default function BookChapterSettingsPage() {
                     onChange={(e) => setMaxDiscount(e.target.value)}
                     required
                 />
+                <small className="text-oxford-navy-900/65 -mt-2">
+                    Diskon maksimal ini sekaligus menjadi fee editor pemilik
+                    proyek: fee = diskon maksimal − diskon yang diberikan editor
+                    (dalam % dari harga bab).
+                </small>
+            </div>
+
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                    Biaya Produksi 1 Buku
+                </h5>
+                <p className="text-oxford-navy-900/65 text-sm">
+                    Sisa biaya = total harga bab − biaya HKI − biaya ISBN −
+                    biaya fasilitas &amp; layanan yang dicentang pada proyek.
+                    Sisa ini harus tidak kurang dari minimal biaya 1 buku.
+                    Diskon tidak memengaruhi perhitungan ini. Aturan ini juga
+                    berlaku bagi editor <em>dan</em> admin saat mengubah atau
+                    menghapus bab.
+                </p>
+
+                <Input
+                    label="Biaya HKI (Rp)"
+                    type="number"
+                    min="0"
+                    value={hkiCost}
+                    onChange={(e) => setHkiCost(e.target.value)}
+                />
+                <Input
+                    label="Biaya ISBN Cetak (Rp)"
+                    type="number"
+                    min="0"
+                    value={isbnPrintCost}
+                    onChange={(e) => setIsbnPrintCost(e.target.value)}
+                />
+                <Input
+                    label="Biaya e-ISBN (Rp)"
+                    type="number"
+                    min="0"
+                    value={isbnElectronicCost}
+                    onChange={(e) => setIsbnElectronicCost(e.target.value)}
+                />
+                <Input
+                    label="Minimal Biaya Total 1 Buku (Rp)"
+                    type="number"
+                    min="0"
+                    value={minBookCost}
+                    onChange={(e) => setMinBookCost(e.target.value)}
+                />
+                <small className="text-oxford-navy-900/65 -mt-2">
+                    Biaya fasilitas &amp; layanan lain diatur di menu{' '}
+                    <Link
+                        to="/admin/custom-package-items"
+                        className="text-forest-moss-700 hover:text-forest-moss-800 underline"
+                    >
+                        Item Custom
+                    </Link>{' '}
+                    (kolom &quot;Biaya khusus Book Chapter&quot;; kosong =
+                    gratis). HKI dan ISBN dipilih lewat kotak khusus di form
+                    proyek — jangan isi biaya Book Chapter pada item HAKI/ISBN
+                    di Item Custom supaya tidak terhitung dua kali.
+                </small>
 
                 {statusMessage && (
-                    <p className="text-forest-moss-300 text-sm">
+                    <p className="text-forest-moss-700 text-sm">
                         {statusMessage}
                     </p>
                 )}

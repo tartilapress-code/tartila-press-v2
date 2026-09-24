@@ -24,7 +24,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 });
 
 export default function BuyBookPage() {
-    const { bookId } = useParams<{ bookId: string }>();
+    const { bookSlug } = useParams<{ bookSlug: string }>();
     const navigate = useNavigate();
 
     const [book, setBook] = useState<BookSummary | null>(null);
@@ -39,10 +39,10 @@ export default function BuyBookPage() {
 
     useEffect(() => {
         bookApi
-            .get(bookId ?? '')
+            .get(bookSlug ?? '')
             .then((response) => setBook(response.data))
             .finally(() => setIsLoading(false));
-    }, [bookId]);
+    }, [bookSlug]);
 
     async function handleSubmit() {
         if (!book) {
@@ -81,18 +81,18 @@ export default function BuyBookPage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6 max-w-xl">
-            <h5 className="text-white text-xl font-semibold">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 max-w-xl">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                 Beli Buku: {book.title}
             </h5>
 
             <div className="flex flex-row items-center gap-3">
                 {book.discount > 0 && (
-                    <span className="text-white/50 line-through">
+                    <span className="text-oxford-navy-900/55 line-through">
                         {rupiahFormatter.format(Number(book.price))}
                     </span>
                 )}
-                <span className="text-forest-moss-300 text-xl font-semibold">
+                <span className="text-forest-moss-700 text-xl font-semibold">
                     {rupiahFormatter.format(book.final_price)}
                 </span>
             </div>
@@ -100,7 +100,7 @@ export default function BuyBookPage() {
             <ShippingAddressFields value={shipping} onChange={setShipping} />
 
             {errorMessage && (
-                <p className="text-red-400 text-sm">{errorMessage}</p>
+                <p className="text-red-600 text-sm">{errorMessage}</p>
             )}
 
             <Button

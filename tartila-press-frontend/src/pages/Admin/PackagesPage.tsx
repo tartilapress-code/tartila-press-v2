@@ -64,12 +64,12 @@ function ListEditor({
 
     return (
         <div className="flex flex-col gap-2">
-            <label className="text-white">{label}</label>
+            <label className="text-sm font-medium text-oxford-navy-900">{label}</label>
             <div className="flex flex-row gap-2">
                 <input
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    className="flex-1 p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white outline-none"
+                    className="flex-1 p-2 rounded-lg ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 outline-none"
                     placeholder={`Tambah ${label.toLowerCase()}...`}
                 />
                 <Button type="button" variant="outline2" onClick={addItem}>
@@ -80,7 +80,7 @@ function ListEditor({
                 {items.map((item, index) => (
                     <li
                         key={`${item}-${index}`}
-                        className="flex flex-row items-center justify-between text-white/80 text-sm bg-oxford-navy-900/40 rounded px-3 py-1"
+                        className="flex flex-row items-center justify-between text-oxford-navy-900/80 text-sm bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded px-3 py-1"
                     >
                         {item}
                         <button
@@ -88,7 +88,7 @@ function ListEditor({
                             onClick={() =>
                                 onChange(items.filter((_, i) => i !== index))
                             }
-                            className="text-red-400 hover:text-red-300"
+                            className="text-red-600 hover:text-red-700"
                         >
                             Hapus
                         </button>
@@ -185,8 +185,8 @@ export default function PackagesPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     {editingId ? 'Ubah Paket' : 'Tambah Paket'}
                 </h5>
 
@@ -257,7 +257,7 @@ export default function PackagesPage() {
                 />
 
                 {statusMessage && (
-                    <p className="text-red-400 text-sm">{statusMessage}</p>
+                    <p className="text-red-600 text-sm">{statusMessage}</p>
                 )}
 
                 <div className="flex flex-row gap-2">
@@ -280,30 +280,30 @@ export default function PackagesPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Daftar Paket
                 </h5>
 
                 {isLoading ? (
-                    <p className="text-white/70 text-sm">Memuat...</p>
+                    <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
                 ) : (
                     <div className="flex flex-col gap-3">
                         {packages.map((pkg) => (
                             <div
                                 key={pkg.id}
-                                className="flex flex-row items-center justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-4"
+                                className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                             >
                                 <div>
-                                    <p className="text-white font-semibold">
+                                    <p className="text-oxford-navy-900 font-semibold">
                                         {pkg.name}{' '}
                                         {!pkg.is_active && (
-                                            <span className="text-red-400 text-xs">
+                                            <span className="text-red-600 text-xs">
                                                 (nonaktif)
                                             </span>
                                         )}
                                     </p>
-                                    <p className="text-white/60 text-sm">
+                                    <p className="text-oxford-navy-900/65 text-sm">
                                         Rp {pkg.price} — diskon{' '}
                                         {pkg.discount}%
                                     </p>

@@ -60,8 +60,8 @@ export default function FieldCategoriesPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     {editingId
                         ? 'Ubah Kategori Keilmuan'
                         : 'Tambah Kategori Keilmuan'}
@@ -73,7 +73,7 @@ export default function FieldCategoriesPage() {
                     required
                 />
                 {statusMessage && (
-                    <p className="text-red-400 text-sm">{statusMessage}</p>
+                    <p className="text-red-600 text-sm">{statusMessage}</p>
                 )}
                 <div className="flex flex-row gap-2">
                     <Button
@@ -95,20 +95,20 @@ export default function FieldCategoriesPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Daftar Kategori Keilmuan
                 </h5>
                 {isLoading ? (
-                    <p className="text-white/70 text-sm">Memuat...</p>
+                    <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
                 ) : (
                     <div className="flex flex-col gap-3">
                         {categories.map((category) => (
                             <div
                                 key={category.id}
-                                className="flex flex-row items-center justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-4"
+                                className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                             >
-                                <p className="text-white font-semibold">
+                                <p className="text-oxford-navy-900 font-semibold">
                                     {category.name}
                                 </p>
                                 <div className="flex flex-row gap-2 shrink-0">

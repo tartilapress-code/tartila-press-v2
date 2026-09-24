@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import * as publicProfileApi from '@/data/publicProfile/publicProfileApi';
+import PersonCard, {
+    PersonCardSkeleton,
+    type Person,
+} from '@/components/people/PersonCard';
 
-type Person = {
-    slug: string;
-    name: string;
-    bio: string | null;
-    profile_photo: string | null;
-};
-
+/** Beberapa penulis/editor di beranda, memakai kartu yang sama dengan halaman daftar. */
 export default function PeopleDirectory({
     role,
     limit,
@@ -28,12 +25,18 @@ export default function PeopleDirectory({
     }, [role]);
 
     if (isLoading) {
-        return <p className="text-oxford-navy-900 text-center">Memuat...</p>;
+        return (
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                {Array.from({ length: limit ?? 4 }).map((_, index) => (
+                    <PersonCardSkeleton key={index} />
+                ))}
+            </div>
+        );
     }
 
     if (people.length === 0) {
         return (
-            <p className="text-oxford-navy-900/70 text-center">
+            <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
                 Belum ada {role === 'penulis' ? 'penulis' : 'editor'} yang
                 ditampilkan.
             </p>
@@ -43,41 +46,9 @@ export default function PeopleDirectory({
     const shown = limit ? people.slice(0, limit) : people;
 
     return (
-        <div
-            className="
-            grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6
-            "
-        >
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {shown.map((person) => (
-                <Link
-                    key={person.slug}
-                    to={`/${role}/${person.slug}`}
-                    className="
-                    flex flex-col items-center gap-3 text-center
-                    bg-oxford-navy-900 rounded-xl p-6
-                    hover:-translate-y-1 duration-200
-                    "
-                >
-                    {person.profile_photo ? (
-                        <img
-                            src={person.profile_photo}
-                            alt={person.name}
-                            className="w-24 h-24 rounded-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-24 h-24 rounded-full bg-oxford-navy-700 flex items-center justify-center text-white text-2xl font-semibold">
-                            {person.name.charAt(0).toUpperCase()}
-                        </div>
-                    )}
-                    <h5 className="text-white font-semibold">
-                        {person.name}
-                    </h5>
-                    {person.bio && (
-                        <p className="text-white/70 text-sm line-clamp-3">
-                            {person.bio}
-                        </p>
-                    )}
-                </Link>
+                <PersonCard key={person.slug} person={person} role={role} />
             ))}
         </div>
     );

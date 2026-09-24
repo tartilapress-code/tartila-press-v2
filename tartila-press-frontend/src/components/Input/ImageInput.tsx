@@ -56,7 +56,7 @@ export default function ImageInput({
                 placeholder={placeholder}
             />
             <div className="flex flex-row items-center gap-3">
-                <label className="text-white/60 text-xs shrink-0">
+                <label className="text-oxford-navy-900/60 text-xs shrink-0">
                     atau unggah file:
                 </label>
                 <input
@@ -64,20 +64,20 @@ export default function ImageInput({
                     accept="image/png,image/jpeg,image/webp"
                     onChange={handleFileChange}
                     disabled={isUploading}
-                    className="text-white text-xs w-full"
+                    className="w-full text-xs text-oxford-navy-900/70 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-forest-moss-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-forest-moss-800 hover:file:bg-forest-moss-200"
                 />
                 {isUploading && (
-                    <span className="text-white/60 text-xs shrink-0">
+                    <span className="text-oxford-navy-900/60 text-xs shrink-0">
                         Mengunggah...
                     </span>
                 )}
             </div>
-            {error && <p className="text-red-400 text-xs">{error}</p>}
+            {error && <p className="text-red-600 text-xs">{error}</p>}
             {value && (
                 <img
                     src={value}
                     alt=""
-                    className="h-20 w-20 object-cover rounded-lg ring-1 ring-white/20"
+                    className="h-20 w-20 object-cover rounded-lg ring-1 ring-forest-moss-200"
                     onError={(e) => {
                         e.currentTarget.style.display = 'none';
                     }}

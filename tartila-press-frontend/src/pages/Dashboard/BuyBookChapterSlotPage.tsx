@@ -79,28 +79,28 @@ export default function BuyBookChapterSlotPage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6 max-w-xl">
-            <h5 className="text-white text-xl font-semibold">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 max-w-xl">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                 Beli Slot Bab: {project.title}
             </h5>
-            <p className="text-white/80">
+            <p className="text-oxford-navy-900/80">
                 Bab {chapter.chapter_number} — {chapter.title}
             </p>
 
             {chapter.slot_status !== 'open' ? (
-                <p className="text-red-400 text-sm">
+                <p className="text-red-600 text-sm">
                     Slot bab ini sudah tidak tersedia.
                 </p>
             ) : (
                 <>
-                    <div className="border-t border-white/20 pt-4">
-                        <p className="text-white text-lg font-semibold">
+                    <div className="border-t border-forest-moss-200 pt-4">
+                        <p className="text-oxford-navy-900 text-lg font-semibold">
                             Total: {rupiahFormatter.format(chapter.final_price)}
                         </p>
                     </div>
 
                     {errorMessage && (
-                        <p className="text-red-400 text-sm">{errorMessage}</p>
+                        <p className="text-red-600 text-sm">{errorMessage}</p>
                     )}
 
                     <Button

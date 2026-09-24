@@ -3,8 +3,8 @@ import Input from '@/components/Input/Input';
 import * as profileApi from '@/data/profile/profileApi';
 
 const textareaClass = `
-    w-full p-3 outline-none rounded-xl ring-1 ring-white/30 placeholder:text-white
-    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-oxford-navy-900/70`;
+    w-full p-3 outline-none rounded-xl ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40
+    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-forest-moss-50`;
 
 export type ShippingAddressValue = {
     recipient_name: string;
@@ -49,7 +49,7 @@ export default function ShippingAddressFields({
 
     if (isLoading) {
         return (
-            <p className="text-white/60 text-sm">
+            <p className="text-oxford-navy-900/65 text-sm">
                 Memuat data pengiriman...
             </p>
         );
@@ -62,8 +62,8 @@ export default function ShippingAddressFields({
 
     return (
         <div className="flex flex-col gap-3">
-            <h6 className="text-white font-semibold">Alamat Pengiriman</h6>
-            <p className="text-white/60 text-sm">
+            <h6 className="text-oxford-navy-900 font-semibold">Alamat Pengiriman</h6>
+            <p className="text-oxford-navy-900/65 text-sm">
                 {hasSavedAddress
                     ? 'Kosongkan untuk memakai data yang sudah tersimpan di Data Pribadi Anda.'
                     : 'Data pengiriman Anda belum lengkap. Isi di bawah ini, atau lengkapi dulu di Data Pribadi.'}
@@ -84,7 +84,7 @@ export default function ShippingAddressFields({
                 required={!hasSavedAddress}
             />
             <div className="flex flex-col gap-2">
-                <label className="text-white">Alamat Pengiriman{mark}</label>
+                <label className="text-sm font-medium text-oxford-navy-900">Alamat Pengiriman{mark}</label>
                 <textarea
                     className={textareaClass}
                     value={value.recipient_address}

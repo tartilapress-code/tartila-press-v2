@@ -43,7 +43,10 @@ export type CustomPackageItemPayload = Partial<{
     type: 'facility' | 'service';
     name: string;
     price: number | string;
-    description: string;
+    discount: number;
+    // Biaya item di proyek Book Chapter; null/kosong = gratis.
+    book_chapter_cost: number | string | null;
+    description: string | null;
     is_active: boolean;
 }>;
 
@@ -115,7 +118,12 @@ export const listManuscripts = (status?: string) =>
 export const reviewManuscriptRevision = (
     manuscriptId: number | string,
     revisionId: number | string,
-    payload: { decision: 'approve' | 'reject'; note?: string }
+    payload: {
+        decision: 'approve' | 'reject';
+        note?: string;
+        // Wajib saat approve naskah yang editornya dipilih langsung penulis.
+        fee?: number | string;
+    }
 ) =>
     http.post(
         `/admin/manuscripts/${manuscriptId}/revisions/${revisionId}/review`,
@@ -232,6 +240,10 @@ export type BookChapterProjectPayload = Partial<{
     owner_editor_id: number | null;
     is_active: boolean;
     chapters: ChapterInput[];
+    includes_hki: boolean;
+    includes_isbn_print: boolean;
+    includes_isbn_electronic: boolean;
+    package_item_ids: number[];
 }>;
 
 export const listBookChapterProjectsAdmin = () =>
@@ -272,6 +284,10 @@ export type BookChapterSettingPayload = {
     max_chapters?: number | null;
     min_price: number | string;
     max_discount: number;
+    hki_cost?: number | string;
+    isbn_print_cost?: number | string;
+    isbn_electronic_cost?: number | string;
+    min_book_cost?: number | string;
 };
 
 export const getBookChapterSettings = () => http.get('/admin/book-chapter-settings');

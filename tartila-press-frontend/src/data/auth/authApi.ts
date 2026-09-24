@@ -27,3 +27,19 @@ export const login = (payload: LoginPayload) =>
 export const logout = () => http.post('/auth/logout');
 
 export const me = () => http.get('/auth/me');
+
+export const resendVerificationEmail = () =>
+    http.post('/auth/email/verification-notification');
+
+export type ResetPasswordPayload = {
+    token: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+};
+
+export const forgotPassword = (email: string) =>
+    http.post('/auth/forgot-password', { email });
+
+export const resetPassword = (payload: ResetPasswordPayload) =>
+    http.post('/auth/reset-password', payload);

@@ -4,6 +4,12 @@ import Button from '@/components/Button/Button';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
 
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+});
+
 type PoolItem = {
     id: number;
     title: string;
@@ -46,19 +52,19 @@ export default function EditorManuscriptPoolPage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-            <h5 className="text-white text-xl font-semibold">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                 Pool Naskah Terbuka
             </h5>
 
             {errorMessage && (
-                <p className="text-red-400 text-sm">{errorMessage}</p>
+                <p className="text-red-600 text-sm">{errorMessage}</p>
             )}
 
             {isLoading ? (
-                <p className="text-white/70 text-sm">Memuat...</p>
+                <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
             ) : manuscripts.length === 0 ? (
-                <p className="text-white/70 text-sm">
+                <p className="text-oxford-navy-900/70 text-sm">
                     Belum ada naskah yang terbuka untuk diambil.
                 </p>
             ) : (
@@ -66,27 +72,30 @@ export default function EditorManuscriptPoolPage() {
                     {manuscripts.map((manuscript) => (
                         <div
                             key={manuscript.id}
-                            className="flex flex-row items-center justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-4"
+                            className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                         >
                             <div>
-                                <p className="text-white font-semibold">
+                                <p className="text-oxford-navy-900 font-semibold">
                                     {manuscript.title}
                                 </p>
-                                <p className="text-white/60 text-sm">
+                                <p className="text-oxford-navy-900/65 text-sm">
                                     Penulis: {manuscript.authors.join(', ')}
                                 </p>
                                 {manuscript.editor_fee && (
-                                    <p className="text-forest-moss-300 text-sm">
-                                        Fee: Rp {manuscript.editor_fee}
+                                    <p className="text-forest-moss-700 text-sm">
+                                        Harga pengerjaan:{' '}
+                                        {rupiahFormatter.format(
+                                            Number(manuscript.editor_fee)
+                                        )}
                                     </p>
                                 )}
                                 {manuscript.editor_deadline && (
-                                    <p className="text-white/60 text-sm">
+                                    <p className="text-oxford-navy-900/65 text-sm">
                                         Deadline: {manuscript.editor_deadline}
                                     </p>
                                 )}
                                 {manuscript.editor_assignment_note && (
-                                    <p className="text-white/60 text-sm">
+                                    <p className="text-oxford-navy-900/65 text-sm">
                                         Catatan:{' '}
                                         {manuscript.editor_assignment_note}
                                     </p>

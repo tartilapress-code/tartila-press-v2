@@ -3,10 +3,28 @@ import { Link } from 'react-router-dom';
 import Input from '@/components/Input/Input';
 import Select from '@/components/Select/Select';
 import Button from '@/components/Button/Button';
+import BookChapterCostPanel from '@/components/bookChapter/BookChapterCostPanel';
+import PackageOptionsField from '@/components/bookChapter/PackageOptionsField';
 import * as adminApi from '@/data/admin/adminApi';
 import type { ChapterInput } from '@/data/admin/adminApi';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
+import {
+    calculateBookChapterCost,
+    chapterRowsToCostInput,
+    emptyPackageOptions,
+    toNumber,
+    type BookChapterCostSettings,
+    type CostSummary,
+    type PackageItem,
+    type PackageOptions,
+} from '@/lib/bookChapterCost';
+
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+});
 
 type ChapterRow = {
     title: string;
@@ -26,6 +44,7 @@ type ProjectItem = {
     is_editor_created: boolean;
     owner_editor: { id: number; name: string } | null;
     chapters: { id: number; manuscript_id: number | null }[];
+    cost_summary?: CostSummary;
 };
 
 const emptyChapterRow = (): ChapterRow => ({
@@ -55,6 +74,11 @@ export default function BookChapterProjectsPage() {
     const [description, setDescription] = useState<string>('');
     const [ownerEditorId, setOwnerEditorId] = useState<string>('');
     const [submissionDeadline, setSubmissionDeadline] = useState<string>('');
+    const [options, setOptions] = useState<PackageOptions>(emptyPackageOptions);
+    const [settings, setSettings] = useState<BookChapterCostSettings | null>(
+        null
+    );
+    const [packageItems, setPackageItems] = useState<PackageItem[]>([]);
     const [chapters, setChapters] = useState<ChapterRow[]>([
         emptyChapterRow(),
         emptyChapterRow(),
@@ -72,6 +96,18 @@ export default function BookChapterProjectsPage() {
     useEffect(() => {
         load();
         editorApi.directory().then((response) => setEditors(response.data));
+        adminApi
+            .getBookChapterSettings()
+            .then((response) => setSettings(response.data));
+        adminApi.listCustomItems().then((response) =>
+            setPackageItems(
+                (
+                    response.data as (PackageItem & {
+                        is_active: boolean;
+                    })[]
+                ).filter((item) => item.is_active)
+            )
+        );
     }, []);
 
     function updateChapterRow(index: number, patch: Partial<ChapterRow>) {
@@ -95,8 +131,27 @@ export default function BookChapterProjectsPage() {
         setDescription('');
         setOwnerEditorId('');
         setSubmissionDeadline('');
+        setOptions(emptyPackageOptions);
         setChapters([emptyChapterRow(), emptyChapterRow()]);
     }
+
+    const filledChapters = chapters.filter((row) => row.title.trim() !== '');
+
+    // Pratinjau: admin tidak dibatasi saat membuat proyek, jadi kekurangan
+    // biaya minimal hanya berupa peringatan (perubahan berikutnya tetap
+    // terikat aturan).
+    const costSummary = settings
+        ? calculateBookChapterCost(
+              {
+                  ...options,
+                  price: toNumber(price),
+                  discount: toNumber(discount),
+                  chapters: chapterRowsToCostInput(filledChapters),
+              },
+              settings,
+              packageItems
+          )
+        : null;
 
     async function handleSubmit() {
         setIsSubmitting(true);
@@ -110,9 +165,8 @@ export default function BookChapterProjectsPage() {
                 description: description || undefined,
                 owner_editor_id: ownerEditorId ? Number(ownerEditorId) : null,
                 submission_deadline: submissionDeadline || undefined,
-                chapters: chapters
-                    .filter((row) => row.title.trim() !== '')
-                    .map(toChapterInput),
+                ...options,
+                chapters: filledChapters.map(toChapterInput),
             });
             resetForm();
             load();
@@ -135,7 +189,7 @@ export default function BookChapterProjectsPage() {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-row items-center justify-between">
-                <h5 className="text-white text-xl font-semibold">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Proyek Book Chapter
                 </h5>
                 <div className="flex flex-row gap-2">
@@ -148,8 +202,8 @@ export default function BookChapterProjectsPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Buat Proyek Book Chapter
                 </h5>
 
@@ -196,11 +250,11 @@ export default function BookChapterProjectsPage() {
                 />
 
                 <div className="flex flex-col gap-3">
-                    <h6 className="text-white font-semibold">Daftar Bab</h6>
+                    <h6 className="text-oxford-navy-900 font-semibold">Daftar Bab</h6>
                     {chapters.map((row, index) => (
                         <div
                             key={index}
-                            className="flex flex-col gap-2 bg-oxford-navy-900/40 rounded-lg p-3"
+                            className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3"
                         >
                             <div className="flex flex-row items-center gap-2">
                                 <input
@@ -211,7 +265,7 @@ export default function BookChapterProjectsPage() {
                                         })
                                     }
                                     placeholder={`Judul Bab ${index + 1}`}
-                                    className="flex-1 p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white outline-none"
+                                    className="flex-1 p-2 rounded-lg ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 outline-none"
                                 />
                                 <Button
                                     type="button"
@@ -221,7 +275,7 @@ export default function BookChapterProjectsPage() {
                                     Hapus
                                 </Button>
                             </div>
-                            <div className="flex flex-row gap-2">
+                            <div className="flex flex-row flex-wrap gap-2">
                                 <input
                                     value={row.price}
                                     onChange={(e) =>
@@ -230,7 +284,7 @@ export default function BookChapterProjectsPage() {
                                         })
                                     }
                                     placeholder="Harga custom (kosongkan = ikut buku)"
-                                    className="flex-1 p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white text-sm outline-none"
+                                    className="flex-1 min-w-48 p-2 rounded-lg ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 text-sm outline-none"
                                 />
                                 <input
                                     value={row.discount}
@@ -240,7 +294,7 @@ export default function BookChapterProjectsPage() {
                                         })
                                     }
                                     placeholder="Diskon custom (%)"
-                                    className="w-40 p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white text-sm outline-none"
+                                    className="w-40 p-2 rounded-lg ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 text-sm outline-none"
                                 />
                             </div>
                             <input
@@ -251,7 +305,7 @@ export default function BookChapterProjectsPage() {
                                     })
                                 }
                                 placeholder="SOP / ketentuan terbit bab ini (opsional)"
-                                className="p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white text-sm outline-none"
+                                className="p-2 rounded-lg ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 text-sm outline-none"
                             />
                         </div>
                     ))}
@@ -265,8 +319,25 @@ export default function BookChapterProjectsPage() {
                     </Button>
                 </div>
 
+                {settings && (
+                    <PackageOptionsField
+                        value={options}
+                        onChange={setOptions}
+                        settings={settings}
+                        items={packageItems}
+                    />
+                )}
+
+                {costSummary && (
+                    <BookChapterCostPanel
+                        summary={costSummary}
+                        discount={toNumber(discount)}
+                        showFee={ownerEditorId !== ''}
+                    />
+                )}
+
                 {statusMessage && (
-                    <p className="text-red-400 text-sm">{statusMessage}</p>
+                    <p className="text-red-600 text-sm">{statusMessage}</p>
                 )}
 
                 <Button
@@ -279,13 +350,13 @@ export default function BookChapterProjectsPage() {
                 </Button>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Daftar Proyek Book Chapter
                 </h5>
 
                 {isLoading ? (
-                    <p className="text-white/70 text-sm">Memuat...</p>
+                    <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
                 ) : (
                     <div className="flex flex-col gap-3">
                         {projects.map((project) => {
@@ -296,18 +367,18 @@ export default function BookChapterProjectsPage() {
                             return (
                                 <div
                                     key={project.id}
-                                    className="flex flex-row items-center justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-4"
+                                    className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                                 >
                                     <div>
-                                        <p className="text-white font-semibold">
+                                        <p className="text-oxford-navy-900 font-semibold">
                                             {project.title}{' '}
                                             {!project.is_active && (
-                                                <span className="text-white/50 text-xs">
+                                                <span className="text-oxford-navy-900/55 text-xs">
                                                     (belum publish)
                                                 </span>
                                             )}
                                         </p>
-                                        <p className="text-white/60 text-sm">
+                                        <p className="text-oxford-navy-900/65 text-sm">
                                             {filled}/{project.chapters.length}{' '}
                                             bab terisi
                                             {project.owner_editor
@@ -316,6 +387,19 @@ export default function BookChapterProjectsPage() {
                                             {project.is_editor_created &&
                                                 ' (dibuat editor)'}
                                         </p>
+                                        {project.cost_summary &&
+                                            !project.cost_summary
+                                                .meets_minimum && (
+                                                <p className="text-red-700 text-xs">
+                                                    Sisa biaya di bawah minimal
+                                                    1 buku (kurang{' '}
+                                                    {rupiahFormatter.format(
+                                                        project.cost_summary
+                                                            .shortfall
+                                                    )}
+                                                    )
+                                                </p>
+                                            )}
                                     </div>
                                     <div className="flex flex-row gap-2 shrink-0">
                                         <Link

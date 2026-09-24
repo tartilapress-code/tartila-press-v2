@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import * as authApi from '@/data/auth/authApi';
 import type { LoginPayload, RegisterPayload } from '@/data/auth/authApi';
 import { ApiError, clearToken, getToken, setToken } from '@/lib/http';
@@ -49,6 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
 
+    const refreshUser = useCallback(async () => {
+        try {
+            const response = await authApi.me();
+            setUser(response.data.user);
+        } catch {
+            // Gagal sesaat (jaringan/token) — biarkan data user yang ada.
+        }
+    }, []);
+
     return (
         <AuthContext.Provider
             value={{
@@ -58,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 login,
                 register,
                 logout,
+                refreshUser,
             }}
         >
             {children}

@@ -5,8 +5,8 @@ import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
 
 const textareaClass = `
-    w-full p-3 outline-none rounded-xl ring-1 ring-white/30 placeholder:text-white
-    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-oxford-navy-900/70`;
+    w-full p-3 outline-none rounded-xl ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40
+    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-forest-moss-50`;
 
 export default function EditorProfilePage() {
     const [fee, setFee] = useState<string>('0');
@@ -58,12 +58,12 @@ export default function EditorProfilePage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
             <div>
-                <h5 className="text-white text-xl font-semibold">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Profil Editor
                 </h5>
-                <p className="text-white/70 text-sm">
+                <p className="text-oxford-navy-900/70 text-sm">
                     Atur fee tambahan Anda saat dipilih langsung oleh penulis,
                     dan status ketersediaan.
                 </p>
@@ -78,7 +78,7 @@ export default function EditorProfilePage() {
                 />
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-white">Bio</label>
+                    <label className="text-sm font-medium text-oxford-navy-900">Bio</label>
                     <textarea
                         className={textareaClass}
                         rows={4}
@@ -87,7 +87,7 @@ export default function EditorProfilePage() {
                     />
                 </div>
 
-                <label className="flex flex-row items-center gap-2 text-white">
+                <label className="flex flex-row items-center gap-2 text-oxford-navy-900">
                     <input
                         type="checkbox"
                         checked={isAvailable}
@@ -97,7 +97,7 @@ export default function EditorProfilePage() {
                 </label>
 
                 {statusMessage && (
-                    <p className="text-sm text-forest-moss-300">
+                    <p className="text-sm text-forest-moss-700">
                         {statusMessage}
                     </p>
                 )}

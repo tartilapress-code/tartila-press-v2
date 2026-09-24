@@ -4,22 +4,25 @@ import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import Select from '@/components/Select/Select';
 import Button from '@/components/Button/Button';
+import BookChapterCostPanel from '@/components/bookChapter/BookChapterCostPanel';
+import ChapterRowEditor, {
+    type ChapterPatch,
+    type EditableChapter,
+} from '@/components/bookChapter/ChapterRowEditor';
+import PackageOptionsField from '@/components/bookChapter/PackageOptionsField';
 import * as adminApi from '@/data/admin/adminApi';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
+import {
+    calculateBookChapterCost,
+    emptyPackageOptions,
+    toNumber,
+    type BookChapterCostSettings,
+    type PackageItem,
+    type PackageOptions,
+} from '@/lib/bookChapterCost';
 
 type Category = { id: number; name: string };
-
-type ChapterItem = {
-    id: number;
-    chapter_number: number;
-    title: string;
-    price: string | null;
-    discount: number | null;
-    sop_terms: string | null;
-    manuscript_id: number | null;
-    order_id: number | null;
-};
 
 type ProjectDetail = {
     id: number;
@@ -33,10 +36,22 @@ type ProjectDetail = {
     owner_editor: { id: number; name: string } | null;
     book_category_id: number | null;
     field_category_id: number | null;
-    chapters: ChapterItem[];
+    includes_hki: boolean;
+    includes_isbn_print: boolean;
+    includes_isbn_electronic: boolean;
+    package_items: PackageItem[];
+    chapters: EditableChapter[];
 };
 
 type EditorItem = { user_id: number; name: string };
+
+type Notice = { kind: 'ok' | 'error'; text: string };
+
+function errorText(error: unknown): string {
+    return error instanceof ApiError
+        ? error.message
+        : 'Terjadi kesalahan. Silakan coba lagi.';
+}
 
 export default function BookChapterProjectDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -45,8 +60,13 @@ export default function BookChapterProjectDetailPage() {
     const [bookCategories, setBookCategories] = useState<Category[]>([]);
     const [fieldCategories, setFieldCategories] = useState<Category[]>([]);
     const [editors, setEditors] = useState<EditorItem[]>([]);
+    const [settings, setSettings] = useState<BookChapterCostSettings | null>(
+        null
+    );
+    const [activeItems, setActiveItems] = useState<PackageItem[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [statusMessage, setStatusMessage] = useState<string>('');
+    const [notice, setNotice] = useState<Notice | null>(null);
+    const [options, setOptions] = useState<PackageOptions>(emptyPackageOptions);
 
     const [form, setForm] = useState({
         title: '',
@@ -61,31 +81,39 @@ export default function BookChapterProjectDetailPage() {
     });
 
     const [newChapterTitle, setNewChapterTitle] = useState<string>('');
+    const [chapterNotice, setChapterNotice] = useState<string>('');
+
+    function applyProject(data: ProjectDetail) {
+        setProject(data);
+        setForm({
+            title: data.title,
+            price: String(Number(data.price)),
+            discount: String(data.discount),
+            description: data.description ?? '',
+            front_cover: data.front_cover ?? '',
+            back_cover: data.back_cover ?? '',
+            book_category_id: data.book_category_id
+                ? String(data.book_category_id)
+                : '',
+            field_category_id: data.field_category_id
+                ? String(data.field_category_id)
+                : '',
+            owner_editor_id: data.owner_editor
+                ? String(data.owner_editor.id)
+                : '',
+        });
+        setOptions({
+            includes_hki: data.includes_hki,
+            includes_isbn_print: data.includes_isbn_print,
+            includes_isbn_electronic: data.includes_isbn_electronic,
+            package_item_ids: data.package_items.map((item) => item.id),
+        });
+    }
 
     function load() {
-        adminApi
+        return adminApi
             .getBookChapterProjectAdmin(id ?? '')
-            .then((response) => {
-                const data = response.data;
-                setProject(data);
-                setForm({
-                    title: data.title,
-                    price: data.price,
-                    discount: String(data.discount),
-                    description: data.description ?? '',
-                    front_cover: data.front_cover ?? '',
-                    back_cover: data.back_cover ?? '',
-                    book_category_id: data.book_category_id
-                        ? String(data.book_category_id)
-                        : '',
-                    field_category_id: data.field_category_id
-                        ? String(data.field_category_id)
-                        : '',
-                    owner_editor_id: data.owner_editor
-                        ? String(data.owner_editor.id)
-                        : '',
-                });
-            })
+            .then((response) => applyProject(response.data))
             .finally(() => setIsLoading(false));
     }
 
@@ -95,16 +123,34 @@ export default function BookChapterProjectDetailPage() {
             adminApi.listBookCategoriesAdmin(),
             adminApi.listFieldCategoriesAdmin(),
             editorApi.directory(),
-        ]).then(([bookCategoryRes, fieldCategoryRes, editorRes]) => {
-            setBookCategories(bookCategoryRes.data);
-            setFieldCategories(fieldCategoryRes.data);
-            setEditors(editorRes.data);
-        });
+            adminApi.getBookChapterSettings(),
+            adminApi.listCustomItems(),
+        ]).then(
+            ([
+                bookCategoryRes,
+                fieldCategoryRes,
+                editorRes,
+                settingsRes,
+                itemsRes,
+            ]) => {
+                setBookCategories(bookCategoryRes.data);
+                setFieldCategories(fieldCategoryRes.data);
+                setEditors(editorRes.data);
+                setSettings(settingsRes.data);
+                setActiveItems(
+                    (
+                        itemsRes.data as (PackageItem & {
+                            is_active: boolean;
+                        })[]
+                    ).filter((item) => item.is_active)
+                );
+            }
+        );
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     async function handleSaveDetails() {
-        setStatusMessage('');
+        setNotice(null);
 
         try {
             await adminApi.updateBookChapterProjectAdmin(id ?? '', {
@@ -119,14 +165,12 @@ export default function BookChapterProjectDetailPage() {
                 owner_editor_id: form.owner_editor_id
                     ? Number(form.owner_editor_id)
                     : null,
+                ...options,
             });
-            load();
+            await load();
+            setNotice({ kind: 'ok', text: 'Perubahan berhasil disimpan.' });
         } catch (error) {
-            setStatusMessage(
-                error instanceof ApiError
-                    ? error.message
-                    : 'Terjadi kesalahan. Silakan coba lagi.'
-            );
+            setNotice({ kind: 'error', text: errorText(error) });
         }
     }
 
@@ -135,51 +179,80 @@ export default function BookChapterProjectDetailPage() {
         await adminApi.updateBookChapterProjectAdmin(project.id, {
             is_active: !project.is_active,
         });
-        load();
+        await load();
     }
 
     async function handleAddChapter() {
         if (!newChapterTitle.trim()) return;
-        await adminApi.addBookChapterProjectChapterAdmin(id ?? '', {
-            title: newChapterTitle,
-        });
-        setNewChapterTitle('');
-        load();
+        setChapterNotice('');
+
+        try {
+            await adminApi.addBookChapterProjectChapterAdmin(id ?? '', {
+                title: newChapterTitle,
+            });
+            setNewChapterTitle('');
+            await load();
+        } catch (error) {
+            setChapterNotice(errorText(error));
+        }
     }
 
-    async function handleUpdateChapter(
-        chapter: ChapterItem,
-        patch: Partial<{ title: string; price: string; discount: number }>
-    ) {
-        await adminApi.updateBookChapterProjectChapterAdmin(chapter.id, patch);
-        load();
+    async function handleSaveChapter(chapterId: number, patch: ChapterPatch) {
+        await adminApi.updateBookChapterProjectChapterAdmin(chapterId, patch);
+        await load();
     }
 
     async function handleDeleteChapter(chapterId: number) {
         await adminApi.deleteBookChapterProjectChapterAdmin(chapterId);
-        load();
+        await load();
     }
 
     if (isLoading) {
-        return <p className="text-white/70">Memuat...</p>;
+        return <p className="text-oxford-navy-900/70">Memuat...</p>;
     }
 
     if (!project) {
-        return <p className="text-white/70">Proyek tidak ditemukan.</p>;
+        return <p className="text-oxford-navy-900/70">Proyek tidak ditemukan.</p>;
     }
+
+    // Item yang sudah tercentang tapi kini nonaktif tetap tampil supaya bisa
+    // dilepas dan biayanya ikut terhitung.
+    const items = [
+        ...activeItems,
+        ...project.package_items.filter(
+            (saved) => !activeItems.some((active) => active.id === saved.id)
+        ),
+    ];
+
+    const costSummary = settings
+        ? calculateBookChapterCost(
+              {
+                  ...options,
+                  price: toNumber(form.price),
+                  discount: toNumber(form.discount),
+                  chapters: project.chapters.map((chapter) => ({
+                      price:
+                          chapter.price === null ? null : Number(chapter.price),
+                      discount: chapter.discount,
+                  })),
+              },
+              settings,
+              items
+          )
+        : null;
 
     return (
         <div className="flex flex-col gap-6">
             <Link
                 to="/admin/book-chapter-projects"
-                className="text-forest-moss-300 text-sm hover:text-forest-moss-200 self-start"
+                className="text-forest-moss-700 text-sm hover:text-forest-moss-800 self-start"
             >
                 ← Kembali ke Daftar Proyek
             </Link>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                 <div className="flex flex-row items-center justify-between">
-                    <h5 className="text-white text-xl font-semibold">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                         {project.title}
                     </h5>
                     <Button variant="outline2" onClick={handleToggleActive}>
@@ -188,6 +261,12 @@ export default function BookChapterProjectDetailPage() {
                             : 'Publish ke Katalog Buku'}
                     </Button>
                 </div>
+
+                <p className="text-oxford-navy-900/65 text-xs">
+                    Perubahan harga, diskon, HKI/ISBN, fasilitas &amp; layanan,
+                    serta mengubah/menghapus bab ditolak bila sisa biaya 1 buku
+                    menjadi di bawah minimal (berlaku juga untuk admin).
+                </p>
 
                 <Input
                     label="Judul Buku"
@@ -282,8 +361,34 @@ export default function BookChapterProjectDetailPage() {
                     }
                 />
 
-                {statusMessage && (
-                    <p className="text-red-400 text-sm">{statusMessage}</p>
+                {settings && (
+                    <PackageOptionsField
+                        value={options}
+                        onChange={setOptions}
+                        settings={settings}
+                        items={items}
+                    />
+                )}
+
+                {costSummary && (
+                    <BookChapterCostPanel
+                        summary={costSummary}
+                        discount={toNumber(form.discount)}
+                        showFee={form.owner_editor_id !== ''}
+                    />
+                )}
+
+                {notice && (
+                    <p
+                        role={notice.kind === 'error' ? 'alert' : 'status'}
+                        className={`text-sm ${
+                            notice.kind === 'error'
+                                ? 'text-red-700'
+                                : 'text-forest-moss-700'
+                        }`}
+                    >
+                        {notice.text}
+                    </p>
                 )}
 
                 <Button
@@ -295,86 +400,37 @@ export default function BookChapterProjectDetailPage() {
                 </Button>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
-                    Daftar Bab
-                </h5>
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Daftar Bab</h5>
 
                 <div className="flex flex-col gap-3">
                     {project.chapters.map((chapter) => (
-                        <div
-                            key={chapter.id}
-                            className="flex flex-col gap-2 bg-oxford-navy-900/40 rounded-lg p-3"
-                        >
-                            <div className="flex flex-row items-center justify-between gap-2">
-                                <input
-                                    defaultValue={chapter.title}
-                                    onBlur={(e) =>
-                                        handleUpdateChapter(chapter, {
-                                            title: e.target.value,
-                                        })
-                                    }
-                                    className="flex-1 p-2 rounded-lg ring-1 ring-white/30 bg-transparent text-white outline-none"
-                                />
-                                <span className="text-white/60 text-xs shrink-0">
-                                    {chapter.manuscript_id
-                                        ? 'Terisi'
-                                        : chapter.order_id
-                                          ? 'Dipesan'
-                                          : 'Terbuka'}
-                                </span>
-                                {!chapter.manuscript_id &&
-                                    !chapter.order_id && (
-                                        <Button
-                                            variant="outline2"
-                                            onClick={() =>
-                                                handleDeleteChapter(
-                                                    chapter.id
-                                                )
-                                            }
-                                        >
-                                            Hapus
-                                        </Button>
-                                    )}
-                            </div>
-                            <div className="flex flex-row gap-2">
-                                <input
-                                    defaultValue={chapter.price ?? ''}
-                                    onBlur={(e) =>
-                                        handleUpdateChapter(chapter, {
-                                            price: e.target.value || undefined,
-                                        })
-                                    }
-                                    placeholder="Harga custom (kosongkan = ikut buku)"
-                                    className="flex-1 p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white text-sm outline-none"
-                                />
-                                <input
-                                    defaultValue={chapter.discount ?? ''}
-                                    onBlur={(e) =>
-                                        handleUpdateChapter(chapter, {
-                                            discount: e.target.value
-                                                ? Number(e.target.value)
-                                                : undefined,
-                                        })
-                                    }
-                                    placeholder="Diskon custom (%)"
-                                    className="w-40 p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white text-sm outline-none"
-                                />
-                            </div>
-                        </div>
+                        <ChapterRowEditor
+                            key={`${chapter.id}-${chapter.title}-${chapter.price}-${chapter.discount}`}
+                            chapter={chapter}
+                            onSave={handleSaveChapter}
+                            onDelete={handleDeleteChapter}
+                        />
                     ))}
                 </div>
 
-                <div className="flex flex-row gap-2">
-                    <input
-                        value={newChapterTitle}
-                        onChange={(e) => setNewChapterTitle(e.target.value)}
-                        placeholder="Judul bab baru"
-                        className="flex-1 p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white outline-none"
-                    />
-                    <Button variant="outline2" onClick={handleAddChapter}>
-                        Tambah Bab
-                    </Button>
+                <div className="flex flex-col gap-2">
+                    <div className="flex flex-row gap-2">
+                        <input
+                            value={newChapterTitle}
+                            onChange={(e) => setNewChapterTitle(e.target.value)}
+                            placeholder="Judul bab baru"
+                            className="flex-1 p-2 rounded-lg ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 outline-none"
+                        />
+                        <Button variant="outline2" onClick={handleAddChapter}>
+                            Tambah Bab
+                        </Button>
+                    </div>
+                    {chapterNotice && (
+                        <p role="alert" className="text-red-700 text-sm">
+                            {chapterNotice}
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

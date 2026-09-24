@@ -7,10 +7,11 @@ import { useAuth } from '@/context/useAuth';
 import { hasAnyRole } from '@/context/AuthContext';
 import { ApiError } from '@/lib/http';
 import * as publicProfileApi from '@/data/publicProfile/publicProfileApi';
+import BookGrid, { type ProfileBook } from '@/components/book/BookGrid';
 
 const textareaClass = `
-    w-full p-3 outline-none rounded-xl ring-1 ring-white/30 placeholder:text-white
-    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-oxford-navy-900/70`;
+    w-full p-3 outline-none rounded-xl ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40
+    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-forest-moss-50`;
 
 type Experience = {
     id: number;
@@ -23,6 +24,7 @@ type PublicProfileState = {
     slug: string | null;
     pen_name: string;
     bio: string;
+    city: string;
     profile_photo: string;
     is_published: boolean;
 };
@@ -31,6 +33,7 @@ const emptyProfile: PublicProfileState = {
     slug: null,
     pen_name: '',
     bio: '',
+    city: '',
     profile_photo: '',
     is_published: false,
 };
@@ -41,8 +44,12 @@ export default function PublicProfilePage() {
     const { user } = useAuth();
     const isEligible = hasAnyRole(user, ['penulis', 'editor']);
 
+    const isEditor = hasAnyRole(user, ['editor']);
+
     const [profile, setProfile] = useState<PublicProfileState>(emptyProfile);
     const [experiences, setExperiences] = useState<Experience[]>([]);
+    const [books, setBooks] = useState<ProfileBook[]>([]);
+    const [editedBooks, setEditedBooks] = useState<ProfileBook[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
@@ -66,11 +73,14 @@ export default function PublicProfilePage() {
                         slug: data.slug ?? null,
                         pen_name: data.pen_name ?? '',
                         bio: data.bio ?? '',
+                        city: data.city ?? '',
                         profile_photo: data.profile_photo ?? '',
                         is_published: Boolean(data.is_published),
                     });
                     setExperiences(data.experiences ?? []);
                 }
+                setBooks(response.books ?? []);
+                setEditedBooks(response.edited_books ?? []);
             })
             .finally(() => setIsLoading(false));
     }, [isEligible]);
@@ -88,6 +98,7 @@ export default function PublicProfilePage() {
             const response = await publicProfileApi.upsert({
                 pen_name: profile.pen_name,
                 bio: profile.bio,
+                city: profile.city,
                 profile_photo: profile.profile_photo,
                 is_published: profile.is_published,
             });
@@ -174,16 +185,16 @@ export default function PublicProfilePage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                 <div className="flex flex-row items-center justify-between">
-                    <h5 className="text-white text-xl font-semibold">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                         Profil Publik
                     </h5>
                     {profile.slug && (
                         <Link
                             to={`/penulis/${profile.slug}`}
                             target="_blank"
-                            className="text-forest-moss-300 text-sm hover:text-forest-moss-200"
+                            className="text-forest-moss-700 text-sm hover:text-forest-moss-800"
                         >
                             Lihat halaman publik →
                         </Link>
@@ -207,7 +218,7 @@ export default function PublicProfilePage() {
                     />
 
                     <div className="flex flex-col gap-2">
-                        <label className="text-white">Bio</label>
+                        <label className="text-sm font-medium text-oxford-navy-900">Bio</label>
                         <textarea
                             className={textareaClass}
                             rows={4}
@@ -221,6 +232,18 @@ export default function PublicProfilePage() {
                         />
                     </div>
 
+                    <Input
+                        label="Kota (opsional)"
+                        name="city"
+                        value={profile.city}
+                        onChange={(e) =>
+                            setProfile((prev) => ({
+                                ...prev,
+                                city: e.target.value,
+                            }))
+                        }
+                    />
+
                     <ImageInput
                         label="Foto Profil"
                         value={profile.profile_photo}
@@ -233,7 +256,7 @@ export default function PublicProfilePage() {
                         folder="profiles"
                     />
 
-                    <label className="flex flex-row items-center gap-2 text-white">
+                    <label className="flex flex-row items-center gap-2 text-oxford-navy-900">
                         <input
                             type="checkbox"
                             checked={profile.is_published}
@@ -248,7 +271,7 @@ export default function PublicProfilePage() {
                     </label>
 
                     {statusMessage && (
-                        <p className="text-sm text-forest-moss-300">
+                        <p className="text-sm text-forest-moss-700">
                             {statusMessage}
                         </p>
                     )}
@@ -264,33 +287,33 @@ export default function PublicProfilePage() {
                 </form>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Jejak Pengalaman
                 </h5>
 
                 <div className="flex flex-col gap-3">
                     {experiences.length === 0 && (
-                        <p className="text-white/70 text-sm">
+                        <p className="text-oxford-navy-900/70 text-sm">
                             Belum ada jejak pengalaman.
                         </p>
                     )}
                     {experiences.map((experience) => (
                         <div
                             key={experience.id}
-                            className="flex flex-row items-start justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-4"
+                            className="flex flex-row items-start justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                         >
                             <div>
-                                <p className="text-white font-semibold">
+                                <p className="text-oxford-navy-900 font-semibold">
                                     {experience.title}{' '}
                                     {experience.year && (
-                                        <span className="text-white/60 font-normal">
+                                        <span className="text-oxford-navy-900/65 font-normal">
                                             ({experience.year})
                                         </span>
                                     )}
                                 </p>
                                 {experience.description && (
-                                    <p className="text-white/70 text-sm">
+                                    <p className="text-oxford-navy-900/70 text-sm">
                                         {experience.description}
                                     </p>
                                 )}
@@ -301,7 +324,7 @@ export default function PublicProfilePage() {
                                     onClick={() =>
                                         handleEditExperience(experience)
                                     }
-                                    className="text-forest-moss-300 text-sm hover:text-forest-moss-200"
+                                    className="text-forest-moss-700 text-sm hover:text-forest-moss-800"
                                 >
                                     Edit
                                 </button>
@@ -310,7 +333,7 @@ export default function PublicProfilePage() {
                                     onClick={() =>
                                         handleDeleteExperience(experience.id)
                                     }
-                                    className="text-red-400 text-sm hover:text-red-300"
+                                    className="text-red-600 text-sm hover:text-red-700"
                                 >
                                     Hapus
                                 </button>
@@ -321,7 +344,7 @@ export default function PublicProfilePage() {
 
                 <form
                     onSubmit={handleExperienceSubmit}
-                    className="flex flex-col gap-4 border-t border-white/20 pt-4"
+                    className="flex flex-col gap-4 border-t border-forest-moss-200 pt-4"
                 >
                     <Input
                         label="Judul"
@@ -379,13 +402,29 @@ export default function PublicProfilePage() {
                 </form>
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h5 className="text-white text-xl font-semibold">Buku</h5>
-                <p className="text-white/70 text-sm">
-                    Belum ada buku. Fitur ini akan tersedia setelah modul Buku
-                    aktif.
-                </p>
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Buku</h5>
+                {books.length === 0 ? (
+                    <p className="text-oxford-navy-900/70 text-sm">Belum ada buku.</p>
+                ) : (
+                    <BookGrid books={books} />
+                )}
             </div>
+
+            {isEditor && (
+                <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                        Buku yang Diedit
+                    </h5>
+                    {editedBooks.length === 0 ? (
+                        <p className="text-oxford-navy-900/70 text-sm">
+                            Belum ada buku yang diedit.
+                        </p>
+                    ) : (
+                        <BookGrid books={editedBooks} />
+                    )}
+                </div>
+            )}
         </div>
     );
 }

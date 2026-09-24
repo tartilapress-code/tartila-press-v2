@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { RiEyeLine, RiEyeOffLine } from '@remixicon/react';
 
 //script
@@ -15,12 +15,9 @@ export default function Input({
     ...props
 }: InputProps) {
     //logic
-    const [focus, setFocus] = useState<boolean>(false);
     const [showPassword, setShowPassword] = useState<boolean>(false);
-
-    function handleOnfocus() {
-        setFocus(!focus);
-    }
+    const generatedId = useId();
+    const id = props.id ?? generatedId;
 
     const isPassword = type === 'password';
     const inputType = isPassword && showPassword ? 'text' : type;
@@ -30,27 +27,29 @@ export default function Input({
         <>
             <div className="flex flex-col gap-2">
                 <label
-                    className={`${focus ? 'text-oxford-navy-200' : 'text-white'}`}
-                    htmlFor=""
+                    className="text-sm font-medium text-oxford-navy-900"
+                    htmlFor={id}
                 >
                     {label}
                 </label>
                 <div className="relative">
                     <input
-                        onFocus={handleOnfocus}
-                        onBlur={handleOnfocus}
                         type={inputType}
                         className={`
-                        w-full p-3 outline-none rounded-xl ring-1 ring-white/30 placeholder:text-white
-                        focus:ring-1 focus:ring-oxford-navy-500 focus:bg-oxford-navy-300/50
+                        w-full rounded-xl border bg-white p-3 text-sm text-oxford-navy-900 outline-none transition
+                        placeholder:text-oxford-navy-900/40
+                        focus:border-forest-moss-500 focus:ring-2 focus:ring-forest-moss-500/30
+                        disabled:cursor-not-allowed disabled:bg-forest-moss-50 disabled:text-oxford-navy-900/55
+                        ${errorMessage ? 'border-red-400' : 'border-oxford-navy-900/15 hover:border-oxford-navy-900/30'}
                         ${isPassword ? 'pr-11' : ''} `}
                         {...props}
+                        id={id}
                     />
                     {isPassword && (
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-oxford-navy-900/55 hover:text-oxford-navy-700"
                             aria-label={
                                 showPassword
                                     ? 'Sembunyikan password'
@@ -66,7 +65,7 @@ export default function Input({
                         </button>
                     )}
                 </div>
-                <small className="text-red-400 none">{errorMessage}</small>
+                <small className="text-red-600">{errorMessage}</small>
             </div>
         </>
     );

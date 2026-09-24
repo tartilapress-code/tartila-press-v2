@@ -5,10 +5,11 @@ const variants = {
         'px-1.5 py-1 font-semibold text-sm text-white bg-red-600 w-fit rounded-sm',
     secondary:
         'px-1.5 py-1 font-medium text-sm text-black  bg-white w-fit rounded-sm',
+    accent: 'px-1.5 py-1 font-medium text-sm text-oxford-navy-900 bg-forest-moss-200 w-fit rounded-sm',
 };
 
 export interface BadgeProps {
-    variant?: 'primary' | 'secondary';
+    variant?: 'primary' | 'secondary' | 'accent';
     children: React.ReactNode;
 }
 

@@ -2,27 +2,27 @@
     {
         "id": 1,
         "label": "Home",
-        "links": "#home"
+        "links": "/#home"
     },
     {
         "id": 2,
         "label": "Layanan",
-        "links": "layanan"
+        "links": "/layanan"
     },
     {
         "id": 3,
         "label": "Paket",
-        "links": "#paket"
+        "links": "/paket"
     },
     {
         "id": 4,
         "label": "Artikel",
-        "links": "#artikel"
+        "links": "/artikel"
     },
     {
         "id": 5,
-        "label": "kontak",
-        "links": "#kontak"
+        "label": "Kontak",
+        "links": "/#kontak"
     },
     {
         "id": 6,
@@ -30,9 +30,9 @@
         "links": "/buku"
     },
     {
-        "id": 6,
+        "id": 10,
         "label": "Event",
-        "links": "#event"
+        "links": "/#event"
     },
     {
         "id": 7,

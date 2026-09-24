@@ -5,6 +5,9 @@ import LayananPage from './pages/Home/LayananPage';
 import ErrorPage from './pages/ErrorPage';
 import RegistrationPage from './pages/Registration/RegistrationPage';
 import LoginPage from './pages/Login/LoginPage';
+import VerifyEmailPage from './pages/Auth/VerifyEmailPage';
+import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
 import RegistrationTest from './pages/Registration/RegistrationTest';
 import AuthorProfilePage from './pages/PublicProfile/AuthorProfilePage';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -16,6 +19,7 @@ import AdminRoute from './routes/AdminRoute';
 import AdminLayout from './layouts/AdminLayout';
 import RoleRequestsPage from './pages/Admin/RoleRequestsPage';
 import UserManagementPage from './pages/Admin/UserManagementPage';
+import PackageListPage from './pages/Package/PackageListPage';
 import PackageDetailPage from './pages/Package/PackageDetailPage';
 import TakePackagePage from './pages/Dashboard/TakePackagePage';
 import CustomPackagePage from './pages/Dashboard/CustomPackagePage';
@@ -31,6 +35,7 @@ import ManuscriptDetailPage from './pages/Dashboard/ManuscriptDetailPage';
 import MyManuscriptsPage from './pages/Dashboard/MyManuscriptsPage';
 import EditorManuscriptPoolPage from './pages/Dashboard/EditorManuscriptPoolPage';
 import EditorManuscriptsPage from './pages/Dashboard/EditorManuscriptsPage';
+import EditorFeePage from './pages/Dashboard/EditorFeePage';
 import ManuscriptsPage from './pages/Admin/ManuscriptsPage';
 import BookCatalogPage from './pages/Book/BookCatalogPage';
 import BookDetailPage from './pages/Book/BookDetailPage';
@@ -43,6 +48,7 @@ import BookChapterProjectListPage from './pages/BookChapterProject/BookChapterPr
 import BookChapterProjectDetailPage from './pages/BookChapterProject/BookChapterProjectDetailPage';
 import BuyBookChapterSlotPage from './pages/Dashboard/BuyBookChapterSlotPage';
 import MyBookChapterProjectsPage from './pages/Dashboard/MyBookChapterProjectsPage';
+import MyBookChapterProjectDetailPage from './pages/Dashboard/MyBookChapterProjectDetailPage';
 import AdminBookChapterProjectsPage from './pages/Admin/BookChapterProjectsPage';
 import AdminBookChapterProjectDetailPage from './pages/Admin/BookChapterProjectDetailPage';
 import BookChapterBulkImportPage from './pages/Admin/BookChapterBulkImportPage';
@@ -52,6 +58,17 @@ import CartPage from './pages/Dashboard/CartPage';
 import PaymentMethodsPage from './pages/Admin/PaymentMethodsPage';
 import RoyaltyPage from './pages/Dashboard/RoyaltyPage';
 import RoyaltiesPage from './pages/Admin/RoyaltiesPage';
+import ArticleListPage from './pages/Article/ArticleListPage';
+import ArticleDetailPage from './pages/Article/ArticleDetailPage';
+import WriteArticlePage from './pages/Dashboard/WriteArticlePage';
+import MyArticlesPage from './pages/Dashboard/MyArticlesPage';
+import AdminArticlesPage from './pages/Admin/ArticlesPage';
+import EventListPage from './pages/Event/EventListPage';
+import EventDetailPage from './pages/Event/EventDetailPage';
+import EventRegistrationPage from './pages/Dashboard/EventRegistrationPage';
+import MyEventsPage from './pages/Dashboard/MyEventsPage';
+import AdminEventsPage from './pages/Admin/EventsPage';
+import AdminEventCategoriesPage from './pages/Admin/EventCategoriesPage';
 
 const router = createBrowserRouter([
     {
@@ -84,6 +101,10 @@ const router = createBrowserRouter([
                 element: <AuthorProfilePage />,
             },
             {
+                path: 'paket',
+                element: <PackageListPage />,
+            },
+            {
                 path: 'paket/:id',
                 element: <PackageDetailPage />,
             },
@@ -106,6 +127,42 @@ const router = createBrowserRouter([
             {
                 path: 'buku-bab/:id',
                 element: <BookChapterProjectDetailPage />,
+            },
+            {
+                path: 'artikel',
+                element: <ArticleListPage />,
+            },
+            {
+                path: 'artikel/:slug',
+                element: <ArticleDetailPage />,
+            },
+            {
+                path: 'event',
+                element: <EventListPage />,
+            },
+            {
+                path: 'event/:slug',
+                element: <EventDetailPage />,
+            },
+            {
+                path: 'verifikasi-email',
+                element: <VerifyEmailPage />,
+            },
+            {
+                path: 'lupa-password',
+                element: <ForgotPasswordPage />,
+            },
+            {
+                path: 'reset-password',
+                element: <ResetPasswordPage />,
+            },
+            {
+                path: 'register',
+                element: <RegistrationPage />,
+            },
+            {
+                path: 'login',
+                element: <LoginPage />,
             },
             {
                 path: 'dashboard',
@@ -163,6 +220,10 @@ const router = createBrowserRouter([
                                 element: <EditorManuscriptsPage />,
                             },
                             {
+                                path: 'fee-saya',
+                                element: <EditorFeePage />,
+                            },
+                            {
                                 path: 'beli-slot-bab/:projectId/:chapterId',
                                 element: <BuyBookChapterSlotPage />,
                             },
@@ -171,7 +232,11 @@ const router = createBrowserRouter([
                                 element: <MyBookChapterProjectsPage />,
                             },
                             {
-                                path: 'beli-buku/:bookId',
+                                path: 'proyek-bab-buku-saya/:id',
+                                element: <MyBookChapterProjectDetailPage />,
+                            },
+                            {
+                                path: 'beli-buku/:bookSlug',
                                 element: <BuyBookPage />,
                             },
                             {
@@ -181,6 +246,22 @@ const router = createBrowserRouter([
                             {
                                 path: 'royalti',
                                 element: <RoyaltyPage />,
+                            },
+                            {
+                                path: 'tulis-artikel',
+                                element: <WriteArticlePage />,
+                            },
+                            {
+                                path: 'artikel-saya',
+                                element: <MyArticlesPage />,
+                            },
+                            {
+                                path: 'daftar-event/:slug',
+                                element: <EventRegistrationPage />,
+                            },
+                            {
+                                path: 'event-saya',
+                                element: <MyEventsPage />,
                             },
                         ],
                     },
@@ -257,6 +338,18 @@ const router = createBrowserRouter([
                                 path: 'royalties',
                                 element: <RoyaltiesPage />,
                             },
+                            {
+                                path: 'articles',
+                                element: <AdminArticlesPage />,
+                            },
+                            {
+                                path: 'events',
+                                element: <AdminEventsPage />,
+                            },
+                            {
+                                path: 'event-categories',
+                                element: <AdminEventCategoriesPage />,
+                            },
                         ],
                     },
                 ],
@@ -266,14 +359,6 @@ const router = createBrowserRouter([
     {
         path: '/test',
         element: <RegistrationTest />,
-    },
-    {
-        path: '/register',
-        element: <RegistrationPage />,
-    },
-    {
-        path: '/login',
-        element: <LoginPage />,
     },
 ]);
 

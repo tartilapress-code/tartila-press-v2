@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import Select from '@/components/Select/Select';
 import Button from '@/components/Button/Button';
+import OrderMessages from '@/components/order/OrderMessages';
 import * as adminApi from '@/data/admin/adminApi';
 import type { BookShipmentPayload } from '@/data/admin/adminApi';
 import { getOrderCategory, type OrderCategory } from '@/lib/orderCategory';
@@ -55,6 +56,7 @@ const categoryTabs: { value: OrderCategory; label: string }[] = [
     { value: 'book', label: 'Pesanan Buku Fisik' },
     { value: 'package', label: 'Paket Penerbitan' },
     { value: 'book_chapter', label: 'Book Chapter' },
+    { value: 'event', label: 'Event' },
 ];
 
 const sortOptions = [
@@ -113,18 +115,18 @@ function ShipmentDetail({
     }
 
     return (
-        <div className="flex flex-col gap-3 bg-oxford-navy-900/60 rounded-lg p-4">
-            <div className="text-white/80 text-sm flex flex-col gap-1">
+        <div className="flex flex-col gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-4">
+            <div className="text-oxford-navy-900/80 text-sm flex flex-col gap-1">
                 <p>
-                    <span className="text-white/50">Penerima:</span>{' '}
+                    <span className="text-oxford-navy-900/55">Penerima:</span>{' '}
                     {shipment.recipient_name}
                 </p>
                 <p>
-                    <span className="text-white/50">No. WhatsApp:</span>{' '}
+                    <span className="text-oxford-navy-900/55">No. WhatsApp:</span>{' '}
                     {shipment.recipient_phone}
                 </p>
                 <p>
-                    <span className="text-white/50">Alamat:</span>{' '}
+                    <span className="text-oxford-navy-900/55">Alamat:</span>{' '}
                     {shipment.recipient_address}
                 </p>
             </div>
@@ -140,14 +142,14 @@ function ShipmentDetail({
                     />
                 </div>
                 <div className="flex flex-col gap-2">
-                    <label className="text-white text-sm">
+                    <label className="text-oxford-navy-900 text-sm">
                         Estimasi Sampai
                     </label>
                     <input
                         type="date"
                         value={estimatedDate}
                         onChange={(e) => setEstimatedDate(e.target.value)}
-                        className="p-3 rounded-xl ring-1 ring-white/30 bg-white/5 text-white outline-none"
+                        className="p-3 rounded-xl ring-1 ring-forest-moss-200 bg-forest-moss-50 text-oxford-navy-900 outline-none"
                     />
                 </div>
                 <Button
@@ -159,7 +161,7 @@ function ShipmentDetail({
                 </Button>
             </div>
 
-            {error && <p className="text-red-400 text-xs">{error}</p>}
+            {error && <p className="text-red-600 text-xs">{error}</p>}
         </div>
     );
 }
@@ -204,24 +206,24 @@ function PaymentVerificationActions({
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Alasan penolakan (opsional)"
-                    className="text-xs p-1 rounded bg-white/5 ring-1 ring-white/20 text-white outline-none"
+                    className="text-xs p-1 rounded bg-forest-moss-50 ring-1 ring-forest-moss-100 text-oxford-navy-900 outline-none"
                 />
                 <div className="flex flex-row gap-2">
                     <button
                         onClick={() => handleDecision('reject')}
                         disabled={isSubmitting}
-                        className="text-red-400 text-xs hover:text-red-300 font-semibold"
+                        className="text-red-600 text-xs hover:text-red-700 font-semibold"
                     >
                         Konfirmasi Tolak
                     </button>
                     <button
                         onClick={() => setShowRejectNote(false)}
-                        className="text-white/50 text-xs"
+                        className="text-oxford-navy-900/55 text-xs"
                     >
                         Batal
                     </button>
                 </div>
-                {error && <p className="text-red-400 text-xs">{error}</p>}
+                {error && <p className="text-red-600 text-xs">{error}</p>}
             </div>
         );
     }
@@ -232,19 +234,19 @@ function PaymentVerificationActions({
                 <button
                     onClick={() => handleDecision('approve')}
                     disabled={isSubmitting}
-                    className="text-forest-moss-300 text-xs hover:text-forest-moss-200 font-semibold"
+                    className="text-forest-moss-700 text-xs hover:text-forest-moss-800 font-semibold"
                 >
                     ACC
                 </button>
                 <button
                     onClick={() => setShowRejectNote(true)}
                     disabled={isSubmitting}
-                    className="text-red-400 text-xs hover:text-red-300 font-semibold"
+                    className="text-red-600 text-xs hover:text-red-700 font-semibold"
                 >
                     Tolak
                 </button>
             </div>
-            {error && <p className="text-red-400 text-xs">{error}</p>}
+            {error && <p className="text-red-600 text-xs">{error}</p>}
         </div>
     );
 }
@@ -278,6 +280,7 @@ export default function OrdersPage() {
             book: [],
             package: [],
             book_chapter: [],
+            event: [],
         };
 
         orders.forEach((order) => {
@@ -330,9 +333,9 @@ export default function OrdersPage() {
                 ))}
             </div>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <h5 className="text-white text-xl font-semibold">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                         {
                             categoryTabs.find(
                                 (tab) => tab.value === activeCategory
@@ -368,16 +371,16 @@ export default function OrdersPage() {
                 </div>
 
                 {isLoading ? (
-                    <p className="text-white/70 text-sm">Memuat...</p>
+                    <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
                 ) : visibleOrders.length === 0 ? (
-                    <p className="text-white/70 text-sm">
+                    <p className="text-oxford-navy-900/70 text-sm">
                         Belum ada pesanan.
                     </p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm border-collapse">
                             <thead>
-                                <tr className="text-white/60 border-b border-white/20">
+                                <tr className="text-oxford-navy-900/65 border-b border-forest-moss-200">
                                     <th className="p-2 font-medium">Kode</th>
                                     <th className="p-2 font-medium">
                                         Nama Produk
@@ -393,48 +396,46 @@ export default function OrdersPage() {
                                     <th className="p-2 font-medium">
                                         Bukti Pembayaran
                                     </th>
-                                    {activeCategory === 'book' && (
-                                        <th className="p-2 font-medium">
-                                            Pengiriman
-                                        </th>
-                                    )}
+                                    <th className="p-2 font-medium">
+                                        Detail
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {visibleOrders.map((order) => (
                                     <Fragment key={order.id}>
-                                        <tr className="border-b border-white/10 align-top">
-                                            <td className="p-2 text-white font-semibold whitespace-nowrap">
+                                        <tr className="border-b border-forest-moss-100 align-top">
+                                            <td className="p-2 text-oxford-navy-900 font-semibold whitespace-nowrap">
                                                 {order.order_number}
                                             </td>
-                                            <td className="p-2 text-white/80">
+                                            <td className="p-2 text-oxford-navy-900/80">
                                                 {order.items
                                                     .map((item) => item.name)
                                                     .join(', ')}
                                                 {order.editor && (
-                                                    <div className="text-white/50 text-xs">
+                                                    <div className="text-oxford-navy-900/55 text-xs">
                                                         Editor:{' '}
                                                         {order.editor.name}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="p-2 text-white/80">
+                                            <td className="p-2 text-oxford-navy-900/80">
                                                 {order.user.name}
-                                                <div className="text-white/50 text-xs">
+                                                <div className="text-oxford-navy-900/55 text-xs">
                                                     {order.user.email}
                                                 </div>
                                             </td>
-                                            <td className="p-2 text-forest-moss-300 font-semibold whitespace-nowrap">
+                                            <td className="p-2 text-forest-moss-700 font-semibold whitespace-nowrap">
                                                 {rupiahFormatter.format(
                                                     Number(order.total)
                                                 )}
                                             </td>
-                                            <td className="p-2 text-white/70 whitespace-nowrap">
+                                            <td className="p-2 text-oxford-navy-900/70 whitespace-nowrap">
                                                 {dateFormatter.format(
                                                     new Date(order.created_at)
                                                 )}
                                             </td>
-                                            <td className="p-2 w-52">
+                                            <td className="p-2 w-52 min-w-[11rem]">
                                                 <Select
                                                     name={`status-${order.id}`}
                                                     option_data={
@@ -458,7 +459,7 @@ export default function OrdersPage() {
                                                             }
                                                             target="_blank"
                                                             rel="noreferrer"
-                                                            className="text-forest-moss-300 text-xs underline hover:text-forest-moss-200"
+                                                            className="text-forest-moss-700 text-xs underline hover:text-forest-moss-800"
                                                         >
                                                             Lihat Bukti
                                                         </a>
@@ -475,67 +476,67 @@ export default function OrdersPage() {
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-white/40 text-xs">
+                                                    <span className="text-oxford-navy-900/45 text-xs">
                                                         Belum upload
                                                     </span>
                                                 )}
                                             </td>
-                                            {activeCategory === 'book' && (
-                                                <td className="p-2 whitespace-nowrap">
-                                                    {order.book_shipment ? (
-                                                        <button
-                                                            onClick={() =>
-                                                                setExpandedId(
-                                                                    expandedId ===
-                                                                        order.id
-                                                                        ? null
-                                                                        : order.id
-                                                                )
-                                                            }
-                                                            className="text-forest-moss-300 text-xs hover:text-forest-moss-200"
-                                                        >
-                                                            {SHIPPING_STAGE_LABELS[
+                                            <td className="p-2 whitespace-nowrap">
+                                                <button
+                                                    onClick={() =>
+                                                        setExpandedId(
+                                                            expandedId ===
+                                                                order.id
+                                                                ? null
+                                                                : order.id
+                                                        )
+                                                    }
+                                                    className="text-forest-moss-700 text-xs hover:text-forest-moss-800"
+                                                >
+                                                    {order.book_shipment &&
+                                                        `${
+                                                            SHIPPING_STAGE_LABELS[
                                                                 order
                                                                     .book_shipment
                                                                     .status
                                                             ] ??
-                                                                order
-                                                                    .book_shipment
-                                                                    .status}
-                                                            {' — '}
-                                                            {expandedId ===
-                                                            order.id
-                                                                ? 'Tutup'
-                                                                : 'Detail'}
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-white/40 text-xs">
-                                                            Tidak ada data
-                                                            pengiriman
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            )}
+                                                            order.book_shipment
+                                                                .status
+                                                        } — `}
+                                                    {expandedId === order.id
+                                                        ? 'Tutup'
+                                                        : 'Detail'}
+                                                </button>
+                                            </td>
                                         </tr>
-                                        {activeCategory === 'book' &&
-                                            expandedId === order.id &&
-                                            order.book_shipment && (
-                                                <tr className="border-b border-white/10">
-                                                    <td
-                                                        colSpan={8}
-                                                        className="p-2"
-                                                    >
-                                                        <ShipmentDetail
-                                                            shipment={
-                                                                order.book_shipment
-                                                            }
-                                                            onSaved={
-                                                                loadOrders
+                                        {expandedId === order.id && (
+                                            <tr className="border-b border-forest-moss-100">
+                                                <td
+                                                    colSpan={8}
+                                                    className="p-2"
+                                                >
+                                                    <div className="flex flex-col gap-4">
+                                                        {order.book_shipment && (
+                                                            <ShipmentDetail
+                                                                shipment={
+                                                                    order.book_shipment
+                                                                }
+                                                                onSaved={
+                                                                    loadOrders
+                                                                }
+                                                            />
+                                                        )}
+                                                        <OrderMessages
+                                                            orderId={order.id}
+                                                            canSend={
+                                                                order.status !==
+                                                                'completed'
                                                             }
                                                         />
-                                                    </td>
-                                                </tr>
-                                            )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
                                     </Fragment>
                                 ))}
                             </tbody>

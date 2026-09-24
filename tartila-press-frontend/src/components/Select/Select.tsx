@@ -23,10 +23,7 @@ export default function Option({
             <div className="flex flex-col gap-2">
                 <label
                     htmlFor={name}
-                    className={`
-                        text-sm font-medium transition-colors duration-200
-                        text-white
-                    `}
+                    className="text-sm font-medium text-oxford-navy-900"
                 >
                     {label}
                 </label>
@@ -38,28 +35,23 @@ export default function Option({
                         className="
                             w-full appearance-none
                             rounded-xl
-                            border border-white/20
-                            bg-white/5
+                            border border-oxford-navy-900/15
+                            bg-white
                             px-4 py-3 pr-10
-                            text-white
+                            text-sm text-oxford-navy-900
                             outline-none
-                            backdrop-blur-sm
 
                             transition-all duration-200
 
-                            hover:border-white/40
-                            hover:bg-white/10
+                            hover:border-oxford-navy-900/30
 
-                            focus:border-oxford-navy-500
-                            focus:bg-oxford-navy-300/10
+                            focus:border-forest-moss-500
                             focus:ring-2
-                            focus:ring-oxford-navy-500/30
+                            focus:ring-forest-moss-500/30
 
                             disabled:cursor-not-allowed
-                            disabled:opacity-50
-
-                            [&>option]:bg-oxford-navy-400
-                            [&>option]:text-white
+                            disabled:bg-forest-moss-50
+                            disabled:opacity-70
                         "
                         {...props}
                     >
@@ -78,7 +70,7 @@ export default function Option({
                             right-4
                             top-1/2
                             -translate-y-1/2
-                            text-white/70
+                            text-oxford-navy-700
                         "
                     >
                         <RiArrowDownSFill />

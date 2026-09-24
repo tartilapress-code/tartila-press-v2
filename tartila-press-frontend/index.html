@@ -11,9 +11,31 @@
             rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/remixicon@4.9.1/fonts/remixicon.css"
         />
+
+        <!--Fonts (serif untuk judul: .font-display, tulisan tangan: .font-script)-->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossorigin="anonymous"
+        />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,400;1,500&family=Caveat:wght@500;600&display=swap"
+        />
     </head>
 
     <body>
+        <!--Tautan HTML biasa ke daftar buku, untuk robot yang tidak menjalankan
+            JavaScript (mis. Google Scholar). VITE_API_URL berakhiran /api/v1,
+            jadi "/../katalog" menuju /api/katalog (halaman dari server).-->
+        <noscript>
+            <p>
+                <a href="%VITE_API_URL%/../katalog"
+                    >Daftar buku Tartila Press</a
+                >
+            </p>
+        </noscript>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
     </body>

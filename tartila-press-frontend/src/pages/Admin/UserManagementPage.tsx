@@ -57,17 +57,17 @@ function UserRolesRow({ user }: { user: UserItem }) {
     }
 
     return (
-        <div className="flex flex-col gap-3 bg-oxford-navy-900/40 rounded-lg p-4">
+        <div className="flex flex-col gap-3 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4">
             <div>
-                <p className="text-white font-semibold">{user.name}</p>
-                <p className="text-white/60 text-sm">{user.email}</p>
+                <p className="text-oxford-navy-900 font-semibold">{user.name}</p>
+                <p className="text-oxford-navy-900/65 text-sm">{user.email}</p>
             </div>
 
             <div className="flex flex-row flex-wrap gap-4">
                 {ALL_ROLES.map((role) => (
                     <label
                         key={role.name}
-                        className="flex flex-row items-center gap-2 text-white text-sm"
+                        className="flex flex-row items-center gap-2 text-oxford-navy-900 text-sm"
                     >
                         <input
                             type="checkbox"
@@ -89,7 +89,7 @@ function UserRolesRow({ user }: { user: UserItem }) {
                     {isSaving ? 'Menyimpan...' : 'Simpan'}
                 </Button>
                 {statusMessage && (
-                    <p className="text-forest-moss-300 text-sm">
+                    <p className="text-forest-moss-700 text-sm">
                         {statusMessage}
                     </p>
                 )}
@@ -110,11 +110,11 @@ export default function UserManagementPage() {
     }, []);
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-            <h5 className="text-white text-xl font-semibold">Kelola User</h5>
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Kelola User</h5>
 
             {isLoading ? (
-                <p className="text-white/70 text-sm">Memuat...</p>
+                <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
             ) : (
                 <div className="flex flex-col gap-3">
                     {users.map((user) => (

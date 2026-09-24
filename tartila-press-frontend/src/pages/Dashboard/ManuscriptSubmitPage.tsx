@@ -72,8 +72,8 @@ function CoAuthorPicker({
 
     return (
         <div className="flex flex-col gap-2">
-            <label className="text-white">Penulis Lain (opsional)</label>
-            <p className="text-white/60 text-xs">
+            <label className="text-sm font-medium text-oxford-navy-900">Penulis Lain (opsional)</label>
+            <p className="text-oxford-navy-900/65 text-xs">
                 Cari akun yang sudah terdaftar untuk ditambahkan sebagai
                 penulis. Anda bisa mengurutkan siapa penulis pertama, kedua,
                 dst.
@@ -83,17 +83,17 @@ function CoAuthorPicker({
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="w-full p-2 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white outline-none"
+                    className="w-full p-2 rounded-lg ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 outline-none"
                     placeholder="Cari nama akun..."
                 />
                 {query.trim().length >= 2 && (
-                    <div className="absolute z-10 mt-1 w-full bg-oxford-navy-900 ring-1 ring-white/20 rounded-lg overflow-hidden">
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg ring-1 ring-forest-moss-200 rounded-lg overflow-hidden">
                         {isSearching ? (
-                            <p className="text-white/60 text-sm p-2">
+                            <p className="text-oxford-navy-900/65 text-sm p-2">
                                 Mencari...
                             </p>
                         ) : results.length === 0 ? (
-                            <p className="text-white/60 text-sm p-2">
+                            <p className="text-oxford-navy-900/65 text-sm p-2">
                                 Tidak ada akun ditemukan.
                             </p>
                         ) : (
@@ -102,7 +102,7 @@ function CoAuthorPicker({
                                     type="button"
                                     key={result.id}
                                     onClick={() => addCoAuthor(result)}
-                                    className="w-full text-left text-white/80 text-sm px-3 py-2 hover:bg-oxford-navy-700"
+                                    className="w-full text-left text-oxford-navy-900/80 text-sm px-3 py-2 hover:bg-forest-moss-50"
                                 >
                                     {result.name}
                                 </button>
@@ -116,7 +116,7 @@ function CoAuthorPicker({
                 {coAuthors.map((author, index) => (
                     <li
                         key={author.id}
-                        className="flex flex-row items-center justify-between gap-2 text-white/80 text-sm bg-oxford-navy-900/40 rounded px-3 py-1"
+                        className="flex flex-row items-center justify-between gap-2 text-oxford-navy-900/80 text-sm bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded px-3 py-1"
                     >
                         <span>
                             {index + 1}. {author.name}
@@ -127,7 +127,7 @@ function CoAuthorPicker({
                                 type="button"
                                 onClick={() => moveUp(index)}
                                 disabled={index === 0}
-                                className="text-white/60 hover:text-white disabled:opacity-30"
+                                className="text-oxford-navy-900/65 hover:text-oxford-navy-900 disabled:opacity-30"
                             >
                                 ↑
                             </button>
@@ -135,7 +135,7 @@ function CoAuthorPicker({
                                 type="button"
                                 onClick={() => moveDown(index)}
                                 disabled={index === coAuthors.length - 1}
-                                className="text-white/60 hover:text-white disabled:opacity-30"
+                                className="text-oxford-navy-900/65 hover:text-oxford-navy-900 disabled:opacity-30"
                             >
                                 ↓
                             </button>
@@ -143,7 +143,7 @@ function CoAuthorPicker({
                                 <button
                                     type="button"
                                     onClick={() => removeCoAuthor(index)}
-                                    className="text-red-400 hover:text-red-300"
+                                    className="text-red-600 hover:text-red-700"
                                 >
                                     Hapus
                                 </button>
@@ -260,19 +260,19 @@ export default function ManuscriptSubmitPage() {
 
     if (isLoadingOrder) {
         return (
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6 max-w-xl">
-                <p className="text-white/70 text-sm">Memuat...</p>
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 max-w-xl">
+                <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6 max-w-xl">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 max-w-xl">
             <div>
-                <h5 className="text-white text-xl font-semibold">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Submit Naskah
                 </h5>
-                <p className="text-white/70 text-sm">
+                <p className="text-oxford-navy-900/70 text-sm">
                     Lengkapi keterangan buku dan unggah naskah Anda.
                 </p>
             </div>
@@ -280,12 +280,12 @@ export default function ManuscriptSubmitPage() {
             {isBookChapter ? (
                 <>
                     <div className="flex flex-col gap-1">
-                        <label className="text-white/70 text-sm">
+                        <label className="text-oxford-navy-900/70 text-sm">
                             Judul Buku
                         </label>
-                        <p className="text-white">{bookChapterTitle}</p>
+                        <p className="text-oxford-navy-900">{bookChapterTitle}</p>
                     </div>
-                    <p className="text-white/60 text-sm">
+                    <p className="text-oxford-navy-900/65 text-sm">
                         Penulis: Anda sendiri (naskah Book Chapter tidak
                         dapat ditambah penulis lain).
                     </p>
@@ -307,23 +307,23 @@ export default function ManuscriptSubmitPage() {
             )}
 
             <div className="flex flex-col gap-2">
-                <label className="text-white">
+                <label className="text-sm font-medium text-oxford-navy-900">
                     File Naskah (pdf/doc/docx/odt, maks 20MB)
                 </label>
                 <input
                     type="file"
                     accept=".pdf,.doc,.docx,.odt"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    className="text-white text-sm"
+                    className="text-oxford-navy-900 text-sm"
                 />
             </div>
 
-            <hr className="border-white/20" />
+            <hr className="border-forest-moss-200" />
             <div>
-                <h6 className="text-white font-semibold">
+                <h6 className="text-oxford-navy-900 font-semibold">
                     Biodata Penulis (untuk akhir buku)
                 </h6>
-                <p className="text-white/60 text-sm">
+                <p className="text-oxford-navy-900/65 text-sm">
                     Opsional — kalau dikosongkan, otomatis diambil dari Profil
                     Publik Anda
                     {defaultBio?.name ? ` (${defaultBio.name})` : ''}.
@@ -351,7 +351,7 @@ export default function ManuscriptSubmitPage() {
             />
 
             {errorMessage && (
-                <p className="text-red-400 text-sm">{errorMessage}</p>
+                <p className="text-red-600 text-sm">{errorMessage}</p>
             )}
 
             <Button

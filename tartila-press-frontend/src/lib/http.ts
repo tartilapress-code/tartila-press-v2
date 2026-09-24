@@ -29,6 +29,11 @@ export function clearToken(): void {
     localStorage.removeItem(TOKEN_KEY);
 }
 
+/** Alamat lengkap sebuah endpoint API, untuk pemuat yang tidak memakai `http` (mis. PDF.js). */
+export function apiUrl(path: string): string {
+    return `${BASE_URL}${path}`;
+}
+
 async function parseJsonOrThrow(response: globalThis.Response) {
     const body = await response.json().catch(() => null);
 

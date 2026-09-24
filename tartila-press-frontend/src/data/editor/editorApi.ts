@@ -20,6 +20,8 @@ export const claimManuscript = (id: number | string) =>
 
 export const myManuscripts = () => http.get('/editor/manuscripts');
 
+export const myFees = () => http.get('/editor/fees');
+
 export type ChapterInput = {
     title: string;
     price?: number | string | null;
@@ -42,9 +44,18 @@ export type BookChapterProjectPayload = Partial<{
     estimated_publish_date: string;
     submission_deadline: string;
     chapters: ChapterInput[];
+    includes_hki: boolean;
+    includes_isbn_print: boolean;
+    includes_isbn_electronic: boolean;
+    package_item_ids: number[];
 }>;
 
 export const getBookChapterSettings = () => http.get('/editor/book-chapter-settings');
+
+// Fasilitas & layanan (item paket custom) yang bisa dicentang, beserta biaya
+// khusus Book Chapter (null = gratis).
+export const getBookChapterPackageItems = () =>
+    http.get('/editor/book-chapter-package-items');
 
 export const myBookChapterProjects = () => http.get('/editor/book-chapter-projects');
 

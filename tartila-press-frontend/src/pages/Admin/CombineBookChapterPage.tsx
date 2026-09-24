@@ -138,19 +138,19 @@ export default function CombineBookChapterPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <h5 className="text-white text-xl font-semibold">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                 Gabungkan Naskah jadi Book Chapter
             </h5>
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h6 className="text-white font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h6 className="text-oxford-navy-900 font-semibold">
                     1. Pilih Naskah (status selesai, belum diterbitkan)
                 </h6>
 
                 {isLoading ? (
-                    <p className="text-white/70 text-sm">Memuat...</p>
+                    <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
                 ) : manuscripts.length === 0 ? (
-                    <p className="text-white/60 text-sm">
+                    <p className="text-oxford-navy-900/65 text-sm">
                         Tidak ada naskah selesai yang tersedia untuk
                         digabungkan.
                     </p>
@@ -159,7 +159,7 @@ export default function CombineBookChapterPage() {
                         {manuscripts.map((manuscript) => (
                             <label
                                 key={manuscript.id}
-                                className="flex flex-row items-center gap-3 bg-oxford-navy-900/40 rounded-lg p-3 cursor-pointer"
+                                className="flex flex-row items-center gap-3 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3 cursor-pointer"
                             >
                                 <input
                                     type="checkbox"
@@ -170,7 +170,7 @@ export default function CombineBookChapterPage() {
                                         toggleSelect(manuscript.id)
                                     }
                                 />
-                                <span className="text-white text-sm">
+                                <span className="text-oxford-navy-900 text-sm">
                                     {manuscript.title} — {manuscript.user.name}
                                 </span>
                             </label>
@@ -180,16 +180,16 @@ export default function CombineBookChapterPage() {
             </div>
 
             {selectedManuscripts.length > 0 && (
-                <div className="flex flex-col gap-3 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                    <h6 className="text-white font-semibold">
+                <div className="flex flex-col gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <h6 className="text-oxford-navy-900 font-semibold">
                         2. Urutan Bab
                     </h6>
                     {selectedManuscripts.map((manuscript, index) => (
                         <div
                             key={manuscript.id}
-                            className="flex flex-row items-center justify-between bg-oxford-navy-900/40 rounded-lg p-3"
+                            className="flex flex-row items-center justify-between bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3"
                         >
-                            <span className="text-white text-sm">
+                            <span className="text-oxford-navy-900 text-sm">
                                 Bab {index + 1} — {manuscript.title}
                             </span>
                             <div className="flex flex-row gap-2">
@@ -216,8 +216,8 @@ export default function CombineBookChapterPage() {
                 </div>
             )}
 
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h6 className="text-white font-semibold">
+            <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                <h6 className="text-oxford-navy-900 font-semibold">
                     3. Metadata Buku Gabungan
                 </h6>
 
@@ -307,7 +307,7 @@ export default function CombineBookChapterPage() {
                 />
 
                 {statusMessage && (
-                    <p className="text-red-400 text-sm">{statusMessage}</p>
+                    <p className="text-red-600 text-sm">{statusMessage}</p>
                 )}
 
                 <Button

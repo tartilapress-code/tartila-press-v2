@@ -1,53 +1,52 @@
-import Badge from './Badge';
-import Button from './Button/Button';
-import InformationCard from './InformationCard';
+import { useEffect, useState } from 'react';
+import ArticleCard from '@/components/article/ArticleCard';
+import * as articleApi from '@/data/article/articleApi';
+import type { Article } from '@/data/article/articleApi';
 
+const COUNT = 3;
+
+/** Artikel terbaru di beranda. */
 export default function Information() {
-    return (
-        <>
-            <div
-                className="h-auto w-auto
-                bg-[url(../assets/images/buku.png)] bg-center bg-no-repeat bg-cover rounded-xl relative
-                "
-            >
-                <div className="bg-oxford-navy-950/90 w-full inset-0 h-full grid grid-cols-2 auto-cols-fr gap-4 p-4 rounded-xl">
-                    <div className="grid grid-rows-2 auto-cols-fr gap-4">
-                        <div className="flex flex-col w-full p-4 gap-6 m-0">
-                            <h1
-                                className="
-                                text-5xl font-bold text-forest-moss-400 z-100 leading-15 text-shadow-white/80 text-shadow-xs"
-                            >
-                                Stay Inform and Inspired with Our Publisher
-                            </h1>
-                        </div>
-                        <div
-                            className="p-4 w-full h-auto flex flex-col gap-4 justify-end
-                            bg-[url(../assets/images/buku.png)] bg-center bg-no-repeat bg-cover rounded-xl
-                            transition-transform hover:-translate-y-2 duration-200
-                            "
-                        >
-                            <div className="mb-auto justify-self-start">
-                                <Badge variant="secondary">Publishing</Badge>
-                            </div>
-                            <div
-                                className="flex w-1/2 flex-col gap-6
-                                "
-                            >
-                                <h4 className="font-extrabold text-3xl text-white text-shadow-black/50 text-shadow-lg">
-                                    New Article Await Read Our newest Articles
-                                </h4>
-                                <Button variant="primary">
-                                    Checks Articles
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+    const [articles, setArticles] = useState<Article[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-                    <div className="grid grid-cols-2 auto-rows-fr gap-4 w-auto h-auto">
-                        <InformationCard />
-                    </div>
-                </div>
+    useEffect(() => {
+        articleApi
+            .list()
+            .then((response) => setArticles(response.data.slice(0, COUNT)))
+            .catch(() => setArticles([]))
+            .finally(() => setIsLoading(false));
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div
+                aria-hidden
+                className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3"
+            >
+                {Array.from({ length: COUNT }).map((_, index) => (
+                    <div
+                        key={index}
+                        className="h-[24rem] animate-pulse rounded-2xl border border-forest-moss-100 bg-white"
+                    />
+                ))}
             </div>
-        </>
+        );
+    }
+
+    if (articles.length === 0) {
+        return (
+            <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
+                Belum ada artikel.
+            </p>
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+            ))}
+        </div>
     );
 }

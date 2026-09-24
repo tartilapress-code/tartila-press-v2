@@ -25,3 +25,19 @@ export const uploadPaymentProof = (
     orderId: number | string,
     formData: FormData
 ) => http.upload(`/orders/${orderId}/payment-proof`, formData);
+
+export type OrderMessage = {
+    id: number;
+    order_id: number;
+    user_id: number;
+    is_admin: boolean;
+    body: string;
+    created_at: string;
+    user: { id: number; name: string };
+};
+
+export const listMessages = (orderId: number | string) =>
+    http.get(`/orders/${orderId}/messages`);
+
+export const sendMessage = (orderId: number | string, body: string) =>
+    http.post(`/orders/${orderId}/messages`, { body });

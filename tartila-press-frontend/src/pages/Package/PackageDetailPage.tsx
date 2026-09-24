@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { RiArrowLeftLine, RiCheckLine } from '@remixicon/react';
 import * as packageApi from '@/data/package/packageApi';
 import Button from '@/components/Button/Button';
+import PillBadge from '@/components/ui/PillBadge';
+import SectionTitle from '@/components/ui/SectionTitle';
 import ErrorPage from '@/pages/ErrorPage';
 import { ApiError } from '@/lib/http';
 import { useAuth } from '@/context/useAuth';
@@ -39,12 +42,18 @@ function ListSection({
     }
 
     return (
-        <div className="flex flex-col gap-2">
-            <h5 className="text-white text-lg font-semibold">{title}</h5>
-            <ul className="flex flex-col gap-1 text-white/80">
+        <div className="flex flex-col gap-3">
+            <h5 className="font-display text-lg font-bold text-oxford-navy-700">
+                {title}
+            </h5>
+            <ul className="flex flex-col gap-2 text-oxford-navy-900/80">
                 {items.map((item) => (
-                    <li key={item} className="list-disc list-inside">
-                        {item}
+                    <li key={item} className="flex items-start gap-2.5">
+                        <RiCheckLine
+                            aria-hidden
+                            className="mt-0.5 size-5 shrink-0 text-forest-moss-600"
+                        />
+                        <span>{item}</span>
                     </li>
                 ))}
             </ul>
@@ -78,7 +87,7 @@ export default function PackageDetailPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-dvh">
-                <p className="text-oxford-navy-900">Memuat...</p>
+                <p className="text-oxford-navy-900/70">Memuat...</p>
             </div>
         );
     }
@@ -95,67 +104,83 @@ export default function PackageDetailPage() {
         navigate(`/dashboard/ambil-paket/${pkg!.id}`);
     }
 
+    const hasLists = [pkg.services, pkg.facilities, pkg.terms, pkg.notes].some(
+        (items) => items && items.length > 0
+    );
+
     return (
-        <div className="flex flex-col gap-6 my-10 max-w-3xl mx-auto">
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-8">
-                {pkg.photo && (
-                    <img
-                        src={pkg.photo}
-                        alt={pkg.name}
-                        className="w-full h-56 object-cover rounded-lg"
-                    />
-                )}
-                <div>
-                    <h1 className="text-white text-3xl font-bold">
-                        {pkg.name}
-                    </h1>
-                    {pkg.category && (
-                        <p className="text-white/70">{pkg.category}</p>
-                    )}
-                </div>
-
-                <div className="flex flex-row items-center gap-3">
-                    {pkg.discount > 0 && (
-                        <span className="text-white/50 line-through">
-                            {rupiahFormatter.format(Number(pkg.price))}
-                        </span>
-                    )}
-                    <span className="text-forest-moss-300 text-2xl font-semibold">
-                        {rupiahFormatter.format(pkg.final_price)}
-                    </span>
-                    {pkg.discount > 0 && (
-                        <span className="text-white/70 text-sm">
-                            (diskon {pkg.discount}%)
-                        </span>
-                    )}
-                </div>
-
-                {pkg.description && (
-                    <p className="text-white/80">{pkg.description}</p>
-                )}
-
-                <Button
-                    variant="primary"
-                    className="self-start"
-                    onClick={handleTakePackage}
+        // Keluar dari margin <main> supaya latar selebar halaman.
+        <div className="-mx-10 -my-2 bg-white">
+            <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 pb-20 pt-6 sm:px-6">
+                <Link
+                    to="/paket"
+                    className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-forest-moss-700 hover:underline"
                 >
-                    Ambil Paket
-                </Button>
-            </div>
+                    <RiArrowLeftLine aria-hidden className="size-4" />
+                    Semua Paket
+                </Link>
 
-            <div className="flex flex-col gap-6 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <ListSection title="Layanan" items={pkg.services} />
-                <ListSection title="Fasilitas" items={pkg.facilities} />
-                <ListSection title="Ketentuan" items={pkg.terms} />
-                <ListSection title="Catatan" items={pkg.notes} />
-            </div>
+                <div className="flex flex-col gap-5 rounded-2xl border border-forest-moss-100 bg-white p-5 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-8">
+                    {pkg.photo && (
+                        <img
+                            src={pkg.photo}
+                            alt={pkg.name}
+                            className="h-56 w-full rounded-xl object-cover"
+                        />
+                    )}
+                    <div className="flex flex-col gap-3">
+                        {pkg.category && <PillBadge label={pkg.category} />}
+                        <h1 className="font-display text-3xl font-bold leading-tight text-oxford-navy-700 sm:text-4xl">
+                            {pkg.name}
+                        </h1>
+                    </div>
 
-            <Link
-                to="/#paket"
-                className="text-forest-moss-300 text-sm hover:text-forest-moss-200 self-center"
-            >
-                ← Kembali ke katalog paket
-            </Link>
+                    <div className="flex flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
+                        {pkg.discount > 0 && (
+                            <span className="text-oxford-navy-900/65 line-through">
+                                {rupiahFormatter.format(Number(pkg.price))}
+                            </span>
+                        )}
+                        <span className="text-3xl font-bold text-oxford-navy-700">
+                            {rupiahFormatter.format(pkg.final_price)}
+                        </span>
+                        {pkg.discount > 0 && (
+                            <span className="rounded-full bg-forest-moss-700 px-2.5 py-1 text-xs font-semibold text-white">
+                                Diskon {pkg.discount}%
+                            </span>
+                        )}
+                    </div>
+
+                    {pkg.description && (
+                        <p className="leading-relaxed text-oxford-navy-900/75">
+                            {pkg.description}
+                        </p>
+                    )}
+
+                    <Button
+                        variant="primary"
+                        className="self-start"
+                        onClick={handleTakePackage}
+                    >
+                        Ambil Paket
+                    </Button>
+                </div>
+
+                {hasLists && (
+                    <section
+                        aria-labelledby="rincian-paket"
+                        className="flex flex-col gap-6 rounded-2xl border border-forest-moss-100 bg-white p-5 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-8"
+                    >
+                        <SectionTitle id="rincian-paket">
+                            Rincian Paket
+                        </SectionTitle>
+                        <ListSection title="Layanan" items={pkg.services} />
+                        <ListSection title="Fasilitas" items={pkg.facilities} />
+                        <ListSection title="Ketentuan" items={pkg.terms} />
+                        <ListSection title="Catatan" items={pkg.notes} />
+                    </section>
+                )}
+            </div>
         </div>
     );
 }

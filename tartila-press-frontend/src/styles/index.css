@@ -1,31 +1,21 @@
 @import 'tailwindcss';
 @import 'custom-class.css';
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-        --primary-color: #003153;
-        --secondary-color: #003c63;
-        --tertiary-color: #005183;
-    }
-}
-
 @theme {
-    --color-primary: var(--primary-color);
-    --color-secondary: var(--secondary-color);
-    --color-accent: var(--tertiary-color);
+    --font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
 
-    --color-forest-moss-50: #f4f7ee;
-    --color-forest-moss-100: #e8efdc;
-    --color-forest-moss-200: #d2dfb9;
-    --color-forest-moss-300: #bbcf96;
-    --color-forest-moss-400: #a4bf73;
-    --color-forest-moss-500: #8eaf50;
-    --color-forest-moss-600: #718c40;
-    --color-forest-moss-700: #556930;
-    --color-forest-moss-800: #394620;
-    --color-forest-moss-900: #1c2310;
-    --color-forest-moss-950: #14180b;
+    /* Green Tea — warna kedua/aksen (sage lembut, dulu hijau olive) */
+    --color-forest-moss-50: #f3f8f1;
+    --color-forest-moss-100: #e5f0e1;
+    --color-forest-moss-200: #cbe1c3;
+    --color-forest-moss-300: #b0d1a4;
+    --color-forest-moss-400: #9ec594;
+    --color-forest-moss-500: #8fb88a;
+    --color-forest-moss-600: #6f9a6a;
+    --color-forest-moss-700: #557650;
+    --color-forest-moss-800: #3c5439;
+    --color-forest-moss-900: #223122;
+    --color-forest-moss-950: #141d14;
 
     --color-porcelain-50: #f8f8ed;
     --color-porcelain-100: #f0f0db;
@@ -39,17 +29,18 @@
     --color-porcelain-900: #24240f;
     --color-porcelain-950: #1a1a0a;
 
-    --color-oxford-navy-50: #e6f1fe;
-    --color-oxford-navy-100: #cde4fe;
-    --color-oxford-navy-200: #9bc9fd;
-    --color-oxford-navy-300: #69aefc;
-    --color-oxford-navy-400: #3792fb;
-    --color-oxford-navy-500: #0577fa;
-    --color-oxford-navy-600: #045fc8;
-    --color-oxford-navy-700: #034896;
-    --color-oxford-navy-800: #023064;
-    --color-oxford-navy-900: #011832;
-    --color-oxford-navy-950: #011123;
+    /* Prussian Blue — warna dominan (dulu navy terlalu terang/tidak konsisten) */
+    --color-oxford-navy-50: #eaf3f8;
+    --color-oxford-navy-100: #d3e6f0;
+    --color-oxford-navy-200: #a8cce1;
+    --color-oxford-navy-300: #7cb0d0;
+    --color-oxford-navy-400: #4f8fba;
+    --color-oxford-navy-500: #2c6f9e;
+    --color-oxford-navy-600: #145480;
+    --color-oxford-navy-700: #003153;
+    --color-oxford-navy-800: #01253f;
+    --color-oxford-navy-900: #011a2c;
+    --color-oxford-navy-950: #010f1a;
 
     --color-palm-leaf-50: #f3f6ef;
     --color-palm-leaf-100: #e7edde;
@@ -62,30 +53,6 @@
     --color-palm-leaf-800: #374125;
     --color-palm-leaf-900: #1b2112;
     --color-palm-leaf-950: #13170d;
-
-    --color-oxford-navy-50: #e7f1fe;
-    --color-oxford-navy-100: #cfe4fc;
-    --color-oxford-navy-200: #9fc9f9;
-    --color-oxford-navy-300: #6eaef7;
-    --color-oxford-navy-400: #3e93f4;
-    --color-oxford-navy-500: #0e78f1;
-    --color-oxford-navy-600: #0b60c1;
-    --color-oxford-navy-700: #084891;
-    --color-oxford-navy-800: #063060;
-    --color-oxford-navy-900: #031830;
-    --color-oxford-navy-950: #021122;
-
-    --border-oxford-navy-50: #e7f1fe;
-    --border-oxford-navy-100: #cfe4fc;
-    --border-oxford-navy-200: #9fc9f9;
-    --border-oxford-navy-300: #6eaef7;
-    --border-oxford-navy-400: #3e93f4;
-    --border-oxford-navy-500: #0e78f1;
-    --border-oxford-navy-600: #0b60c1;
-    --border-oxford-navy-700: #084891;
-    --border-oxford-navy-800: #063060;
-    --border-oxford-navy-900: #031830;
-    --border-oxford-navy-950: #021122;
 }
 
 body {
@@ -95,7 +62,7 @@ body {
     min-height: 100vh;
     max-width: 1440px;
     scroll-behavior: smooth;
-    background-color: #f1f5f8;
+    background-color: #ffffff;
 }
 
 p,
@@ -105,6 +72,17 @@ h2 {
     margin: 0;
 }
 
+/* Font serif (Lora, cadangan Georgia) untuk judul & kutipan. Sengaja kelas
+   biasa di luar @layer supaya tidak kalah oleh aturan `p, h1, h2` di atas. */
+.font-display {
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+}
+
+/* Tulisan tangan (Caveat) untuk kutipan dekoratif di hero. */
+.font-script {
+    font-family: 'Caveat', 'Segoe Script', 'Brush Script MT', cursive;
+}
+
 *,
 *::before,
 *::after {
@@ -112,10 +90,6 @@ h2 {
 }
 
 /*custom tailwindcss utility*/
-@utility footer-hover {
-    @apply hover:bg-forest-moss-500 hover:duration-300 hover:text-oxford-navy-900;
-}
-
 @utility img-style {
     @apply w-full h-full object-cover;
 }
@@ -123,7 +97,10 @@ h2 {
     @apply hover:-translate-y-2 hover:duration-300;
 }
 @utility card-shadow {
-    @apply shadow-md/90 shadow-black;
+    @apply shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)];
+}
+@utility highlight-ring {
+    @apply ring-2 ring-forest-moss-300/60 shadow-md shadow-forest-moss-200/50;
 }
 
 .debug {

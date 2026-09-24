@@ -1,128 +1,197 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+    RiChat1Line,
+    RiFileList3Line,
+    RiInformationLine,
+    RiListOrdered,
+} from '@remixicon/react';
 import ErrorPage from '@/pages/ErrorPage';
 import { ApiError } from '@/lib/http';
-import { useAuth } from '@/context/useAuth';
+import { scrollToSection } from '@/lib/scroll';
 import { useCart } from '@/context/useCart';
+import { useScrollSpy } from '@/hooks/useScrollSpy';
 import * as bookApi from '@/data/book/bookApi';
-import Button from '@/components/Button/Button';
+import { stablePreviewPdfUrl, type BookDetail } from '@/data/book/bookApi';
 import CartFab from '@/components/cart/CartFab';
+import BookAuthors from '@/components/book/detail/BookAuthors';
+import BookChapterRow from '@/components/book/detail/BookChapterRow';
+import BookDetailHero from '@/components/book/detail/BookDetailHero';
+import BookFacts, { type BookFact } from '@/components/book/detail/BookFacts';
+import BookHowToBuy from '@/components/book/detail/BookHowToBuy';
+import BookReviews from '@/components/book/detail/BookReviews';
+import PersonLink from '@/components/book/detail/PersonLink';
+import SectionTitle from '@/components/ui/SectionTitle';
+import SideNavCard, { type SideNavItem } from '@/components/ui/SideNavCard';
+import { formatDate } from '@/lib/bookChapterPublic';
+import { averageRating, hasAuthors } from '@/lib/bookDetail';
 
-type PublicProfileRef = {
-    slug: string;
-    pen_name: string | null;
-    is_published: boolean;
+type SectionKey = 'tentang' | 'detail' | 'bab' | 'ulasan';
+
+const sectionMeta: Record<SectionKey, { title: string; icon: ReactNode }> = {
+    tentang: { title: 'Tentang Buku', icon: <RiInformationLine /> },
+    detail: { title: 'Detail Buku', icon: <RiFileList3Line /> },
+    bab: { title: 'Daftar Bab', icon: <RiListOrdered /> },
+    ulasan: { title: 'Ulasan', icon: <RiChat1Line /> },
 };
 
-type Chapter = {
-    id: number;
-    chapter_number: number;
-    title: string;
-    preview_url: string | null;
-    manuscript: {
-        id: number;
-        user: {
-            id: number;
-            name: string;
-            public_profile: PublicProfileRef | null;
-        };
-    };
-};
+// Rincian buku yang terisi, urut seperti lembar spesifikasi.
+function buildFacts(book: BookDetail): BookFact[] {
+    const facts: BookFact[] = [];
+    const published = formatDate(book.citation_publication_date);
 
-type Review = {
-    id: number;
-    rating: number;
-    comment: string | null;
-    user: { id: number; name: string };
-};
-
-type BookDetail = {
-    id: number;
-    title: string;
-    authors_text: string | null;
-    isbn: string | null;
-    front_cover: string | null;
-    back_cover: string | null;
-    cover_layout_designer: string | null;
-    editor_name: string | null;
-    description: string | null;
-    price: string;
-    discount: number;
-    final_price: number;
-    preview_url: string | null;
-    citation_publisher: string | null;
-    citation_publication_date: string | null;
-    google_scholar_url: string | null;
-    is_chapter_compilation: boolean;
-    category: { id: number; name: string } | null;
-    field_category: { id: number; name: string } | null;
-    chapters: Chapter[];
-    reviews: Review[];
-    reviews_avg_rating: number | string | null;
-};
-
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-});
-
-function AuthorLink({
-    name,
-    profile,
-}: {
-    name: string;
-    profile: PublicProfileRef | null;
-}) {
-    if (profile?.is_published) {
-        return (
-            <Link
-                to={`/penulis/${profile.slug}`}
-                className="text-forest-moss-300 hover:text-forest-moss-200"
-            >
-                {profile.pen_name || name}
-            </Link>
-        );
+    if (hasAuthors(book)) {
+        facts.push({ label: 'Penulis', value: <BookAuthors book={book} /> });
+    }
+    if (book.editor_profile) {
+        facts.push({
+            label: 'Editor',
+            value: <PersonLink person={book.editor_profile} role="editor" />,
+        });
+    }
+    if (book.isbn) {
+        facts.push({ label: 'ISBN', value: book.isbn });
+    }
+    if (book.citation_publisher) {
+        facts.push({ label: 'Penerbit', value: book.citation_publisher });
+    }
+    if (published) {
+        facts.push({ label: 'Tanggal Terbit', value: published });
+    }
+    if (book.category) {
+        facts.push({ label: 'Kategori Buku', value: book.category.name });
+    }
+    if (book.field_category) {
+        facts.push({
+            label: 'Kategori Keilmuan',
+            value: book.field_category.name,
+        });
+    }
+    if (book.cover_layout_designer) {
+        facts.push({
+            label: 'Desain Sampul & Tata Letak',
+            value: book.cover_layout_designer,
+        });
+    }
+    if (book.is_chapter_compilation && book.chapters.length > 0) {
+        facts.push({
+            label: 'Jumlah Bab',
+            value: `${book.chapters.length} bab`,
+        });
     }
 
-    return <span>{name}</span>;
+    return facts;
+}
+
+// Satu seksi isi; seksi setelah yang pertama diberi garis pemisah di atasnya.
+function Section({
+    id,
+    isFirst,
+    action,
+    children,
+}: {
+    id: SectionKey;
+    isFirst: boolean;
+    action?: ReactNode;
+    children: ReactNode;
+}) {
+    return (
+        <section
+            id={id}
+            aria-labelledby={`${id}-title`}
+            className={`flex scroll-mt-28 flex-col gap-4 ${
+                isFirst ? '' : 'border-t border-forest-moss-100 pt-8'
+            }`}
+        >
+            <SectionTitle id={`${id}-title`} action={action}>
+                {sectionMeta[id].title}
+            </SectionTitle>
+            {children}
+        </section>
+    );
+}
+
+function DetailSkeleton() {
+    return (
+        <div className="-mx-10 -my-2 animate-pulse" aria-hidden>
+            <div className="bg-forest-moss-50/60">
+                <div className="mx-auto flex max-w-[1232px] flex-col items-center gap-6 px-6 py-10 sm:flex-row sm:px-10 lg:pl-16">
+                    <div className="aspect-[148/210] w-44 rounded bg-oxford-navy-100/60" />
+                    <div className="flex flex-col items-center gap-3 sm:items-start">
+                        <div className="h-7 w-32 rounded-full bg-oxford-navy-100/60" />
+                        <div className="h-10 w-72 rounded bg-oxford-navy-100/60" />
+                        <div className="h-4 w-56 rounded bg-oxford-navy-100/60" />
+                    </div>
+                </div>
+            </div>
+            <div className="mx-auto max-w-[1232px] px-4 py-8 sm:px-8 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6 lg:px-10">
+                <div className="mb-6 h-40 rounded-2xl bg-oxford-navy-100/40 lg:mb-0" />
+                <div className="h-96 rounded-2xl bg-oxford-navy-100/40" />
+            </div>
+        </div>
+    );
 }
 
 export default function BookDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { isAuthenticated } = useAuth();
     const { addToCart, isInCart } = useCart();
 
     const [book, setBook] = useState<BookDetail | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [notFound, setNotFound] = useState<boolean>(false);
 
-    const [rating, setRating] = useState<string>('5');
-    const [comment, setComment] = useState<string>('');
-    const [isSubmittingReview, setIsSubmittingReview] =
-        useState<boolean>(false);
-    const [reviewMessage, setReviewMessage] = useState<string>('');
+    useEffect(() => {
+        let cancelled = false;
 
-    function load() {
-        return bookApi
-            .get(id ?? '')
-            .then((response) => setBook(response.data))
+        Promise.resolve()
+            .then(() => {
+                setIsLoading(true);
+                setNotFound(false);
+
+                return bookApi.get(id ?? '');
+            })
+            .then((response) => {
+                if (!cancelled) setBook(response.data);
+            })
             .catch((error) => {
+                if (cancelled) return;
+
                 if (error instanceof ApiError && error.status === 404) {
                     setNotFound(true);
                 } else {
                     throw error;
                 }
             })
-            .finally(() => setIsLoading(false));
-    }
+            .finally(() => {
+                if (!cancelled) setIsLoading(false);
+            });
 
-    useEffect(() => {
-        Promise.resolve().then(load);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        return () => {
+            cancelled = true;
+        };
     }, [id]);
 
+    // Judul tab mengikuti buku yang sedang dibuka.
+    const bookTitle = book?.title;
+
+    useEffect(() => {
+        if (!bookTitle) {
+            return;
+        }
+
+        const previousTitle = document.title;
+        document.title = `${bookTitle} — Tartila Press`;
+
+        return () => {
+            document.title = previousTitle;
+        };
+    }, [bookTitle]);
+
+    // Meta tag sitasi (citation_*) untuk buku yang sedang dibuka, dibaca mis.
+    // oleh Zotero. Untuk robot pencari (Google Scholar) versi yang berlaku ada
+    // di halaman abstrak dari server (/api/abstrak/{slug}), karena tag yang
+    // ditambahkan JavaScript belum tentu terbaca.
     useEffect(() => {
         if (!book) {
             return;
@@ -139,11 +208,11 @@ export default function BookDetailPage() {
         }
 
         addTag('citation_title', book.title);
-        (book.authors_text ?? '')
-            .split(',')
-            .map((author) => author.trim())
-            .filter(Boolean)
-            .forEach((author) => addTag('citation_author', author));
+        // Nama penulis sudah dibersihkan server (gelar dibuang, nama ganda
+        // disatukan); `??` menjaga bila API yang lebih lama belum mengirimnya.
+        (book.citation_authors ?? []).forEach((author) =>
+            addTag('citation_author', author)
+        );
         if (book.citation_publisher) {
             addTag('citation_publisher', book.citation_publisher);
         }
@@ -158,7 +227,8 @@ export default function BookDetailPage() {
             addTag('citation_isbn', book.isbn);
         }
         if (book.preview_url) {
-            addTag('citation_pdf_url', book.preview_url);
+            // Alamat stabil: tetap valid saat file preview diganti.
+            addTag('citation_pdf_url', stablePreviewPdfUrl(book.slug));
         }
 
         return () => {
@@ -166,260 +236,119 @@ export default function BookDetailPage() {
         };
     }, [book]);
 
+    const facts = book ? buildFacts(book) : [];
+    const isCompilation = Boolean(
+        book?.is_chapter_compilation && book.chapters.length > 0
+    );
+
+    const sectionKeys: SectionKey[] = [];
+    if (book?.description) sectionKeys.push('tentang');
+    if (facts.length > 0) sectionKeys.push('detail');
+    if (isCompilation) sectionKeys.push('bab');
+    sectionKeys.push('ulasan');
+
+    const activeKey = useScrollSpy(sectionKeys);
+
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-dvh">
-                <p className="text-oxford-navy-900">Memuat...</p>
-            </div>
-        );
+        return <DetailSkeleton />;
     }
 
     if (notFound || !book) {
         return <ErrorPage />;
     }
 
-    async function handleSubmitReview() {
-        setIsSubmittingReview(true);
-        setReviewMessage('');
-
-        try {
-            await bookApi.upsertReview(book!.id, {
-                rating: Number(rating),
-                comment: comment || undefined,
-            });
-            setComment('');
-            await load();
-        } catch (error) {
-            setReviewMessage(
-                error instanceof ApiError
-                    ? error.message
-                    : 'Terjadi kesalahan. Silakan coba lagi.'
-            );
-        } finally {
-            setIsSubmittingReview(false);
-        }
+    // Memuat ulang buku (mis. setelah ulasan tersimpan) tanpa layar muat.
+    async function refreshBook() {
+        const response = await bookApi.get(id ?? '');
+        setBook(response.data);
     }
 
+    const navItems: SideNavItem[] = sectionKeys.map((key) => ({
+        key,
+        label: sectionMeta[key].title,
+        icon: sectionMeta[key].icon,
+        active: activeKey === key,
+        onSelect: () => scrollToSection(key),
+    }));
+
     return (
-        <div className="flex flex-col gap-6 my-10 max-w-3xl mx-auto">
+        <>
             <CartFab />
-            <div className="flex flex-col md:flex-row gap-6 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-8">
-                {book.front_cover && (
-                    <img
-                        src={book.front_cover}
-                        alt={book.title}
-                        className="w-48 h-64 object-cover rounded-lg self-center md:self-start"
-                    />
-                )}
 
-                <div className="flex flex-col gap-2">
-                    {(book.category || book.field_category) && (
-                        <p className="text-forest-moss-300 text-sm">
-                            {[book.category?.name, book.field_category?.name]
-                                .filter(Boolean)
-                                .join(' • ')}
-                        </p>
-                    )}
-                    <h1 className="text-white text-3xl font-bold">
-                        {book.title}
-                    </h1>
-                    {book.authors_text && (
-                        <p className="text-white/70">{book.authors_text}</p>
-                    )}
-                    {book.isbn && (
-                        <p className="text-white/60 text-sm">
-                            ISBN: {book.isbn}
-                        </p>
-                    )}
-                    {book.editor_name && (
-                        <p className="text-white/60 text-sm">
-                            Editor: {book.editor_name}
-                        </p>
-                    )}
-                    {book.cover_layout_designer && (
-                        <p className="text-white/60 text-sm">
-                            Desain Sampul & Tata Letak:{' '}
-                            {book.cover_layout_designer}
-                        </p>
-                    )}
-                    {book.reviews_avg_rating !== null && (
-                        <p className="text-white/70 text-sm">
-                            ★ {Number(book.reviews_avg_rating).toFixed(1)} (
-                            {book.reviews.length} ulasan)
-                        </p>
-                    )}
+            <div className="-mx-10 -my-2 overflow-x-clip">
+                <BookDetailHero
+                    book={book}
+                    inCart={isInCart(book.id)}
+                    onBuy={() => navigate(`/dashboard/beli-buku/${book.slug}`)}
+                    onAddToCart={() => addToCart(book.id)}
+                    onSeeReviews={() => scrollToSection('ulasan')}
+                />
 
-                    <div className="flex flex-row items-center gap-3 mt-2">
-                        {book.discount > 0 && (
-                            <span className="text-white/50 line-through">
-                                {rupiahFormatter.format(Number(book.price))}
-                            </span>
-                        )}
-                        <span className="text-forest-moss-300 text-2xl font-semibold">
-                            {rupiahFormatter.format(book.final_price)}
-                        </span>
-                        {book.discount > 0 && (
-                            <span className="text-white/70 text-sm">
-                                (diskon {book.discount}%)
-                            </span>
-                        )}
-                    </div>
+                <div className="mx-auto max-w-[1232px] px-4 pb-20 pt-8 sm:px-8 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6 lg:px-10">
+                    <aside className="mb-6 lg:mb-0">
+                        <div className="flex flex-col gap-4 lg:sticky lg:top-24">
+                            <SideNavCard
+                                items={navItems}
+                                ariaLabel="Navigasi buku"
+                            />
+                            <BookHowToBuy className="hidden lg:block" />
+                        </div>
+                    </aside>
 
-                    {book.description && (
-                        <p className="text-white/80 mt-2">
-                            {book.description}
-                        </p>
-                    )}
-
-                    <div className="flex flex-row flex-wrap gap-3 mt-2">
-                        <Button
-                            variant="secondary"
-                            onClick={() =>
-                                navigate(`/dashboard/beli-buku/${book.id}`)
-                            }
-                        >
-                            Beli Sekarang
-                        </Button>
-                        <Button
-                            variant="outline2"
-                            onClick={() => addToCart(book.id)}
-                            disabled={isInCart(book.id)}
-                        >
-                            {isInCart(book.id)
-                                ? 'Sudah di Keranjang'
-                                : '+ Keranjang'}
-                        </Button>
-                        {book.preview_url && (
-                            <a
-                                href={book.preview_url}
-                                target="_blank"
-                                rel="noreferrer"
+                    <div className="flex min-w-0 flex-col gap-8 rounded-2xl border border-forest-moss-100 bg-white p-5 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-7">
+                        {sectionKeys.map((key, index) => (
+                            <Section
+                                key={key}
+                                id={key}
+                                isFirst={index === 0}
+                                action={
+                                    key === 'bab' ? (
+                                        <span className="shrink-0 text-sm text-oxford-navy-900/55">
+                                            {book.chapters.length} bab
+                                        </span>
+                                    ) : key === 'ulasan' &&
+                                      book.reviews.length > 0 ? (
+                                        <span className="shrink-0 text-sm text-oxford-navy-900/55">
+                                            {book.reviews.length} ulasan
+                                        </span>
+                                    ) : undefined
+                                }
                             >
-                                <Button variant="secondary">
-                                    Lihat Preview PDF
-                                </Button>
-                            </a>
-                        )}
-                        {book.google_scholar_url && (
-                            <a
-                                href={book.google_scholar_url}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
-                                <Button variant="outline2">
-                                    Google Scholar
-                                </Button>
-                            </a>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {book.is_chapter_compilation && book.chapters.length > 0 && (
-                <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                    <h2 className="text-white text-xl font-semibold">
-                        Daftar Bab
-                    </h2>
-                    <div className="flex flex-col gap-2">
-                        {book.chapters.map((chapter) => (
-                            <div
-                                key={chapter.id}
-                                className="flex flex-row items-center justify-between bg-oxford-navy-900/40 rounded-lg p-4"
-                            >
-                                <div>
-                                    <Link
-                                        to={`/buku/${book.id}/bab/${chapter.id}`}
-                                        className="text-white font-semibold hover:text-forest-moss-300"
-                                    >
-                                        Bab {chapter.chapter_number} —{' '}
-                                        {chapter.title}
-                                    </Link>
-                                    <p className="text-white/60 text-sm">
-                                        <AuthorLink
-                                            name={chapter.manuscript.user.name}
-                                            profile={
-                                                chapter.manuscript.user
-                                                    .public_profile
-                                            }
-                                        />
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-                <h2 className="text-white text-xl font-semibold">Ulasan</h2>
-
-                {isAuthenticated && (
-                    <div className="flex flex-col gap-2">
-                        <select
-                            value={rating}
-                            onChange={(e) => setRating(e.target.value)}
-                            className="w-32 p-2 rounded-lg ring-1 ring-white/30 bg-oxford-navy-900 text-white outline-none"
-                        >
-                            {[5, 4, 3, 2, 1].map((value) => (
-                                <option key={value} value={value}>
-                                    {value} Bintang
-                                </option>
-                            ))}
-                        </select>
-                        <textarea
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            placeholder="Tulis ulasan (opsional)..."
-                            className="p-3 rounded-lg ring-1 ring-white/30 placeholder:text-white/50 bg-transparent text-white outline-none"
-                            rows={3}
-                        />
-                        {reviewMessage && (
-                            <p className="text-red-400 text-sm">
-                                {reviewMessage}
-                            </p>
-                        )}
-                        <Button
-                            variant="primary"
-                            className="self-start"
-                            onClick={handleSubmitReview}
-                            disabled={isSubmittingReview}
-                        >
-                            {isSubmittingReview
-                                ? 'Mengirim...'
-                                : 'Kirim Ulasan'}
-                        </Button>
-                    </div>
-                )}
-
-                {book.reviews.length === 0 ? (
-                    <p className="text-white/60 text-sm">Belum ada ulasan.</p>
-                ) : (
-                    <div className="flex flex-col gap-3">
-                        {book.reviews.map((review) => (
-                            <div
-                                key={review.id}
-                                className="bg-oxford-navy-900/40 rounded-lg p-4"
-                            >
-                                <p className="text-white font-semibold">
-                                    {review.user.name} — ★ {review.rating}
-                                </p>
-                                {review.comment && (
-                                    <p className="text-white/70 text-sm">
-                                        {review.comment}
+                                {key === 'tentang' && (
+                                    <p className="whitespace-pre-line text-base leading-relaxed text-oxford-navy-900/70">
+                                        {book.description}
                                     </p>
                                 )}
-                            </div>
+
+                                {key === 'detail' && (
+                                    <BookFacts facts={facts} />
+                                )}
+
+                                {key === 'bab' && (
+                                    <ol className="flex flex-col gap-3">
+                                        {book.chapters.map((chapter) => (
+                                            <BookChapterRow
+                                                key={chapter.id}
+                                                bookSlug={book.slug}
+                                                chapter={chapter}
+                                            />
+                                        ))}
+                                    </ol>
+                                )}
+
+                                {key === 'ulasan' && (
+                                    <BookReviews
+                                        bookId={book.id}
+                                        reviews={book.reviews}
+                                        average={averageRating(book)}
+                                        onSubmitted={refreshBook}
+                                    />
+                                )}
+                            </Section>
                         ))}
                     </div>
-                )}
+                </div>
             </div>
-
-            <Link
-                to="/buku"
-                className="text-forest-moss-300 text-sm hover:text-forest-moss-200 self-center"
-            >
-                ← Kembali ke katalog buku
-            </Link>
-        </div>
+        </>
     );
 }

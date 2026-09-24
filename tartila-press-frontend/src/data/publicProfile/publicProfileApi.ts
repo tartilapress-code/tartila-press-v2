@@ -3,6 +3,7 @@ import { http } from '@/lib/http';
 export type UpsertPublicProfilePayload = Partial<{
     pen_name: string;
     bio: string;
+    city: string;
     profile_photo: string;
     is_published: boolean;
 }>;

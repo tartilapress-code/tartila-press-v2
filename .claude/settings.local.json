@@ -86,7 +86,17 @@
       "Bash(./vendor/bin/pint --dirty)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8000/api/v1/books)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/api/v1/books)",
-      "Bash(curl -s -X POST http://127.0.0.1:8000/api/v1/manuscripts -H 'Authorization: Bearer 88|mgkcBeQTmuHP4MuRPSs2DNdJBHbWnL55JKw3vSvzd76ccae8' -H 'Accept: application/json' -F order_id=__CMDSUB_OUTPUT__ -F title=Test -F authors[]=Test)"
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/v1/manuscripts -H 'Authorization: Bearer 88|mgkcBeQTmuHP4MuRPSs2DNdJBHbWnL55JKw3vSvzd76ccae8' -H 'Accept: application/json' -F order_id=__CMDSUB_OUTPUT__ -F title=Test -F authors[]=Test)",
+      "Bash(netstat -ano)",
+      "Bash(php artisan tinker '--execute= *)",
+      "Bash(grep -n \"^use App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Book;\" \"C:\\\\Users\\\\HP OMEN\\\\Documents\\\\NEW SOFTWARE_TARTILA PRESS\\\\tartila-press_backend\\\\tests\\\\Feature\\\\BookCatalogTest.php\")",
+      "Bash(grep -n \"use Illuminate\\\\\\\\\\\\\\\\Support\\\\\\\\\\\\\\\\Str;\" \"C:\\\\Users\\\\HP OMEN\\\\Documents\\\\NEW SOFTWARE_TARTILA PRESS\\\\tartila-press_backend\\\\tests\\\\Feature\\\\BookCatalogTest.php\")",
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell(npx eslint src/components/book/PublicBookCard.tsx)",
+      "Bash(vendor/bin/pint --dirty)",
+      "PowerShell(npx eslint src)",
+      "PowerShell(npx eslint src/components/navbar/Navbar.tsx src/layouts/HomeLayout.tsx src/layouts/UserLayout.tsx src/layouts/AdminLayout.tsx src/router.tsx src/pages/Login/LoginPage.tsx src/pages/Registration/RegistrationPage.tsx)",
+      "PowerShell(npx eslint src/components/Button/Button.tsx src/components/Badge.tsx src/data/book/bookApi.ts src/components/book/PublicBookCard.tsx src/components/book/BookGrid.tsx src/pages/Book/BookDetailPage.tsx src/pages/Book/BookChapterPreviewPage.tsx src/pages/Dashboard/CartPage.tsx src/components/navbar/Navbar.tsx src/layouts/HomeLayout.tsx src/router.tsx src/pages/Login/LoginPage.tsx src/pages/Registration/RegistrationPage.tsx src/layouts/UserLayout.tsx src/layouts/AdminLayout.tsx)"
     ]
   }
 }

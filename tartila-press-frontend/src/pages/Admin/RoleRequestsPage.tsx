@@ -70,19 +70,19 @@ export default function RoleRequestsPage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-            <h5 className="text-white text-xl font-semibold">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                 Permintaan Role Menunggu Persetujuan
             </h5>
 
             {errorMessage && (
-                <p className="text-red-400 text-sm">{errorMessage}</p>
+                <p className="text-red-600 text-sm">{errorMessage}</p>
             )}
 
             {isLoading ? (
-                <p className="text-white/70 text-sm">Memuat...</p>
+                <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
             ) : requests.length === 0 ? (
-                <p className="text-white/70 text-sm">
+                <p className="text-oxford-navy-900/70 text-sm">
                     Tidak ada permintaan yang menunggu.
                 </p>
             ) : (
@@ -90,16 +90,16 @@ export default function RoleRequestsPage() {
                     {requests.map((item) => (
                         <div
                             key={item.id}
-                            className="flex flex-row items-center justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-4"
+                            className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                         >
                             <div>
-                                <p className="text-white font-semibold">
+                                <p className="text-oxford-navy-900 font-semibold">
                                     {item.user.name}{' '}
-                                    <span className="text-white/60 font-normal">
+                                    <span className="text-oxford-navy-900/65 font-normal">
                                         ({item.user.email})
                                     </span>
                                 </p>
-                                <p className="text-white/70 text-sm">
+                                <p className="text-oxford-navy-900/70 text-sm">
                                     Mengajukan jadi{' '}
                                     {roleLabels[item.requested_role] ??
                                         item.requested_role}

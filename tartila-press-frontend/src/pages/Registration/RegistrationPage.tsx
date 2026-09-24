@@ -1,6 +1,7 @@
 // import
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import ArrowBack from '@/components/ArrowBack';
+import AuthCard from '@/components/AuthCard';
 import Button from '@/components/Button/Button';
 import Input from '@/components/Input/Input';
 
@@ -11,6 +12,7 @@ import registerOption from '@/data/registration/registration_option.json';
 import Select from '@/components/Select/Select';
 import { useAuth } from '@/context/useAuth';
 import { ApiError } from '@/lib/http';
+import { PASSWORD_HINT, validatePassword } from '@/lib/passwordPolicy';
 import type { RegisterPayload } from '@/data/auth/authApi';
 
 //template
@@ -20,9 +22,9 @@ export default function RegistrationPage() {
 
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string>('');
-    const [fieldErrors, setFieldErrors] = useState<
-        Record<string, string[]>
-    >({});
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>(
+        {}
+    );
 
     const handleRegistrationSubmit = async (
         e: React.FormEvent<HTMLFormElement>
@@ -38,6 +40,13 @@ export default function RegistrationPage() {
             formData.entries()
         ) as unknown as RegisterPayload;
 
+        const passwordProblem = validatePassword(payload.password);
+        if (passwordProblem) {
+            setFieldErrors({ password: [passwordProblem] });
+            setIsSubmitting(false);
+            return;
+        }
+
         if (payload.password !== payload.password_confirmation) {
             setFieldErrors({
                 password_confirmation: ['Konfirmasi password tidak sesuai.'],
@@ -48,7 +57,7 @@ export default function RegistrationPage() {
 
         try {
             await register(payload);
-            navigate('/');
+            navigate('/verifikasi-email?status=pending');
         } catch (error) {
             if (error instanceof ApiError) {
                 if (error.status === 422 && error.errors) {
@@ -65,86 +74,73 @@ export default function RegistrationPage() {
     };
 
     return (
-        <>
-            <div
-                className="
-                    flex flex-row justify-end
-                    h-dvh w-full relative
-                    bg-[url('@/assets/images/buku.png')] bg-no-repeat bg-cover bg-center
-                    "
-            >
-                <div className="absolute inset-0 bg-oxford-navy-900/70 w-full h-full "></div>
-                <div
-                    className="
-                     overflow-y-auto w-1/2 h-full
-                    flex flex-col gap-10 bg-oxford-navy-900/70 backdrop-blur-lg px-15 py-6 justify-self-end
-                    "
-                >
-                    <div className="flex flex-col gap-2">
-                        <ArrowBack />
-                        <h5 className="block text-white text-2xl font-semibold text-left">
-                            Registration
-                        </h5>
-                        <p className="text-white text-sm">
-                            Buat Akun Baru dan mulai menerbitkan buku
-                        </p>
-                    </div>
-                    <form onSubmit={handleRegistrationSubmit}>
-                        <div className="flex flex-col gap-4">
-                            {registerField.map((field) => (
-                                <Input
-                                    key={field.id}
-                                    id={field.id}
-                                    name={field.name}
-                                    type={field.type}
-                                    label={field.label}
-                                    placeholder={field.placeholder}
-                                    errorMessage={
-                                        fieldErrors[field.name]?.[0] ?? ''
-                                    }
-                                    pattern={field.pattern}
-                                    required={field.required}
-                                />
-                            ))}
-
-                            {registerOption.map((option) => (
-                                <Select
-                                    key={option.id}
-                                    name={option.name}
-                                    option_data={option.value}
-                                    label={option.label}
-                                    required={option.required}
-                                />
-                            ))}
-
-                            {errorMessage && (
-                                <p className="text-red-400 text-sm">
-                                    {errorMessage}
-                                </p>
-                            )}
-
-                            <Button
-                                variant="primary"
-                                className="shadow-black shadow-md/20"
-                                type="submit"
-                                disabled={isSubmitting}
-                            >
-                                {isSubmitting ? 'Memproses...' : 'Register'}
-                            </Button>
-                        </div>
-                    </form>
-
-                    <div className="flex flex-row gap-2 justify-center">
-                        <p className="text-white text-sm">Sudah Punya akun</p>
-                        <Link
-                            to="/login"
-                            className="text-oxford-navy-500 font-bold text-sm hover:text-blue-700 duration-250"
-                        >
-                            Login
-                        </Link>
-                    </div>
-                </div>
+        <AuthCard size="lg">
+            <ArrowBack />
+            <div className="flex flex-col gap-1.5">
+                <h1 className="font-display text-2xl font-bold text-oxford-navy-700">
+                    Registration
+                </h1>
+                <p className="text-sm leading-relaxed text-oxford-navy-900/65">
+                    Buat Akun Baru dan mulai menerbitkan buku
+                </p>
             </div>
-        </>
+            <form onSubmit={handleRegistrationSubmit}>
+                <div className="flex flex-col gap-4">
+                    {registerField.map((field) => (
+                        <Fragment key={field.id}>
+                            <Input
+                                id={field.id}
+                                name={field.name}
+                                type={field.type}
+                                label={field.label}
+                                placeholder={field.placeholder}
+                                errorMessage={
+                                    fieldErrors[field.name]?.[0] ?? ''
+                                }
+                                pattern={field.pattern}
+                                required={field.required}
+                            />
+                            {field.name === 'password' && (
+                                <small className="-mt-2 text-oxford-navy-900/60">
+                                    {PASSWORD_HINT}
+                                </small>
+                            )}
+                        </Fragment>
+                    ))}
+
+                    {registerOption.map((option) => (
+                        <Select
+                            key={option.id}
+                            name={option.name}
+                            option_data={option.value}
+                            label={option.label}
+                            required={option.required}
+                        />
+                    ))}
+
+                    {errorMessage && (
+                        <p className="text-sm text-red-600">{errorMessage}</p>
+                    )}
+
+                    <Button
+                        variant="primary"
+                        type="submit"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? 'Memproses...' : 'Register'}
+                    </Button>
+                </div>
+            </form>
+
+            <div className="flex flex-row justify-center gap-2 text-sm">
+                <p className="text-oxford-navy-900/65">Sudah Punya akun</p>
+                <Link
+                    to="/login"
+                    className="font-semibold text-forest-moss-700 hover:text-forest-moss-800 hover:underline"
+                >
+                    Login
+                </Link>
+            </div>
+        </AuthCard>
     );
 }

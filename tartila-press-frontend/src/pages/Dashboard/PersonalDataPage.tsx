@@ -15,8 +15,8 @@ const genderOptions =
     registerOption.find((option) => option.id === 'gender')?.value ?? [];
 
 const textareaClass = `
-    w-full p-3 outline-none rounded-xl ring-1 ring-white/30 placeholder:text-white
-    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-oxford-navy-900/70`;
+    w-full p-3 outline-none rounded-xl ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40
+    focus:ring-1 focus:ring-oxford-navy-500 focus:bg-forest-moss-50`;
 
 type PersonalData = {
     education_level: string;
@@ -108,12 +108,12 @@ export default function PersonalDataPage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
             <div>
-                <h5 className="text-white text-xl font-semibold">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                     Data Pribadi
                 </h5>
-                <p className="text-white/70 text-sm">
+                <p className="text-oxford-navy-900/70 text-sm">
                     Digunakan untuk keperluan administrasi, termasuk
                     pendaftaran ISBN.
                 </p>
@@ -165,8 +165,8 @@ export default function PersonalDataPage() {
                     onChange={(e) => updateField('phone', e.target.value)}
                 />
 
-                <hr className="border-white/20" />
-                <p className="text-white/70 text-sm">
+                <hr className="border-forest-moss-200" />
+                <p className="text-oxford-navy-900/70 text-sm">
                     Field di bawah ini{' '}
                     {isPenulis
                         ? 'wajib diisi untuk Penulis (dipakai untuk pendaftaran ISBN).'
@@ -183,7 +183,7 @@ export default function PersonalDataPage() {
                 />
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-white">
+                    <label className="text-sm font-medium text-oxford-navy-900">
                         Alamat KTP{isPenulis ? ' *' : ''}
                     </label>
                     <textarea
@@ -197,7 +197,7 @@ export default function PersonalDataPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-white">
+                    <label className="text-sm font-medium text-oxford-navy-900">
                         Alamat Domisili{isPenulis ? ' *' : ''}
                     </label>
                     <textarea
@@ -231,7 +231,7 @@ export default function PersonalDataPage() {
                 />
 
                 {statusMessage && (
-                    <p className="text-sm text-forest-moss-300">
+                    <p className="text-sm text-forest-moss-700">
                         {statusMessage}
                     </p>
                 )}

@@ -41,21 +41,15 @@ export default function CartPage() {
     useEffect(() => {
         let cancelled = false;
 
-        Promise.all(
-            bookIds.map((id) =>
-                bookApi.get(id).then(
-                    (response) => response.data as CartBook,
-                    () => null
-                )
+        Promise.resolve()
+            .then(() =>
+                bookIds.length === 0
+                    ? { data: [] as CartBook[] }
+                    : bookApi.list({ ids: bookIds.join(',') })
             )
-        )
-            .then((results) => {
+            .then((response) => {
                 if (!cancelled) {
-                    setBooks(
-                        results.filter(
-                            (book): book is CartBook => book !== null
-                        )
-                    );
+                    setBooks(response.data as CartBook[]);
                 }
             })
             .finally(() => {
@@ -101,16 +95,16 @@ export default function CartPage() {
     }
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6 max-w-xl">
-            <h5 className="text-white text-xl font-semibold">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 max-w-xl">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
                 Keranjang Buku
             </h5>
 
             {isLoading ? (
-                <p className="text-white/70 text-sm">Memuat...</p>
+                <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
             ) : books.length === 0 ? (
                 <div className="flex flex-col gap-3">
-                    <p className="text-white/70 text-sm">
+                    <p className="text-oxford-navy-900/70 text-sm">
                         Keranjang Anda masih kosong.
                     </p>
                     <Link to="/buku" className="self-start">
@@ -123,7 +117,7 @@ export default function CartPage() {
                         {books.map((book) => (
                             <div
                                 key={book.id}
-                                className="flex flex-row items-center justify-between gap-4 bg-oxford-navy-900/40 rounded-lg p-3"
+                                className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3"
                             >
                                 <div className="flex flex-row items-center gap-3">
                                     {book.front_cover && (
@@ -134,10 +128,10 @@ export default function CartPage() {
                                         />
                                     )}
                                     <div>
-                                        <p className="text-white font-semibold">
+                                        <p className="text-oxford-navy-900 font-semibold">
                                             {book.title}
                                         </p>
-                                        <p className="text-forest-moss-300 text-sm">
+                                        <p className="text-forest-moss-700 text-sm">
                                             {rupiahFormatter.format(
                                                 book.final_price
                                             )}
@@ -146,7 +140,7 @@ export default function CartPage() {
                                 </div>
                                 <button
                                     onClick={() => removeFromCart(book.id)}
-                                    className="text-red-400 text-sm hover:text-red-300"
+                                    className="text-red-600 text-sm hover:text-red-700"
                                 >
                                     Hapus
                                 </button>
@@ -154,8 +148,8 @@ export default function CartPage() {
                         ))}
                     </div>
 
-                    <div className="border-t border-white/20 pt-4">
-                        <p className="text-white text-lg font-semibold">
+                    <div className="border-t border-forest-moss-200 pt-4">
+                        <p className="text-oxford-navy-900 text-lg font-semibold">
                             Total: {rupiahFormatter.format(total)}
                         </p>
                     </div>
@@ -166,7 +160,7 @@ export default function CartPage() {
                     />
 
                     {errorMessage && (
-                        <p className="text-red-400 text-sm">{errorMessage}</p>
+                        <p className="text-red-600 text-sm">{errorMessage}</p>
                     )}
 
                     <Button

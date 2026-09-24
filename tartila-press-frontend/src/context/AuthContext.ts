@@ -21,6 +21,8 @@ export type AuthContextValue = {
     login: (payload: LoginPayload) => Promise<void>;
     register: (payload: RegisterPayload) => Promise<void>;
     logout: () => Promise<void>;
+    /** Muat ulang data user dari server (mis. setelah email diverifikasi). */
+    refreshUser: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

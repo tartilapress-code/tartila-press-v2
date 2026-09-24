@@ -92,7 +92,7 @@ function ExternalSaleRow({
 
     if (isEditing) {
         return (
-            <div className="flex flex-col gap-2 bg-oxford-navy-900/60 rounded-lg p-3">
+            <div className="flex flex-col gap-2 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-3">
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                     <Input
                         label="Nama Lapak"
@@ -145,7 +145,7 @@ function ExternalSaleRow({
                         }
                     />
                 </div>
-                {error && <p className="text-red-400 text-xs">{error}</p>}
+                {error && <p className="text-red-600 text-xs">{error}</p>}
                 <div className="flex flex-row gap-2">
                     <Button
                         variant="primary"
@@ -167,9 +167,9 @@ function ExternalSaleRow({
     }
 
     return (
-        <div className="flex flex-row items-center justify-between gap-3 bg-oxford-navy-900/60 rounded-lg p-3">
-            <div className="text-white/80 text-sm flex flex-col">
-                <p className="text-white font-semibold">
+        <div className="flex flex-row items-center justify-between gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-3">
+            <div className="text-oxford-navy-900/80 text-sm flex flex-col">
+                <p className="text-oxford-navy-900 font-semibold">
                     {sale.marketplace_name}
                 </p>
                 <p>
@@ -187,13 +187,13 @@ function ExternalSaleRow({
             <div className="flex flex-row gap-2 shrink-0">
                 <button
                     onClick={() => setIsEditing(true)}
-                    className="text-forest-moss-300 text-xs hover:text-forest-moss-200 font-semibold"
+                    className="text-forest-moss-700 text-xs hover:text-forest-moss-800 font-semibold"
                 >
                     Ubah
                 </button>
                 <button
                     onClick={handleDelete}
-                    className="text-red-400 text-xs hover:text-red-300 font-semibold"
+                    className="text-red-600 text-xs hover:text-red-700 font-semibold"
                 >
                     Hapus
                 </button>
@@ -233,13 +233,13 @@ function ExternalSalesManager({
     }
 
     return (
-        <div className="flex flex-col gap-3 bg-oxford-navy-900/60 rounded-lg p-4">
-            <p className="text-white font-semibold text-sm">
+        <div className="flex flex-col gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-4">
+            <p className="text-oxford-navy-900 font-semibold text-sm">
                 Penjualan Luar Sistem
             </p>
 
             {book.external_sales.length === 0 ? (
-                <p className="text-white/60 text-sm">
+                <p className="text-oxford-navy-900/65 text-sm">
                     Belum ada penjualan luar sistem tercatat.
                 </p>
             ) : (
@@ -254,8 +254,8 @@ function ExternalSalesManager({
                 </div>
             )}
 
-            <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
-                <p className="text-white/80 text-sm">Tambah Penjualan Baru</p>
+            <div className="flex flex-col gap-2 border-t border-forest-moss-100 pt-3">
+                <p className="text-oxford-navy-900/80 text-sm">Tambah Penjualan Baru</p>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                     <Input
                         label="Nama Lapak"
@@ -311,7 +311,7 @@ function ExternalSalesManager({
                         required
                     />
                 </div>
-                {error && <p className="text-red-400 text-xs">{error}</p>}
+                {error && <p className="text-red-600 text-xs">{error}</p>}
                 <Button
                     variant="primary"
                     className="self-start"
@@ -342,9 +342,9 @@ export default function RoyaltiesPage() {
     }, []);
 
     return (
-        <div className="flex flex-col gap-4 bg-oxford-navy-900/70 backdrop-blur-lg rounded-xl p-6">
-            <h5 className="text-white text-xl font-semibold">Royalti</h5>
-            <p className="text-white/60 text-sm">
+        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Royalti</h5>
+            <p className="text-oxford-navy-900/65 text-sm">
                 Buku yang sudah diberi nilai royalti (atur lewat halaman
                 Buku). Jumlah terjual dihitung otomatis dari pesanan yang
                 sudah selesai, ditambah penjualan luar sistem yang dicatat
@@ -352,9 +352,9 @@ export default function RoyaltiesPage() {
             </p>
 
             {isLoading ? (
-                <p className="text-white/70 text-sm">Memuat...</p>
+                <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
             ) : royalties.length === 0 ? (
-                <p className="text-white/70 text-sm">
+                <p className="text-oxford-navy-900/70 text-sm">
                     Belum ada buku dengan nilai royalti. Atur Royalti (%)
                     lewat halaman Buku terlebih dahulu.
                 </p>
@@ -363,19 +363,19 @@ export default function RoyaltiesPage() {
                     {royalties.map((book) => (
                         <div
                             key={book.id}
-                            className="flex flex-col gap-2 bg-oxford-navy-900/40 rounded-lg p-4"
+                            className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
                         >
                             <div className="flex flex-row items-start justify-between gap-4 flex-wrap">
                                 <div>
-                                    <p className="text-white font-semibold">
+                                    <p className="text-oxford-navy-900 font-semibold">
                                         {book.title}
                                     </p>
-                                    <p className="text-white/60 text-sm">
+                                    <p className="text-oxford-navy-900/65 text-sm">
                                         {book.author?.name ??
                                             book.authors_text}{' '}
                                         — Royalti {book.royalty_percentage}%
                                     </p>
-                                    <p className="text-white/60 text-sm">
+                                    <p className="text-oxford-navy-900/65 text-sm">
                                         Harga:{' '}
                                         {rupiahFormatter.format(
                                             Number(book.price)
@@ -383,19 +383,19 @@ export default function RoyaltiesPage() {
                                     </p>
                                 </div>
                                 <div className="text-right text-sm">
-                                    <p className="text-white/70">
+                                    <p className="text-oxford-navy-900/70">
                                         Jumlah Order:{' '}
                                         {book.total_orders_count}
                                     </p>
-                                    <p className="text-white/70">
+                                    <p className="text-oxford-navy-900/70">
                                         Jumlah Selesai:{' '}
                                         {book.completed_orders_count}
                                     </p>
-                                    <p className="text-white/70">
+                                    <p className="text-oxford-navy-900/70">
                                         Total Terjual:{' '}
                                         {book.total_quantity_sold}
                                     </p>
-                                    <p className="text-forest-moss-300 font-semibold">
+                                    <p className="text-forest-moss-700 font-semibold">
                                         Total Royalti:{' '}
                                         {rupiahFormatter.format(
                                             book.total_royalty_amount
