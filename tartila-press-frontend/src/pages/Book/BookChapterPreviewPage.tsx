@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiArrowLeftLine, RiFileTextLine } from '@remixicon/react';
 import ErrorPage from '@/pages/ErrorPage';
 import { ApiError } from '@/lib/http';
@@ -27,6 +28,7 @@ function PreviewSkeleton() {
 }
 
 export default function BookChapterPreviewPage() {
+    const { t } = useTranslation();
     const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
 
     const [book, setBook] = useState<BookDetail | null>(null);
@@ -117,12 +119,14 @@ export default function BookChapterPreviewPage() {
                         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-forest-moss-700 hover:underline"
                     >
                         <RiArrowLeftLine aria-hidden className="size-4" />
-                        Kembali ke detail buku
+                        {t('books.detail.chapterPreview.back')}
                     </Link>
 
                     <div className="flex flex-wrap gap-2">
                         <PillBadge
-                            label={`Bab ${chapter.chapter_number}`}
+                            label={t('books.detail.chapterPreview.badge', {
+                                number: chapter.chapter_number,
+                            })}
                             withIcon
                         />
                     </div>
@@ -133,11 +137,12 @@ export default function BookChapterPreviewPage() {
 
                     {chapter.manuscript && (
                         <p className="text-base text-oxford-navy-900/70">
-                            Oleh <PersonLink person={chapter.manuscript.user} />
+                            {t('books.detail.hero.by')}{' '}
+                            <PersonLink person={chapter.manuscript.user} />
                         </p>
                     )}
                     <p className="text-sm text-oxford-navy-900/55">
-                        Bagian dari buku{' '}
+                        {t('books.detail.chapterPreview.partOf')}{' '}
                         <Link
                             to={`/buku/${book.slug}`}
                             className="font-medium text-oxford-navy-700 hover:underline"
@@ -163,7 +168,7 @@ export default function BookChapterPreviewPage() {
                                 className="size-10 text-forest-moss-300"
                             />
                             <p className="text-sm text-oxford-navy-900/60">
-                                Preview belum tersedia untuk bab ini.
+                                {t('books.detail.chapterPreview.noPreview')}
                             </p>
                         </div>
                     )}

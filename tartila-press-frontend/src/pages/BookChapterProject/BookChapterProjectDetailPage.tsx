@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     RiCheckboxCircleFill,
     RiGiftLine,
@@ -78,6 +79,7 @@ function DetailSkeleton() {
 }
 
 export default function BookChapterProjectDetailPage() {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
@@ -120,9 +122,15 @@ export default function BookChapterProjectDetailPage() {
     // Yang didapat penulis: HKI/ISBN + layanan & fasilitas yang dicentang.
     // Proyek lama yang belum dicentang memakai daftar teks bebasnya.
     const checkedServices = [
-        ...(project?.includes_hki ? ['HKI'] : []),
-        ...(project?.includes_isbn_print ? ['ISBN Cetak'] : []),
-        ...(project?.includes_isbn_electronic ? ['e-ISBN'] : []),
+        ...(project?.includes_hki
+            ? [t('bookChapter.detail.included.hki')]
+            : []),
+        ...(project?.includes_isbn_print
+            ? [t('bookChapter.detail.included.isbnPrint')]
+            : []),
+        ...(project?.includes_isbn_electronic
+            ? [t('bookChapter.detail.included.isbnElectronic')]
+            : []),
         ...(project?.package_services ?? []),
     ];
     const checkedFacilities = project?.package_facilities ?? [];
@@ -168,9 +176,18 @@ export default function BookChapterProjectDetailPage() {
     }
 
     const navMeta: Record<SectionKey, { label: string; icon: ReactNode }> = {
-        tentang: { label: 'Tentang', icon: <RiInformationLine /> },
-        fasilitas: { label: 'Yang Didapat', icon: <RiGiftLine /> },
-        bab: { label: 'Daftar Bab', icon: <RiListOrdered /> },
+        tentang: {
+            label: t('bookChapter.detail.nav.tentang'),
+            icon: <RiInformationLine />,
+        },
+        fasilitas: {
+            label: t('bookChapter.detail.nav.fasilitas'),
+            icon: <RiGiftLine />,
+        },
+        bab: {
+            label: t('bookChapter.detail.nav.bab'),
+            icon: <RiListOrdered />,
+        },
     };
 
     const navItems: SideNavItem[] = sectionKeys.map((key) => ({
@@ -194,7 +211,7 @@ export default function BookChapterProjectDetailPage() {
                     <div className="flex flex-col gap-4 lg:sticky lg:top-24">
                         <SideNavCard
                             items={navItems}
-                            ariaLabel="Navigasi proyek"
+                            ariaLabel={t('bookChapter.detail.navAria')}
                         />
                         <ChapterHowItWorks className="hidden lg:block" />
                     </div>
@@ -208,7 +225,7 @@ export default function BookChapterProjectDetailPage() {
                             className="flex scroll-mt-28 flex-col gap-4"
                         >
                             <SectionTitle id="tentang-title">
-                                Tentang Proyek
+                                {t('bookChapter.detail.aboutTitle')}
                             </SectionTitle>
 
                             {!isAuthenticated && (
@@ -218,14 +235,13 @@ export default function BookChapterProjectDetailPage() {
                                             aria-hidden
                                             className="mt-0.5 size-4 shrink-0 text-forest-moss-700"
                                         />
-                                        Masuk untuk melihat deskripsi lengkap
-                                        proyek dan SOP tiap bab.
+                                        {t('bookChapter.detail.loginNote')}
                                     </p>
                                     <Link
                                         to="/login"
                                         className="inline-flex shrink-0 items-center justify-center rounded-lg bg-oxford-navy-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-oxford-navy-600"
                                     >
-                                        Masuk
+                                        {t('bookChapter.detail.loginButton')}
                                     </Link>
                                 </div>
                             )}
@@ -254,18 +270,20 @@ export default function BookChapterProjectDetailPage() {
                             }`}
                         >
                             <SectionTitle id="fasilitas-title">
-                                Yang Anda Dapatkan
+                                {t('bookChapter.detail.includedTitle')}
                             </SectionTitle>
                             <div className="grid gap-6 sm:grid-cols-2">
                                 {includedServices.length > 0 && (
                                     <IncludedList
-                                        title="Layanan"
+                                        title={t('bookChapter.detail.services')}
                                         items={includedServices}
                                     />
                                 )}
                                 {includedFacilities.length > 0 && (
                                     <IncludedList
-                                        title="Fasilitas"
+                                        title={t(
+                                            'bookChapter.detail.facilities'
+                                        )}
                                         items={includedFacilities}
                                     />
                                 )}
@@ -286,23 +304,25 @@ export default function BookChapterProjectDetailPage() {
                             id="bab-title"
                             action={
                                 <span className="shrink-0 text-sm text-oxford-navy-900/55">
-                                    {open} dari {total} slot terbuka
+                                    {t('bookChapter.detail.slotsOpenOf', {
+                                        open,
+                                        total,
+                                    })}
                                 </span>
                             }
                         >
-                            Daftar Bab
+                            {t('bookChapter.detail.chaptersTitle')}
                         </SectionTitle>
 
                         {deadlinePassed && (
                             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-                                Pembelian slot ditutup karena batas pengumpulan
-                                naskah sudah lewat.
+                                {t('bookChapter.detail.deadlineClosed')}
                             </p>
                         )}
 
                         {project.chapters.length === 0 ? (
                             <p className="text-sm text-oxford-navy-900/55">
-                                Belum ada bab pada proyek ini.
+                                {t('bookChapter.detail.noChapters')}
                             </p>
                         ) : (
                             <ol className="flex flex-col gap-3">

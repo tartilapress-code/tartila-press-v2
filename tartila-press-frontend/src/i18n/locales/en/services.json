@@ -1,0 +1,42 @@
+{
+    "empty": "No services to display yet.",
+    "type": {
+        "service": "Service",
+        "facility": "Facility"
+    },
+    "itemAria": "{{name}}, {{price}}",
+    "page": {
+        "badge": "Services",
+        "heroBefore": "Publishing Services by ",
+        "heroText": "From manuscript to published book, we accompany every step with a modern, transparent, and trusted system.",
+        "scriptTop": "Your Work,",
+        "scriptBottom": "We Publish",
+        "sectionTitle": "Services & Facilities",
+        "sectionText": "Tick what you need to build your own custom package.",
+        "groupServices": "Services",
+        "groupFacilities": "Facilities",
+        "offersTitle": "Save More with Publishing Packages",
+        "offersAll": "View all packages",
+        "offersGeneral": "Need several services at once? A package bundles them at a single price, which costs less than buying them individually.",
+        "offersSelection_one": "{{count}} package already covers everything you selected and costs less than the {{total}} total.",
+        "offersSelection_other": "{{count}} packages already cover everything you selected and cost less than the {{total}} total.",
+        "offersUncovered": "No package covers all your selections at a lower price yet. Here are other packages worth considering.",
+        "hintBest": "covers your selection and costs less.",
+        "hintLink": "View package",
+        "hintUncovered": "No package covers all your selections at a lower price yet.",
+        "ctaTitle": "Ready to publish your book?",
+        "ctaText": "Compare all publishing packages or discuss your needs with us first.",
+        "ctaAction": "View All Packages"
+    },
+    "summary": {
+        "aria": "Selection summary",
+        "title": "Build a Custom Package",
+        "empty": "Tick the services or facilities you need to see a cost estimate and more economical packages.",
+        "selected_one": "{{count}} item selected",
+        "selected_other": "{{count}} items selected",
+        "estimate": "Estimate, excluding the optional editor fee.",
+        "continue": "Continue Building Package",
+        "clear": "Clear selection",
+        "loginNote": "You need to log in to place an order."
+    }
+}

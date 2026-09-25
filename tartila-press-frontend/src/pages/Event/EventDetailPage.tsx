@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowLeftLine,
     RiCalendar2Line,
@@ -13,23 +14,9 @@ import Button from '@/components/Button/Button';
 import PillBadge from '@/components/ui/PillBadge';
 import * as eventApi from '@/data/event/eventApi';
 import type { Event } from '@/data/event/eventApi';
+import { useFormat } from '@/i18n/useFormat';
+import { EVENT_DATE_TIME } from '@/lib/eventTime';
 import { youtubeEmbedUrl } from '@/lib/youtube';
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-});
-
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-});
 
 function InfoTile({
     icon,
@@ -61,6 +48,8 @@ function InfoTile({
 }
 
 export default function EventDetailPage() {
+    const { t } = useTranslation();
+    const { date, rupiah } = useFormat();
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
@@ -89,7 +78,7 @@ export default function EventDetailPage() {
     if (isLoading) {
         return (
             <div className="flex h-dvh items-center justify-center">
-                <p className="text-oxford-navy-900/70">Memuat...</p>
+                <p className="text-oxford-navy-900/70">{t('common.loading')}</p>
             </div>
         );
     }
@@ -123,12 +112,12 @@ export default function EventDetailPage() {
 
         try {
             await eventApi.register(event!.slug, {});
-            setSuccessMessage('Pendaftaran berhasil! Lihat di Event Saya.');
+            setSuccessMessage(t('events.page.success'));
         } catch (error) {
             setErrorMessage(
                 error instanceof ApiError
                     ? error.message
-                    : 'Terjadi kesalahan. Silakan coba lagi.'
+                    : t('common.genericError')
             );
         } finally {
             setIsRegistering(false);
@@ -144,7 +133,7 @@ export default function EventDetailPage() {
                     className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-forest-moss-700 hover:underline"
                 >
                     <RiArrowLeftLine aria-hidden className="size-4" />
-                    Semua Event
+                    {t('events.page.back')}
                 </Link>
 
                 {event.banner && (
@@ -167,26 +156,24 @@ export default function EventDetailPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                     <InfoTile
                         icon={<RiCalendar2Line />}
-                        label="Waktu Pelaksanaan"
+                        label={t('events.page.when')}
                     >
-                        {dateFormatter.format(new Date(event.starts_at))} WIB
+                        {date(event.starts_at, EVENT_DATE_TIME)} WIB
                         {event.ends_at &&
-                            ` — ${dateFormatter.format(new Date(event.ends_at))} WIB`}
+                            ` — ${date(event.ends_at, EVENT_DATE_TIME)} WIB`}
                     </InfoTile>
                     <InfoTile
                         icon={<RiPriceTag3Line />}
-                        label="Biaya Pendaftaran"
+                        label={t('events.page.fee')}
                     >
-                        {fee > 0 ? rupiahFormatter.format(fee) : 'Gratis'}
+                        {fee > 0 ? rupiah(fee) : t('common.free')}
                     </InfoTile>
                     {event.registration_deadline && (
                         <InfoTile
                             icon={<RiTimeLine />}
-                            label="Batas Pendaftaran"
+                            label={t('events.page.deadline')}
                         >
-                            {dateFormatter.format(
-                                new Date(event.registration_deadline)
-                            )}{' '}
+                            {date(event.registration_deadline, EVENT_DATE_TIME)}{' '}
                             WIB
                         </InfoTile>
                     )}
@@ -202,7 +189,9 @@ export default function EventDetailPage() {
                     <div className="aspect-video w-full">
                         <iframe
                             src={embedUrl}
-                            title={`Video ${event.title}`}
+                            title={t('events.page.videoTitle', {
+                                title: event.title,
+                            })}
                             className="h-full w-full rounded-2xl"
                             loading="lazy"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -219,7 +208,7 @@ export default function EventDetailPage() {
                         </p>
                     ) : deadlinePassed ? (
                         <p className="text-sm text-red-700">
-                            Pendaftaran untuk event ini sudah ditutup.
+                            {t('events.page.closed')}
                         </p>
                     ) : (
                         <>
@@ -234,7 +223,9 @@ export default function EventDetailPage() {
                                 onClick={handleDaftar}
                                 disabled={isRegistering}
                             >
-                                {isRegistering ? 'Memproses...' : 'Daftar'}
+                                {isRegistering
+                                    ? t('events.page.processing')
+                                    : t('events.page.register')}
                             </Button>
                         </>
                     )}

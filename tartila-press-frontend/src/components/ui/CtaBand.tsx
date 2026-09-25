@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiWhatsappLine } from '@remixicon/react';
 
 // Nomor WhatsApp yang sama dengan tombol "Konsultasi" di beranda.
@@ -13,6 +14,8 @@ type CtaBandProps = {
 
 /** Pita ajakan di ujung halaman: tombol utama dan tombol konsultasi WhatsApp. */
 export default function CtaBand({ title, text, action }: CtaBandProps) {
+    const { t } = useTranslation();
+
     return (
         <div className="flex flex-col items-start gap-4 rounded-2xl border border-forest-moss-200 bg-forest-moss-100/70 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
             <div className="flex flex-col gap-1">
@@ -38,7 +41,7 @@ export default function CtaBand({ title, text, action }: CtaBandProps) {
                         aria-hidden
                         className="size-5 text-forest-moss-600"
                     />
-                    Konsultasi
+                    {t('common.consult')}
                 </a>
             </div>
         </div>

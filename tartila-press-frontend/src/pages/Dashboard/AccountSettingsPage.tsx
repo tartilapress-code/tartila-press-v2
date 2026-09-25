@@ -5,7 +5,8 @@ import { useAuth } from '@/context/useAuth';
 import { hasAnyRole } from '@/context/AuthContext';
 import { ApiError } from '@/lib/http';
 import { useResendVerification } from '@/hooks/useResendVerification';
-import { PASSWORD_HINT, validatePassword } from '@/lib/passwordPolicy';
+import i18n from 'i18next';
+import { validatePassword } from '@/lib/passwordPolicy';
 import * as profileApi from '@/data/profile/profileApi';
 import * as roleRequestApi from '@/data/roleRequest/roleRequestApi';
 import type { RequestedRole } from '@/data/roleRequest/roleRequestApi';
@@ -19,7 +20,9 @@ function Card({
 }) {
     return (
         <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">{title}</h5>
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                {title}
+            </h5>
             {children}
         </div>
     );
@@ -101,12 +104,14 @@ function RoleUpgradeRow({ role }: { role: RequestedRole }) {
                 )}
             </div>
 
-            {!isLoading && !alreadyHasRole && latestRequest?.status === 'rejected' && (
-                <p className="text-red-600 text-sm">
-                    Permintaan sebelumnya ditolak
-                    {latestRequest.note ? `: ${latestRequest.note}` : '.'}
-                </p>
-            )}
+            {!isLoading &&
+                !alreadyHasRole &&
+                latestRequest?.status === 'rejected' && (
+                    <p className="text-red-600 text-sm">
+                        Permintaan sebelumnya ditolak
+                        {latestRequest.note ? `: ${latestRequest.note}` : '.'}
+                    </p>
+                )}
 
             {errorMessage && (
                 <p className="text-red-600 text-sm">{errorMessage}</p>
@@ -199,7 +204,9 @@ export default function AccountSettingsPage() {
 
         const passwordProblem = validatePassword(password);
         if (passwordProblem) {
-            setPasswordError(passwordProblem);
+            // Dashboard belum diterjemahkan: pesan kebijakan password tetap
+            // berbahasa Indonesia sampai halaman ini ikut dialihbahasakan.
+            setPasswordError(i18n.t(passwordProblem, { lng: 'id' }));
             setPasswordSubmitting(false);
             return;
         }
@@ -368,7 +375,7 @@ export default function AccountSettingsPage() {
                         required
                     />
                     <small className="text-oxford-navy-900/70 -mt-2">
-                        {PASSWORD_HINT}
+                        {i18n.t('auth.password.hint', { lng: 'id' })}
                     </small>
                     <Input
                         label="Konfirmasi Password Baru"
@@ -377,9 +384,7 @@ export default function AccountSettingsPage() {
                         required
                     />
                     {passwordError && (
-                        <p className="text-sm text-red-600">
-                            {passwordError}
-                        </p>
+                        <p className="text-sm text-red-600">{passwordError}</p>
                     )}
                     {passwordStatus && (
                         <p className="text-sm text-forest-moss-700">
@@ -392,9 +397,7 @@ export default function AccountSettingsPage() {
                         className="self-start"
                         disabled={passwordSubmitting}
                     >
-                        {passwordSubmitting
-                            ? 'Menyimpan...'
-                            : 'Ganti Password'}
+                        {passwordSubmitting ? 'Menyimpan...' : 'Ganti Password'}
                     </Button>
                 </form>
             </Card>

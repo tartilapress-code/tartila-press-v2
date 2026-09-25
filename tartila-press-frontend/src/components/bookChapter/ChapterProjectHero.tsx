@@ -1,18 +1,24 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { RiCalendarLine, RiTimeLine, RiUserLine } from '@remixicon/react';
+import { useTranslation } from 'react-i18next';
+import {
+    RiCalendarLine,
+    RiTimeLine,
+    RiTranslate2,
+    RiUserLine,
+} from '@remixicon/react';
 import {
     BookStackLine,
     HeroHill,
     HeroLeafRight,
 } from '@/components/art/HeroArt';
 import ChapterCover from '@/components/bookChapter/ChapterCover';
+import { useContentLanguages } from '@/components/language/useContentLanguages';
 import PillBadge from '@/components/ui/PillBadge';
+import { useFormat } from '@/i18n/useFormat';
+import { toContentLanguages } from '@/lib/contentLanguages';
 import {
     categoryNames,
-    formatDate,
-    formatMonthYear,
-    formatRupiah,
     openPrice,
     summarizeSlots,
     type ChapterProject,
@@ -34,10 +40,18 @@ export default function ChapterProjectHero({
     deadlinePassed: boolean;
     onPickChapter: () => void;
 }) {
+    const { t } = useTranslation();
+    const { rupiah, dateLong, monthYear } = useFormat();
+    const { metaLine } = useContentLanguages();
+    const languages = toContentLanguages(project.languages);
     const { total, open, taken } = summarizeSlots(project.chapters);
     const price = openPrice(project.chapters);
-    const publish = formatMonthYear(project.estimated_publish_date);
-    const deadline = formatDate(project.submission_deadline);
+    const publish = project.estimated_publish_date
+        ? monthYear(project.estimated_publish_date)
+        : null;
+    const deadline = project.submission_deadline
+        ? dateLong(project.submission_deadline)
+        : null;
     const percent = total > 0 ? Math.round((taken / total) * 100) : 0;
 
     const meta: MetaItem[] = [];
@@ -46,21 +60,30 @@ export default function ChapterProjectHero({
         meta.push({
             key: 'editor',
             icon: <RiUserLine />,
-            text: `Editor: ${project.owner_editor.name}`,
+            text: t('bookChapter.card.editor', {
+                name: project.owner_editor.name,
+            }),
+        });
+    }
+    if (languages.length > 0) {
+        meta.push({
+            key: 'languages',
+            icon: <RiTranslate2 />,
+            text: metaLine(languages),
         });
     }
     if (publish) {
         meta.push({
             key: 'publish',
             icon: <RiCalendarLine />,
-            text: `Perkiraan terbit ${publish}`,
+            text: t('bookChapter.card.estimatedPublish', { date: publish }),
         });
     }
     if (deadline) {
         meta.push({
             key: 'deadline',
             icon: <RiTimeLine />,
-            text: `Batas naskah ${deadline}`,
+            text: t('bookChapter.card.deadline', { date: deadline }),
         });
     }
 
@@ -78,14 +101,16 @@ export default function ChapterProjectHero({
                     />
                     {project.discount > 0 && (
                         <span className="absolute -right-3 -top-3 rounded-full bg-forest-moss-600 px-3 py-1.5 text-xs font-semibold leading-none text-white shadow-md">
-                            Diskon {project.discount}%
+                            {t('common.discount', {
+                                percent: project.discount,
+                            })}
                         </span>
                     )}
                 </div>
 
                 <div className="flex min-w-0 flex-col items-center gap-3 sm:items-start">
                     <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
-                        <PillBadge label="Book Chapter" withIcon />
+                        <PillBadge label={t('bookChapter.badge')} withIcon />
                         {categoryNames(project).map((name) => (
                             <PillBadge key={name} label={name} />
                         ))}
@@ -117,29 +142,29 @@ export default function ChapterProjectHero({
                     <div className="mt-1 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:justify-start">
                         <div>
                             <p className="text-xs text-oxford-navy-900/55">
-                                Harga per bab
+                                {t('bookChapter.hero.pricePerChapter')}
                             </p>
                             {price ? (
                                 <p className="mt-0.5 flex flex-wrap items-baseline justify-center gap-x-2 sm:justify-start">
                                     {price.original !== null && (
                                         <span className="text-sm text-oxford-navy-900/45 line-through">
-                                            {formatRupiah(price.original)}
+                                            {rupiah(price.original)}
                                         </span>
                                     )}
                                     <span className="text-3xl font-bold text-oxford-navy-700">
-                                        {formatRupiah(price.from)}
+                                        {rupiah(price.from)}
                                     </span>
                                     {price.hasRange && (
                                         <span className="text-xs text-oxford-navy-900/55">
-                                            (harga terendah)
+                                            {t('bookChapter.hero.lowestPrice')}
                                         </span>
                                     )}
                                 </p>
                             ) : (
                                 <p className="mt-0.5 text-lg font-semibold text-oxford-navy-900/60">
                                     {total === 0
-                                        ? 'Belum ada bab'
-                                        : 'Semua slot sudah terisi'}
+                                        ? t('bookChapter.hero.noChapters')
+                                        : t('bookChapter.hero.allFilled')}
                                 </p>
                             )}
                         </div>
@@ -147,15 +172,20 @@ export default function ChapterProjectHero({
                         <div className="w-52">
                             <div className="flex items-center justify-between gap-2 text-xs">
                                 <span className="font-semibold text-forest-moss-700">
-                                    {open} slot terbuka
+                                    {t('bookChapter.card.slotsOpen', {
+                                        count: open,
+                                    })}
                                 </span>
                                 <span className="text-oxford-navy-900/50">
-                                    {taken}/{total} terisi
+                                    {t('bookChapter.card.slotsFilled', {
+                                        taken,
+                                        total,
+                                    })}
                                 </span>
                             </div>
                             <div
                                 role="progressbar"
-                                aria-label="Slot bab yang sudah terisi"
+                                aria-label={t('bookChapter.card.progressAria')}
                                 aria-valuemin={0}
                                 aria-valuemax={total}
                                 aria-valuenow={taken}
@@ -171,8 +201,7 @@ export default function ChapterProjectHero({
 
                     {deadlinePassed && (
                         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-                            Batas pengumpulan naskah sudah lewat — pembelian
-                            slot ditutup.
+                            {t('bookChapter.hero.deadlinePassed')}
                         </p>
                     )}
 
@@ -183,14 +212,14 @@ export default function ChapterProjectHero({
                                 onClick={onPickChapter}
                                 className="inline-flex items-center justify-center rounded-lg bg-oxford-navy-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-oxford-navy-600"
                             >
-                                Pilih Bab
+                                {t('bookChapter.hero.pickChapter')}
                             </button>
                         )}
                         <Link
                             to="/buku-bab"
                             className="inline-flex items-center justify-center rounded-lg border border-oxford-navy-700 px-5 py-3 text-sm font-semibold text-oxford-navy-700 transition-colors hover:bg-oxford-navy-700 hover:text-white"
                         >
-                            Semua Proyek
+                            {t('bookChapter.hero.allProjects')}
                         </Link>
                     </div>
                 </div>

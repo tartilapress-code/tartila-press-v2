@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import { RiMailSendLine } from '@remixicon/react';
 import AuthCard from '@/components/AuthCard';
 import Button from '@/components/Button/Button';
@@ -15,6 +16,7 @@ const textLinkClass =
     'text-forest-moss-700 text-sm hover:text-forest-moss-800 underline';
 
 export default function ForgotPasswordPage() {
+    const { t } = useTranslation();
     const [email, setEmail] = useState<string>('');
     const [sentTo, setSentTo] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -39,14 +41,12 @@ export default function ForgotPasswordPage() {
             ) {
                 setFieldError(error.errors.email[0]);
             } else if (error instanceof ApiError && error.status === 429) {
-                setErrorMessage(
-                    'Terlalu sering meminta link. Tunggu sebentar lalu coba lagi.'
-                );
+                setErrorMessage(t('auth.forgot.throttled'));
             } else {
                 setErrorMessage(
                     error instanceof ApiError
                         ? error.message
-                        : 'Terjadi kesalahan. Silakan coba lagi.'
+                        : t('common.genericError')
                 );
             }
         } finally {
@@ -69,15 +69,18 @@ export default function ForgotPasswordPage() {
                     />
                 </div>
                 <h5 className="font-display block text-oxford-navy-700 text-2xl font-bold text-left">
-                    Cek Email Anda
+                    {t('auth.forgot.sentTitle')}
                 </h5>
                 <p className="text-oxford-navy-900 text-base leading-relaxed">
-                    Jika <strong>{sentTo}</strong> terdaftar, link untuk membuat
-                    password baru sudah kami kirim. Link berlaku 60 menit.
+                    <Trans
+                        t={t}
+                        i18nKey="auth.forgot.sentBody"
+                        values={{ email: sentTo }}
+                        components={{ strong: <strong /> }}
+                    />
                 </p>
                 <p className="text-oxford-navy-900/70 text-sm">
-                    Belum ada? Cek folder spam dan pastikan penulisan email
-                    sudah benar.
+                    {t('auth.forgot.sentHint')}
                 </p>
 
                 {errorMessage && (
@@ -91,10 +94,10 @@ export default function ForgotPasswordPage() {
                     disabled={isSubmitting || cooldown > 0}
                 >
                     {isSubmitting
-                        ? 'Mengirim...'
+                        ? t('auth.resend.sending')
                         : cooldown > 0
-                          ? `Kirim ulang (${cooldown} dtk)`
-                          : 'Kirim Ulang'}
+                          ? t('auth.resend.wait', { seconds: cooldown })
+                          : t('auth.forgot.resend')}
                 </Button>
 
                 <div className="flex flex-row flex-wrap gap-4 justify-center">
@@ -103,10 +106,10 @@ export default function ForgotPasswordPage() {
                         onClick={() => setSentTo(null)}
                         className={textLinkClass}
                     >
-                        Salah alamat email? Ubah
+                        {t('auth.forgot.wrongAddress')}
                     </button>
                     <Link to="/login" className={textLinkClass}>
-                        Kembali ke Login
+                        {t('auth.forgot.backToLogin')}
                     </Link>
                 </div>
             </AuthCard>
@@ -116,20 +119,19 @@ export default function ForgotPasswordPage() {
     return (
         <AuthCard>
             <h5 className="font-display block text-oxford-navy-700 text-2xl font-bold text-left">
-                Lupa Password?
+                {t('auth.forgot.title')}
             </h5>
             <p className="text-oxford-navy-900 text-base leading-relaxed">
-                Masukkan email akun Anda. Kami akan mengirimkan link untuk
-                membuat password baru.
+                {t('auth.forgot.intro')}
             </p>
 
             <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-4">
                     <Input
-                        label="Email"
+                        label={t('auth.forgot.emailLabel')}
                         name="email"
                         type="email"
-                        placeholder="nama@email.com"
+                        placeholder={t('auth.forgot.emailPlaceholder')}
                         autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -146,14 +148,16 @@ export default function ForgotPasswordPage() {
                         type="submit"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? 'Mengirim...' : 'Kirim Link Reset'}
+                        {isSubmitting
+                            ? t('auth.resend.sending')
+                            : t('auth.forgot.submit')}
                     </Button>
                 </div>
             </form>
 
             <div className="flex flex-row gap-2 justify-center">
                 <Link to="/login" className={textLinkClass}>
-                    ← Kembali ke Login
+                    ← {t('auth.forgot.backToLogin')}
                 </Link>
             </div>
         </AuthCard>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import ArticleCard from '@/components/article/ArticleCard';
 import * as articleApi from '@/data/article/articleApi';
 import type { Article } from '@/data/article/articleApi';
@@ -7,6 +8,7 @@ const COUNT = 3;
 
 /** Artikel terbaru di beranda. */
 export default function Information() {
+    const { t } = useTranslation();
     const [articles, setArticles] = useState<Article[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -37,7 +39,7 @@ export default function Information() {
     if (articles.length === 0) {
         return (
             <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                Belum ada artikel.
+                {t('articles.empty')}
             </p>
         );
     }

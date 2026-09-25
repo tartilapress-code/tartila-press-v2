@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as publicProfileApi from '@/data/publicProfile/publicProfileApi';
 import PersonCard, {
     PersonCardSkeleton,
@@ -13,6 +14,7 @@ export default function PeopleDirectory({
     role: 'penulis' | 'editor';
     limit?: number;
 }) {
+    const { t } = useTranslation();
     const [people, setPeople] = useState<Person[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -37,8 +39,7 @@ export default function PeopleDirectory({
     if (people.length === 0) {
         return (
             <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                Belum ada {role === 'penulis' ? 'penulis' : 'editor'} yang
-                ditampilkan.
+                {t(`people.${role}.emptyText`)}
             </p>
         );
     }

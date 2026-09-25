@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiCheckLine } from '@remixicon/react';
 import PillBadge from '@/components/ui/PillBadge';
 import type { PackageSummary } from '@/data/package/packageApi';
-import { formatRupiah } from '@/lib/bookChapterPublic';
+import { useFormat } from '@/i18n/useFormat';
 import { comparisonFeatures } from '@/lib/packageFeatures';
 import type { ComparisonFeature } from '@/lib/packageFeatures';
 
@@ -59,6 +60,8 @@ function FeatureCells({
     features: ComparisonFeature[];
     packageIndex: number;
 }): ReactNode {
+    const { t } = useTranslation();
+
     return features.map((feature, index) => (
         <td
             key={feature.key}
@@ -74,14 +77,14 @@ function FeatureCells({
                     >
                         <RiCheckLine className="size-4" />
                     </span>
-                    <span className="sr-only">Termasuk</span>
+                    <span className="sr-only">{t('common.included')}</span>
                 </>
             ) : (
                 <>
                     <span aria-hidden className="text-oxford-navy-900/30">
                         –
                     </span>
-                    <span className="sr-only">Tidak termasuk</span>
+                    <span className="sr-only">{t('common.notIncluded')}</span>
                 </>
             )}
         </td>
@@ -99,23 +102,26 @@ export default function PackageComparison({
 }: {
     packages: PackageSummary[];
 }): ReactNode {
+    const { t } = useTranslation();
+    const { rupiah } = useFormat();
     const services = comparisonFeatures(packages, (pkg) => pkg.services);
     const facilities = comparisonFeatures(packages, (pkg) => pkg.facilities);
 
     if (services.length === 0 && facilities.length === 0) {
         return (
             <p className="rounded-xl bg-forest-moss-50 px-6 py-10 text-center text-sm text-oxford-navy-900/65">
-                Belum ada rincian layanan dan fasilitas untuk dibandingkan.
+                {t('packages.table.empty')}
             </p>
         );
     }
 
     return (
-        <div className="overflow-x-auto rounded-2xl border border-forest-moss-100 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)]">
+        // `relative`: teks `sr-only` di dalam sel bersifat absolute — tanpa ini ia
+        // lolos dari pemotongan overflow dan melebarkan halaman di ponsel.
+        <div className="relative overflow-x-auto rounded-2xl border border-forest-moss-100 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)]">
             <table className="w-full border-separate border-spacing-0 text-left">
                 <caption className="sr-only">
-                    Perbandingan harga, layanan, dan fasilitas antar paket
-                    penerbitan
+                    {t('packages.table.caption')}
                 </caption>
                 <thead>
                     <tr>
@@ -124,18 +130,21 @@ export default function PackageComparison({
                             rowSpan={2}
                             className={`${stickyName} min-w-32 bg-forest-moss-50 px-3 py-3 text-left align-middle text-sm font-semibold text-oxford-navy-700 sm:min-w-44 sm:px-4`}
                         >
-                            Nama Paket
+                            {t('packages.table.name')}
                         </th>
                         <th
                             scope="col"
                             rowSpan={2}
                             className="min-w-32 bg-forest-moss-50 px-4 py-3 text-left align-middle text-sm font-semibold text-oxford-navy-700"
                         >
-                            Harga
+                            {t('packages.table.price')}
                         </th>
-                        <GroupHeader title="Layanan" span={services.length} />
                         <GroupHeader
-                            title="Fasilitas"
+                            title={t('packages.table.services')}
+                            span={services.length}
+                        />
+                        <GroupHeader
+                            title={t('packages.table.facilities')}
                             span={facilities.length}
                         />
                     </tr>
@@ -168,11 +177,11 @@ export default function PackageComparison({
                                 <div className="flex flex-col leading-tight">
                                     {pkg.discount > 0 && (
                                         <span className="text-xs text-oxford-navy-900/65 line-through">
-                                            {formatRupiah(Number(pkg.price))}
+                                            {rupiah(Number(pkg.price))}
                                         </span>
                                     )}
                                     <span className="text-base font-bold text-oxford-navy-700">
-                                        {formatRupiah(pkg.final_price)}
+                                        {rupiah(pkg.final_price)}
                                     </span>
                                 </div>
                             </td>

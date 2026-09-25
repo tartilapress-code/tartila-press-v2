@@ -1,0 +1,38 @@
+{
+    "names": {
+        "id": "Indonesia",
+        "en": "Inggeris",
+        "ms": "Melayu",
+        "ar": "Arab",
+        "jv": "Jawa",
+        "su": "Sunda",
+        "min": "Minangkabau",
+        "ban": "Bali",
+        "zh": "Mandarin",
+        "ja": "Jepun",
+        "ko": "Korea",
+        "hi": "Hindi",
+        "th": "Thai",
+        "vi": "Vietnam",
+        "fa": "Parsi",
+        "tr": "Turki",
+        "de": "Jerman",
+        "fr": "Perancis",
+        "nl": "Belanda",
+        "es": "Sepanyol",
+        "pt": "Portugis",
+        "it": "Itali",
+        "ru": "Rusia"
+    },
+    "metaLine_one": "Bahasa: {{languages}}",
+    "metaLine_other": "Bahasa: {{languages}}",
+    "factLabel_one": "Bahasa",
+    "factLabel_other": "Bahasa",
+    "masteredLine": "Bahasa yang dikuasai: {{languages}}",
+    "field": {
+        "bookLabel": "Bahasa Buku",
+        "bookHint": "Pilih satu atau lebih bahasa yang digunakan dalam buku ini. Boleh dikosongkan.",
+        "editorLabel": "Bahasa yang Dikuasai",
+        "editorHint": "Pilih semua bahasa yang anda kuasai untuk menyunting. Dipaparkan apabila penulis memilih editor."
+    }
+}

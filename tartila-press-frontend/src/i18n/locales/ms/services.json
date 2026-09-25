@@ -1,0 +1,42 @@
+{
+    "empty": "Belum ada perkhidmatan yang dipaparkan.",
+    "type": {
+        "service": "Perkhidmatan",
+        "facility": "Kemudahan"
+    },
+    "itemAria": "{{name}}, {{price}}",
+    "page": {
+        "badge": "Perkhidmatan",
+        "heroBefore": "Perkhidmatan Penerbitan ",
+        "heroText": "Dari manuskrip hingga buku diterbitkan, kami menemani setiap peringkat dengan sistem yang moden, telus, dan boleh dipercayai.",
+        "scriptTop": "Karya Anda,",
+        "scriptBottom": "Kami Terbitkan",
+        "sectionTitle": "Perkhidmatan & Kemudahan",
+        "sectionText": "Tandakan yang anda perlukan untuk menyusun pakej tersuai anda sendiri.",
+        "groupServices": "Perkhidmatan",
+        "groupFacilities": "Kemudahan",
+        "offersTitle": "Lebih Jimat dengan Pakej Penerbitan",
+        "offersAll": "Lihat semua pakej",
+        "offersGeneral": "Perlukan beberapa perkhidmatan sekaligus? Pakej menggabungkannya dalam satu harga, lebih jimat daripada membeli secara satuan.",
+        "offersSelection_one": "{{count}} pakej sudah merangkumi semua pilihan anda dan lebih jimat daripada jumlah {{total}}.",
+        "offersSelection_other": "{{count}} pakej sudah merangkumi semua pilihan anda dan lebih jimat daripada jumlah {{total}}.",
+        "offersUncovered": "Belum ada pakej yang merangkumi semua pilihan anda dengan harga lebih jimat. Berikut pakej lain yang wajar dipertimbangkan.",
+        "hintBest": "sudah merangkumi pilihan anda dan lebih jimat.",
+        "hintLink": "Lihat pakej",
+        "hintUncovered": "Belum ada pakej yang merangkumi semua pilihan anda dengan harga lebih jimat.",
+        "ctaTitle": "Bersedia menerbitkan buku anda?",
+        "ctaText": "Bandingkan semua pakej penerbitan atau berbincang tentang keperluan anda terlebih dahulu.",
+        "ctaAction": "Lihat Semua Pakej"
+    },
+    "summary": {
+        "aria": "Ringkasan pilihan",
+        "title": "Susun Pakej Tersuai",
+        "empty": "Tandakan perkhidmatan atau kemudahan yang anda perlukan untuk melihat anggaran kos dan pakej yang lebih jimat.",
+        "selected_one": "{{count}} item dipilih",
+        "selected_other": "{{count}} item dipilih",
+        "estimate": "Anggaran, belum termasuk bayaran editor pilihan.",
+        "continue": "Teruskan Susun Pakej",
+        "clear": "Kosongkan pilihan",
+        "loginNote": "Anda perlu log masuk untuk membuat pesanan."
+    }
+}

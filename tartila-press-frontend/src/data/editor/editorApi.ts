@@ -3,6 +3,8 @@ import { http } from '@/lib/http';
 export type EditorProfilePayload = Partial<{
     fee: number | string;
     bio: string;
+    // Bahasa yang dikuasai (kode, lihat lib/contentLanguages).
+    languages: string[];
     is_available: boolean;
 }>;
 
@@ -37,6 +39,7 @@ export type BookChapterProjectPayload = Partial<{
     discount: number;
     description: string;
     about: string;
+    languages: string[];
     facilities: string[];
     services: string[];
     front_cover: string;

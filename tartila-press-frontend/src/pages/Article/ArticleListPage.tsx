@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiLayoutGridLine, RiRestartLine } from '@remixicon/react';
 import ArticleCard from '@/components/article/ArticleCard';
 import { SearchField, SelectField } from '@/components/ui/FilterControls';
@@ -27,6 +28,7 @@ function ArticleCardSkeleton() {
 }
 
 export default function ArticleListPage() {
+    const { t } = useTranslation();
     const [articles, setArticles] = useState<Article[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [query, setQuery] = useState<string>('');
@@ -74,9 +76,14 @@ export default function ArticleListPage() {
         }, null);
 
     const highlighted: { article: Article; badge: string }[] = [];
-    if (newest) highlighted.push({ article: newest, badge: 'Terbaru' });
+    if (newest) {
+        highlighted.push({ article: newest, badge: t('articles.badgeNewest') });
+    }
     if (mostLiked) {
-        highlighted.push({ article: mostLiked, badge: 'Terpopuler' });
+        highlighted.push({
+            article: mostLiked,
+            badge: t('articles.badgeTopLiked'),
+        });
     }
 
     const highlightedIds = new Set(highlighted.map((item) => item.article.id));
@@ -90,13 +97,16 @@ export default function ArticleListPage() {
     return (
         <div className="-mx-10 -my-2 overflow-x-clip">
             <ListHero
-                badge="Artikel"
+                badge={t('articles.list.badge')}
                 title={{
-                    before: 'Wawasan dan Cerita dari ',
-                    accent: 'Komunitas Penulis',
+                    before: t('articles.list.heroBefore'),
+                    accent: t('articles.list.heroAccent'),
                 }}
-                text="Wawasan dan cerita dari komunitas penulis Tartila Press."
-                script={['Membaca, Menulis,', 'Bertumbuh Bersama']}
+                text={t('articles.list.heroText')}
+                script={[
+                    t('articles.list.scriptTop'),
+                    t('articles.list.scriptBottom'),
+                ]}
             />
 
             <div className="mx-auto max-w-[1232px] px-4 pb-20 pt-8 sm:px-8 lg:px-10">
@@ -106,13 +116,14 @@ export default function ArticleListPage() {
                 >
                     <div className="flex flex-col gap-4">
                         <SectionTitle id="artikel-title">
-                            Semua Artikel
+                            {t('articles.list.all')}
                             {!isLoading && articles.length > 0 && (
-                                <span className="font-sans text-sm font-normal text-oxford-navy-900/50">
-                                    {hasFilters
-                                        ? matched.length
-                                        : articles.length}{' '}
-                                    artikel
+                                <span className="font-sans text-sm font-normal text-oxford-navy-900/65">
+                                    {t('articles.list.count', {
+                                        count: hasFilters
+                                            ? matched.length
+                                            : articles.length,
+                                    })}
                                 </span>
                             )}
                         </SectionTitle>
@@ -122,21 +133,28 @@ export default function ArticleListPage() {
                                 <SearchField
                                     value={query}
                                     onChange={setQuery}
-                                    placeholder="Cari judul artikel atau penulis..."
-                                    ariaLabel="Cari judul artikel atau penulis"
+                                    placeholder={t(
+                                        'articles.list.searchPlaceholder'
+                                    )}
+                                    ariaLabel={t('articles.list.searchAria')}
                                     className="sm:col-span-2 xl:col-span-1"
                                 />
                                 <SelectField
                                     value={category}
                                     onChange={setCategory}
                                     options={[
-                                        { value: '', label: 'Semua Kategori' },
+                                        {
+                                            value: '',
+                                            label: t(
+                                                'articles.list.allCategories'
+                                            ),
+                                        },
                                         ...categories.map((name) => ({
                                             value: name,
                                             label: name,
                                         })),
                                     ]}
-                                    ariaLabel="Filter kategori artikel"
+                                    ariaLabel={t('articles.list.categoryAria')}
                                     icon={<RiLayoutGridLine />}
                                     className="sm:col-span-2 xl:col-span-1"
                                 />
@@ -154,14 +172,13 @@ export default function ArticleListPage() {
                         </div>
                     ) : articles.length === 0 ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                            Belum ada artikel.
+                            {t('articles.empty')}
                         </p>
                     ) : hasFilters ? (
                         matched.length === 0 ? (
                             <div className="flex flex-col items-center gap-3 rounded-xl bg-forest-moss-50 px-6 py-14 text-center">
                                 <p className="text-sm text-oxford-navy-900/70">
-                                    Tidak ada artikel yang cocok dengan
-                                    pencarian ini.
+                                    {t('articles.list.noMatch')}
                                 </p>
                                 <button
                                     type="button"
@@ -172,7 +189,7 @@ export default function ArticleListPage() {
                                         aria-hidden
                                         className="size-4"
                                     />
-                                    Reset Filter
+                                    {t('articles.list.reset')}
                                 </button>
                             </div>
                         ) : (

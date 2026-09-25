@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import AuthCard from '@/components/AuthCard';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import {
     RiCheckboxCircleFill,
     RiErrorWarningFill,
@@ -47,6 +48,7 @@ function parseResult(value: string | null): Result {
  * dan halaman "cek email Anda" setelah registrasi (?status=pending).
  */
 export default function VerifyEmailPage() {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const { user, isAuthenticated, isLoading } = useAuth();
     const { send, isSending, cooldown, message, isError } =
@@ -55,7 +57,7 @@ export default function VerifyEmailPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-24">
-                <p className="text-oxford-navy-900">Memuat...</p>
+                <p className="text-oxford-navy-900">{t('common.loading')}</p>
             </div>
         );
     }
@@ -78,10 +80,10 @@ export default function VerifyEmailPage() {
                 disabled={isSending || cooldown > 0}
             >
                 {isSending
-                    ? 'Mengirim...'
+                    ? t('auth.resend.sending')
                     : cooldown > 0
-                      ? `Kirim ulang (${cooldown} dtk)`
-                      : 'Kirim Ulang Email Verifikasi'}
+                      ? t('auth.resend.wait', { seconds: cooldown })
+                      : t('auth.verify.resend')}
             </Button>
             {message && (
                 <p
@@ -97,11 +99,11 @@ export default function VerifyEmailPage() {
 
     const continueLink = isAuthenticated ? (
         <Link to="/dashboard" className={primaryLinkClass}>
-            Ke Dashboard
+            {t('auth.verify.toDashboard')}
         </Link>
     ) : (
         <Link to="/login" className={primaryLinkClass}>
-            Masuk
+            {t('auth.verify.login')}
         </Link>
     );
 
@@ -111,20 +113,20 @@ export default function VerifyEmailPage() {
     > = {
         pending: {
             icon: <RiMailSendLine size={40} className="text-forest-moss-800" />,
-            title: 'Cek Email Anda',
-            body: (
-                <>
-                    Kami sudah mengirim link verifikasi
-                    {user?.email ? (
-                        <>
-                            {' '}
-                            ke <strong>{user.email}</strong>
-                        </>
-                    ) : null}
-                    . Buka email tersebut lalu klik tombol{' '}
-                    <strong>Verifikasi Email</strong>. Jika tidak ada di kotak
-                    masuk, cek folder spam.
-                </>
+            title: t('auth.verify.pending.title'),
+            body: user?.email ? (
+                <Trans
+                    t={t}
+                    i18nKey="auth.verify.pending.bodyWithEmail"
+                    values={{ email: user.email }}
+                    components={{ strong: <strong /> }}
+                />
+            ) : (
+                <Trans
+                    t={t}
+                    i18nKey="auth.verify.pending.body"
+                    components={{ strong: <strong /> }}
+                />
             ),
             action: isAuthenticated ? (
                 <div className="flex flex-col items-center gap-4">
@@ -133,7 +135,7 @@ export default function VerifyEmailPage() {
                         to="/"
                         className="text-oxford-navy-600 text-sm hover:text-oxford-navy-500 underline"
                     >
-                        Lanjut ke Beranda
+                        {t('auth.verify.pending.continue')}
                     </Link>
                 </div>
             ) : (
@@ -147,22 +149,22 @@ export default function VerifyEmailPage() {
                     className="text-forest-moss-800"
                 />
             ),
-            title: 'Email Berhasil Diverifikasi',
-            body: 'Terima kasih! Akun Anda sekarang sudah terverifikasi dan bisa dipakai sepenuhnya.',
+            title: t('auth.verify.success.title'),
+            body: t('auth.verify.success.body'),
             action: continueLink,
         },
         already: {
             icon: (
                 <RiInformationFill size={40} className="text-forest-moss-800" />
             ),
-            title: 'Email Sudah Terverifikasi',
-            body: 'Email Anda sudah pernah diverifikasi. Tidak ada yang perlu dilakukan lagi.',
+            title: t('auth.verify.already.title'),
+            body: t('auth.verify.already.body'),
             action: continueLink,
         },
         invalid: {
             icon: <RiErrorWarningFill size={40} className="text-red-700" />,
-            title: 'Link Tidak Valid',
-            body: 'Link verifikasi ini tidak valid atau sudah kedaluwarsa. Minta link yang baru untuk melanjutkan.',
+            title: t('auth.verify.invalid.title'),
+            body: t('auth.verify.invalid.body'),
             action: isVerified ? (
                 continueLink
             ) : isAuthenticated ? (
@@ -170,7 +172,7 @@ export default function VerifyEmailPage() {
             ) : (
                 <div className="flex flex-col items-center gap-2">
                     <p className="text-oxford-navy-700 text-sm">
-                        Masuk terlebih dahulu untuk mengirim ulang link.
+                        {t('auth.verify.invalid.loginFirst')}
                     </p>
                     {continueLink}
                 </div>
@@ -183,20 +185,20 @@ export default function VerifyEmailPage() {
                     className="text-forest-moss-800"
                 />
             ),
-            title: 'Email Berhasil Diubah',
-            body: 'Email akun Anda sudah diganti dan langsung terverifikasi. Demi keamanan, silakan masuk kembali dengan email baru Anda.',
+            title: t('auth.verify.changed.title'),
+            body: t('auth.verify.changed.body'),
             action: continueLink,
         },
         taken: {
             icon: <RiErrorWarningFill size={40} className="text-red-700" />,
-            title: 'Email Sudah Digunakan',
-            body: 'Email baru tersebut sudah dipakai oleh akun lain, jadi tidak bisa dipasang di akun ini. Ajukan penggantian email lagi dengan alamat yang berbeda.',
+            title: t('auth.verify.taken.title'),
+            body: t('auth.verify.taken.body'),
             action: continueLink,
         },
         'change-invalid': {
             icon: <RiErrorWarningFill size={40} className="text-red-700" />,
-            title: 'Link Tidak Valid',
-            body: 'Link penggantian email ini tidak valid atau sudah kedaluwarsa. Ajukan penggantian email lagi dari halaman Akun.',
+            title: t('auth.verify.change-invalid.title'),
+            body: t('auth.verify.change-invalid.body'),
             action: continueLink,
         },
     };

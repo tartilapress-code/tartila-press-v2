@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import ServiceItemCard, {
     ServiceItemCardSkeleton,
 } from '@/components/service/ServiceItemCard';
@@ -10,6 +11,7 @@ const COUNT = 6;
  * fasilitas) dengan harganya. Daftar lengkap ada di halaman Layanan.
  */
 export default function Services({ limit = COUNT }: { limit?: number }) {
+    const { t } = useTranslation();
     const { items, isLoading } = useCustomItems();
 
     if (isLoading) {
@@ -25,7 +27,7 @@ export default function Services({ limit = COUNT }: { limit?: number }) {
     if (items.length === 0) {
         return (
             <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                Belum ada layanan yang ditampilkan.
+                {t('services.empty')}
             </p>
         );
     }

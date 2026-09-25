@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiStarFill } from '@remixicon/react';
 
 const STARS = [1, 2, 3, 4, 5];
-const LABELS = ['Kurang', 'Cukup', 'Baik', 'Bagus', 'Sangat bagus'];
 
 /**
  * Pilihan penilaian 1–5 bintang. Memakai radio bawaan browser (tersembunyi)
@@ -17,13 +17,21 @@ export default function StarRatingInput({
     onChange: (value: number) => void;
     name?: string;
 }) {
+    const { t } = useTranslation();
     const [hovered, setHovered] = useState<number>(0);
     const shown = hovered || value;
+    const labels = [
+        t('books.detail.stars.label1'),
+        t('books.detail.stars.label2'),
+        t('books.detail.stars.label3'),
+        t('books.detail.stars.label4'),
+        t('books.detail.stars.label5'),
+    ];
 
     return (
         <fieldset>
             <legend className="mb-1.5 text-sm font-semibold text-oxford-navy-700">
-                Penilaian Anda
+                {t('books.detail.stars.legend')}
             </legend>
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -45,7 +53,9 @@ export default function StarRatingInput({
                                 onChange={() => onChange(star)}
                                 className="sr-only"
                             />
-                            <span className="sr-only">{star} bintang</span>
+                            <span className="sr-only">
+                                {t('books.detail.stars.star', { count: star })}
+                            </span>
                             <RiStarFill
                                 aria-hidden
                                 className={`size-8 transition-colors ${
@@ -59,7 +69,7 @@ export default function StarRatingInput({
                 </div>
 
                 <span className="text-sm text-oxford-navy-900/60">
-                    {shown > 0 ? LABELS[shown - 1] : ''}
+                    {shown > 0 ? labels[shown - 1] : ''}
                 </span>
             </div>
         </fieldset>

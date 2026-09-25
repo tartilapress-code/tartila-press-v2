@@ -23,6 +23,8 @@ export type BookSummary = {
     discount: number;
     final_price: number;
     is_chapter_compilation: boolean;
+    // Bahasa isi buku (kode); kosong bila belum diisi.
+    languages: string[];
     editor_name: string | null;
     author_profiles: ProfileLinkable[];
     editor_profile: ProfileLinkable | null;

@@ -1,0 +1,95 @@
+{
+    "badge": "Book Chapter",
+    "howItWorks": {
+        "title": "Cara Kerja",
+        "step1Title": "Pilih proyek & bab",
+        "step1Text": "Temukan proyek yang cocok, lalu pilih bab yang masih terbuka.",
+        "step2Title": "Pesan & bayar slot",
+        "step2Text": "Konfirmasi pesanan, lalu unggah bukti bayar di halaman Pesanan.",
+        "step3Title": "Tulis & terbit bersama",
+        "step3Text": "Kirim naskah bab Anda. Setelah diedit, bab terbit bersama penulis lain dalam satu buku."
+    },
+    "slotStatus": {
+        "open": "Terbuka",
+        "reserved": "Dipesan",
+        "submitted": "Sedang Ditulis/Diedit",
+        "completed": "Selesai"
+    },
+    "slot": {
+        "srChapter": "Bab {{number}}:",
+        "sop": "SOP: {{text}}",
+        "buyAria": "Beli slot bab {{number}}",
+        "buy": "Beli Slot Ini"
+    },
+    "card": {
+        "editor": "Editor: {{name}}",
+        "estimatedPublish": "Perkiraan terbit {{date}}",
+        "deadline": "Batas naskah {{date}}",
+        "slotsOpen_one": "{{count}} slot terbuka",
+        "slotsOpen_other": "{{count}} slot terbuka",
+        "slotsFilled": "{{taken}}/{{total}} terisi",
+        "progressAria": "Slot bab yang sudah terisi",
+        "from": "mulai",
+        "perChapter": "/ bab",
+        "allFilled": "Semua slot sudah terisi",
+        "view": "Lihat Proyek"
+    },
+    "hero": {
+        "pricePerChapter": "Harga per bab",
+        "lowestPrice": "(harga terendah)",
+        "noChapters": "Belum ada bab",
+        "allFilled": "Semua slot sudah terisi",
+        "deadlinePassed": "Batas pengumpulan naskah sudah lewat — pembelian slot ditutup.",
+        "pickChapter": "Pilih Bab",
+        "allProjects": "Semua Proyek"
+    },
+    "list": {
+        "heroBefore": "Tulis ",
+        "heroAccent": "Satu Bab",
+        "heroAfter": ", Terbit Bersama.",
+        "heroText": "Gabung jadi salah satu penulis di buku kolaborasi Tartila Press. Pilih proyek, beli slot bab yang masih terbuka, dan karyamu terbit bersama dalam satu buku.",
+        "scriptTop": "Menulis Bersama,",
+        "scriptBottom": "Terbit Bersama",
+        "quote": "Setiap suara punya tempat di dalam satu buku yang ditulis bersama.",
+        "title": "Proyek Terbuka",
+        "count_one": "{{count}} proyek",
+        "count_other": "{{count}} proyek",
+        "searchPlaceholder": "Cari judul proyek atau editor...",
+        "searchAria": "Cari judul proyek atau editor",
+        "allCategories": "Semua Kategori",
+        "categoryAria": "Filter kategori",
+        "sortAria": "Urutkan proyek",
+        "sort": {
+            "newest": "Terbaru",
+            "deadline": "Deadline Terdekat",
+            "price": "Harga Terendah",
+            "slots": "Slot Terbanyak"
+        },
+        "empty": "Belum ada proyek Book Chapter yang terbuka saat ini.",
+        "noMatch": "Tidak ada proyek yang cocok dengan pencarian ini.",
+        "reset": "Reset Filter"
+    },
+    "detail": {
+        "navAria": "Navigasi proyek",
+        "nav": {
+            "tentang": "Tentang",
+            "fasilitas": "Yang Didapat",
+            "bab": "Daftar Bab"
+        },
+        "aboutTitle": "Tentang Proyek",
+        "loginNote": "Masuk untuk melihat deskripsi lengkap proyek dan SOP tiap bab.",
+        "loginButton": "Masuk",
+        "includedTitle": "Yang Anda Dapatkan",
+        "services": "Layanan",
+        "facilities": "Fasilitas",
+        "chaptersTitle": "Daftar Bab",
+        "slotsOpenOf": "{{open}} dari {{total}} slot terbuka",
+        "deadlineClosed": "Pembelian slot ditutup karena batas pengumpulan naskah sudah lewat.",
+        "noChapters": "Belum ada bab pada proyek ini.",
+        "included": {
+            "hki": "HKI",
+            "isbnPrint": "ISBN Cetak",
+            "isbnElectronic": "e-ISBN"
+        }
+    }
+}

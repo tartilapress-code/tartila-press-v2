@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import EventCard from '@/components/event/EventCard';
 import * as eventApi from '@/data/event/eventApi';
 import type { Event as EventType } from '@/data/event/eventApi';
 
 /** Event terbaru di beranda. */
 export default function Event(): React.ReactNode {
+    const { t } = useTranslation();
     const [events, setEvents] = useState<EventType[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -32,7 +34,7 @@ export default function Event(): React.ReactNode {
     if (events.length === 0) {
         return (
             <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                Belum ada event.
+                {t('events.empty')}
             </p>
         );
     }

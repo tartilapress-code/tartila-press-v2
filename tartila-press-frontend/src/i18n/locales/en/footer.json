@@ -1,0 +1,12 @@
+{
+    "description": "An independent publisher focused on quality book publishing, literacy development, and the professional distribution of Indonesian authors' works.",
+    "contact": "Contact",
+    "socialMedia": "Social Media",
+    "copyright": "© 2026 {{name}} — {{slogan}}.",
+    "floating": {
+        "whatsapp": "Contact us on WhatsApp",
+        "instagram": "Tartila Press on Instagram",
+        "email": "Send an email"
+    },
+    "goUp": "Go Up"
+}

@@ -2,17 +2,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button/Button';
+import EditorPicker, {
+    type EditorOption,
+} from '@/components/editor/EditorPicker';
 import * as customPackageItemApi from '@/data/customPackageItem/customPackageItemApi';
 import type { CustomItem } from '@/data/customPackageItem/customPackageItemApi';
 import * as editorApi from '@/data/editor/editorApi';
 import * as orderApi from '@/data/order/orderApi';
 import { ApiError } from '@/lib/http';
-
-type EditorItem = {
-    user_id: number;
-    name: string;
-    fee: string;
-};
 
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -35,7 +32,7 @@ export default function CustomPackagePage() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [wantsOwnEditor, setWantsOwnEditor] = useState<boolean>(false);
-    const [editors, setEditors] = useState<EditorItem[]>([]);
+    const [editors, setEditors] = useState<EditorOption[]>([]);
     const [selectedEditorId, setSelectedEditorId] = useState<number | null>(
         null
     );
@@ -205,38 +202,12 @@ export default function CustomPackagePage() {
             </label>
 
             {wantsOwnEditor && (
-                <div className="flex flex-col gap-2">
-                    {editors.length === 0 ? (
-                        <p className="text-oxford-navy-900/70 text-sm">
-                            Belum ada editor yang tersedia.
-                        </p>
-                    ) : (
-                        editors.map((editor) => (
-                            <label
-                                key={editor.user_id}
-                                className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3 text-oxford-navy-900 cursor-pointer"
-                            >
-                                <div className="flex flex-row items-center gap-2">
-                                    <input
-                                        type="radio"
-                                        name="editor"
-                                        checked={
-                                            selectedEditorId === editor.user_id
-                                        }
-                                        onChange={() =>
-                                            setSelectedEditorId(editor.user_id)
-                                        }
-                                    />
-                                    <span>{editor.name}</span>
-                                </div>
-                                <span className="text-forest-moss-700 text-sm">
-                                    +
-                                    {rupiahFormatter.format(Number(editor.fee))}
-                                </span>
-                            </label>
-                        ))
-                    )}
-                </div>
+                <EditorPicker
+                    editors={editors}
+                    selectedId={selectedEditorId}
+                    onSelect={setSelectedEditorId}
+                    formatFee={rupiahFormatter.format}
+                />
             )}
 
             <div className="flex flex-col gap-1 border-t border-forest-moss-200 pt-4">

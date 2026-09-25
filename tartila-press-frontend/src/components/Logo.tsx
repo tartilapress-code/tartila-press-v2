@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import logo from '../assets/logo/logo.png';
-import slogan from '../data/slogan.json';
 
 const sizes = {
     small: 'h-11 min-[1440px]:h-12',
@@ -14,6 +14,8 @@ type LogoProps = {
     hideSlogan?: boolean;
     // Kelas tambahan untuk slogan, mis. untuk menyembunyikannya di lebar tertentu.
     sloganClassName?: string;
+    // Kelas tambahan untuk tautan logo secara keseluruhan.
+    className?: string;
 };
 
 /**
@@ -24,12 +26,16 @@ export default function Logo({
     size = 'medium',
     hideSlogan = false,
     sloganClassName = '',
+    className = '',
 }: LogoProps): React.ReactNode {
+    const { t } = useTranslation();
+    const name = t('common.brand.name');
+
     return (
         <Link
             to="/"
-            aria-label={`${slogan.name} — beranda`}
-            className="flex flex-row items-center gap-3"
+            aria-label={t('nav.homeLink', { name })}
+            className={`flex flex-row items-center gap-3 ${className}`}
         >
             <img
                 src={logo}
@@ -38,13 +44,13 @@ export default function Logo({
             />
             <span className="flex flex-col">
                 <span className="font-display text-xl font-bold leading-tight text-oxford-navy-700 sm:text-2xl min-[1440px]:text-[1.7rem]">
-                    {slogan.name}
+                    {name}
                 </span>
                 {!hideSlogan && (
                     <span
                         className={`font-display whitespace-nowrap text-[11px] leading-snug text-oxford-navy-900/75 sm:text-[13px] ${sloganClassName}`}
                     >
-                        {slogan.slogan}.
+                        {t('common.brand.slogan')}.
                     </span>
                 )}
             </span>

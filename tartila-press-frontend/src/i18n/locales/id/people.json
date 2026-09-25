@@ -1,0 +1,80 @@
+{
+    "roleLabels": {
+        "Penulis": "Penulis",
+        "Editor": "Editor"
+    },
+    "penulis": {
+        "label": "Penulis",
+        "heroTitleBefore": "List ",
+        "heroTitleAccent": "Penulis Lainnya",
+        "heroText": "Temukan para penulis hebat lainnya yang bergabung bersama Tartila Press. Mereka adalah bagian dari ekosistem literasi yang terus tumbuh untuk menghadirkan karya-karya terbaik.",
+        "scriptTop": "Bersama Penulis,",
+        "scriptBottom": "Membangun Literasi",
+        "directoryTitle": "Daftar Penulis",
+        "searchPlaceholder": "Cari nama penulis...",
+        "searchAria": "Cari nama penulis",
+        "emptyText": "Belum ada penulis yang ditampilkan.",
+        "noMatch": "Tidak ada penulis dengan nama “{{query}}”.",
+        "count_one": "{{count}} penulis",
+        "count_other": "{{count}} penulis",
+        "listQuote": "Setiap penulis memiliki cerita unik, dan setiap cerita layak untuk dibaca.",
+        "profileQuote": "Buku adalah jembatan menuju masa depan yang lebih baik.",
+        "aboutTitle": "Tentang Penulis",
+        "navList": "List Penulis"
+    },
+    "editor": {
+        "label": "Editor",
+        "heroTitleBefore": "List ",
+        "heroTitleAccent": "Editor Lainnya",
+        "heroText": "Kenali para editor profesional yang menyempurnakan setiap naskah bersama Tartila Press. Mereka membaca dengan teliti, merapikan gagasan, dan memastikan karya siap sampai ke pembaca.",
+        "scriptTop": "Bersama Editor,",
+        "scriptBottom": "Menyempurnakan Karya",
+        "directoryTitle": "Daftar Editor",
+        "searchPlaceholder": "Cari nama editor...",
+        "searchAria": "Cari nama editor",
+        "emptyText": "Belum ada editor yang ditampilkan.",
+        "noMatch": "Tidak ada editor dengan nama “{{query}}”.",
+        "count_one": "{{count}} editor",
+        "count_other": "{{count}} editor",
+        "listQuote": "Di balik setiap buku yang baik, ada editor yang membaca dengan teliti.",
+        "profileQuote": "Naskah yang baik lahir dari tangan editor yang teliti.",
+        "aboutTitle": "Tentang Editor",
+        "navList": "List Editor"
+    },
+    "sort": {
+        "default": "Urutkan",
+        "az": "Nama A–Z",
+        "za": "Nama Z–A",
+        "aria": "Urutkan daftar"
+    },
+    "search": "Pencarian",
+    "listNavAria": "Navigasi daftar",
+    "clearSearch": "Hapus Pencarian",
+    "card": {
+        "noBio": "Profil ini belum dilengkapi.",
+        "viewProfile": "Lihat Profil"
+    },
+    "profile": {
+        "navAria": "Navigasi profil",
+        "nav": {
+            "profil": "Profil",
+            "karya": "Karya",
+            "diedit": "Buku Diedit",
+            "pengalaman": "Pengalaman"
+        },
+        "worksTitle": "Karya Terbaru",
+        "worksEmpty": "Belum ada karya yang diterbitkan.",
+        "editedTitle": "Buku yang Diedit",
+        "editedEmpty": "Belum ada buku yang diedit.",
+        "collapse": "Ringkas",
+        "seeAll": "Lihat Semua ({{count}})",
+        "noBio": "{{name}} belum menulis deskripsi.",
+        "topicsAria": "Bidang dan jenis karya",
+        "experienceTitle": "Jejak Pengalaman",
+        "experienceEmpty": "Belum ada jejak pengalaman.",
+        "metaWorks_one": "{{count}} karya",
+        "metaWorks_other": "{{count}} karya",
+        "metaEdited_one": "{{count}} buku diedit",
+        "metaEdited_other": "{{count}} buku diedit"
+    }
+}

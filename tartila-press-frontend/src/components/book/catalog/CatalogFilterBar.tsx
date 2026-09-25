@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowDownSLine,
     RiFolderOpenLine,
@@ -93,6 +94,8 @@ export default function CatalogFilterBar({
     fieldCategories,
     sortOptions,
 }: CatalogFilterBarProps) {
+    const { t } = useTranslation();
+
     return (
         <div className="grid gap-3 rounded-2xl bg-forest-moss-100/60 p-3 ring-1 ring-forest-moss-200/60 sm:p-4 md:grid-cols-6 xl:grid-cols-[1.6fr_1fr_1fr_0.8fr]">
             <div
@@ -106,19 +109,22 @@ export default function CatalogFilterBar({
                     type="search"
                     value={filters.search}
                     onChange={(e) => onChange({ search: e.target.value })}
-                    placeholder="Cari judul atau penulis..."
-                    aria-label="Cari judul atau penulis"
+                    placeholder={t('books.catalog.filters.searchPlaceholder')}
+                    aria-label={t('books.catalog.filters.searchAria')}
                     className="h-14 w-full rounded-xl bg-transparent pl-12 pr-4 text-sm text-oxford-navy-900 outline-none placeholder:text-oxford-navy-900/45"
                 />
             </div>
 
             <FilterSelect
                 id="catalog-book-category"
-                label="Kategori Buku"
+                label={t('books.catalog.filters.bookCategory')}
                 icon={<RiFolderOpenLine className="size-5" />}
                 value={filters.bookCategoryId}
                 options={[
-                    { value: '', label: 'Semua Kategori Buku' },
+                    {
+                        value: '',
+                        label: t('books.catalog.filters.allBookCategories'),
+                    },
                     ...bookCategories,
                 ]}
                 onChange={(value) => onChange({ bookCategoryId: value })}
@@ -126,11 +132,14 @@ export default function CatalogFilterBar({
             />
             <FilterSelect
                 id="catalog-field-category"
-                label="Kategori Keilmuan"
+                label={t('books.catalog.filters.fieldCategory')}
                 icon={<RiListUnordered className="size-5" />}
                 value={filters.fieldCategoryId}
                 options={[
-                    { value: '', label: 'Semua Kategori Keilmuan' },
+                    {
+                        value: '',
+                        label: t('books.catalog.filters.allFieldCategories'),
+                    },
                     ...fieldCategories,
                 ]}
                 onChange={(value) => onChange({ fieldCategoryId: value })}
@@ -138,7 +147,7 @@ export default function CatalogFilterBar({
             />
             <FilterSelect
                 id="catalog-sort"
-                label="Urutkan"
+                label={t('books.catalog.filters.sort')}
                 icon={<RiPriceTag3Fill className="size-5" />}
                 value={filters.sort}
                 options={sortOptions}

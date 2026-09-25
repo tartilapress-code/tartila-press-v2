@@ -1,0 +1,45 @@
+{
+    "viewDetail": "Lihat Butiran",
+    "facilities": "Kemudahan",
+    "backTitle": "Kemudahan & Perkhidmatan",
+    "noDetails": "Butiran kemudahan belum tersedia.",
+    "flipBack": "Klik kad untuk kembali.",
+    "best": "Paling Jimat",
+    "saveUnit": "Jimat {{amount}} berbanding harga satuan",
+    "saveSelection": "Jimat {{amount}} daripada pilihan anda",
+    "empty": "Belum ada pakej yang dipaparkan.",
+    "compare": "Bandingkan Pakej",
+    "seeAllCount_one": "Lihat semua {{count}} pakej",
+    "seeAllCount_other": "Lihat semua {{count}} pakej",
+    "table": {
+        "caption": "Perbandingan harga, perkhidmatan, dan kemudahan antara pakej penerbitan",
+        "name": "Nama Pakej",
+        "price": "Harga",
+        "services": "Perkhidmatan",
+        "facilities": "Kemudahan",
+        "empty": "Belum ada butiran perkhidmatan dan kemudahan untuk dibandingkan."
+    },
+    "list": {
+        "badge": "Pakej",
+        "heroBefore": "Pilih Pakej ",
+        "heroAccent": "Penerbitan",
+        "heroText": "Bandingkan kemudahan dan perkhidmatan setiap pakej, kemudian pilih yang paling sesuai dengan manuskrip dan bajet anda.",
+        "scriptTop": "Satu Pakej,",
+        "scriptBottom": "Banyak Manfaat",
+        "all": "Semua Pakej",
+        "count_one": "{{count}} pakej",
+        "count_other": "{{count}} pakej",
+        "ctaTitle": "Mahu memilih perkhidmatan secara satuan?",
+        "ctaText": "Susun pakej tersuai daripada perkhidmatan dan kemudahan yang anda perlukan, atau berbincang tentang keperluan anda terlebih dahulu.",
+        "ctaAction": "Lihat Perkhidmatan"
+    },
+    "detail": {
+        "back": "Semua Pakej",
+        "take": "Ambil Pakej",
+        "sectionTitle": "Butiran Pakej",
+        "services": "Perkhidmatan",
+        "facilities": "Kemudahan",
+        "terms": "Terma",
+        "notes": "Catatan"
+    }
+}

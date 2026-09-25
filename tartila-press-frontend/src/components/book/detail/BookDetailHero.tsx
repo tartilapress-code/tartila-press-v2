@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowLeftLine,
     RiBarcodeLine,
@@ -8,6 +9,7 @@ import {
     RiFilePdf2Line,
     RiGraduationCapLine,
     RiShoppingCartLine,
+    RiTranslate2,
     RiUserLine,
 } from '@remixicon/react';
 import {
@@ -17,15 +19,14 @@ import {
 } from '@/components/art/HeroArt';
 import BookAuthors from '@/components/book/detail/BookAuthors';
 import BookCoverStage from '@/components/book/detail/BookCoverStage';
+import { useContentLanguages } from '@/components/language/useContentLanguages';
 import PersonLink from '@/components/book/detail/PersonLink';
 import PillBadge from '@/components/ui/PillBadge';
 import StarRating from '@/components/ui/StarRating';
 import { previewPdfUrl, type BookDetail } from '@/data/book/bookApi';
-import {
-    DEFAULT_CHAPTER_COVER,
-    formatDate,
-    formatRupiah,
-} from '@/lib/bookChapterPublic';
+import { useFormat } from '@/i18n/useFormat';
+import { DEFAULT_CHAPTER_COVER } from '@/lib/bookChapterPublic';
+import { toContentLanguages } from '@/lib/contentLanguages';
 import {
     averageRating,
     bookCategoryNames,
@@ -62,15 +63,23 @@ export default function BookDetailHero({
     onAddToCart: () => void;
     onSeeReviews: () => void;
 }) {
+    const { t } = useTranslation();
+    const { dateLong, rupiah } = useFormat();
+    const { metaLine } = useContentLanguages();
+    const languages = toContentLanguages(book.languages);
     const rating = averageRating(book);
-    const published = formatDate(book.citation_publication_date);
+    const published = book.citation_publication_date
+        ? dateLong(book.citation_publication_date)
+        : null;
     // Kolom di admin bisa berisi teks asal-asalan; hanya alamat http(s) yang
     // sah yang dijadikan tautan.
     const scholarUrl = isHttpUrl(book.google_scholar_url)
         ? book.google_scholar_url
         : null;
     const badges = [
-        ...(book.is_chapter_compilation ? ['Book Chapter'] : []),
+        ...(book.is_chapter_compilation
+            ? [t('books.detail.hero.chapterBadge')]
+            : []),
         ...bookCategoryNames(book),
     ];
 
@@ -82,7 +91,7 @@ export default function BookDetailHero({
             icon: <RiUserLine />,
             content: (
                 <>
-                    Editor:{' '}
+                    {t('books.detail.hero.editorLabel')}{' '}
                     <PersonLink person={book.editor_profile} role="editor" />
                 </>
             ),
@@ -92,14 +101,21 @@ export default function BookDetailHero({
         meta.push({
             key: 'isbn',
             icon: <RiBarcodeLine />,
-            content: `ISBN ${book.isbn}`,
+            content: t('books.detail.hero.isbn', { isbn: book.isbn }),
         });
     }
     if (published) {
         meta.push({
             key: 'published',
             icon: <RiCalendarLine />,
-            content: `Terbit ${published}`,
+            content: t('books.detail.hero.publishedOn', { date: published }),
+        });
+    }
+    if (languages.length > 0) {
+        meta.push({
+            key: 'languages',
+            icon: <RiTranslate2 />,
+            content: metaLine(languages),
         });
     }
 
@@ -131,7 +147,7 @@ export default function BookDetailHero({
                         className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-forest-moss-700 hover:underline"
                     >
                         <RiArrowLeftLine aria-hidden className="size-4" />
-                        Semua Buku
+                        {t('books.detail.hero.back')}
                     </Link>
 
                     {badges.length > 0 && (
@@ -152,7 +168,8 @@ export default function BookDetailHero({
 
                     {hasAuthors(book) && (
                         <p className="text-base text-oxford-navy-900/70">
-                            Oleh <BookAuthors book={book} />
+                            {t('books.detail.hero.by')}{' '}
+                            <BookAuthors book={book} />
                         </p>
                     )}
 
@@ -178,16 +195,16 @@ export default function BookDetailHero({
                     <div className="mt-1 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:justify-start">
                         <div>
                             <p className="text-xs text-oxford-navy-900/55">
-                                Harga
+                                {t('books.detail.hero.price')}
                             </p>
                             <p className="mt-0.5 flex flex-wrap items-baseline justify-center gap-x-2 sm:justify-start">
                                 {book.discount > 0 && (
                                     <span className="text-sm text-oxford-navy-900/45 line-through">
-                                        {formatRupiah(Number(book.price))}
+                                        {rupiah(Number(book.price))}
                                     </span>
                                 )}
                                 <span className="text-3xl font-bold text-oxford-navy-700">
-                                    {formatRupiah(book.final_price)}
+                                    {rupiah(book.final_price)}
                                 </span>
                             </p>
                         </div>
@@ -209,12 +226,14 @@ export default function BookDetailHero({
                                         </span>
                                     </span>
                                     <span className="text-xs text-oxford-navy-900/55 underline-offset-2 hover:underline">
-                                        {book.reviews.length} ulasan
+                                        {t('books.detail.reviewsCount', {
+                                            count: book.reviews.length,
+                                        })}
                                     </span>
                                 </>
                             ) : (
                                 <span className="text-sm text-oxford-navy-900/55 underline-offset-2 hover:underline">
-                                    Belum ada ulasan
+                                    {t('books.detail.hero.noReviews')}
                                 </span>
                             )}
                         </button>
@@ -227,7 +246,7 @@ export default function BookDetailHero({
                             onClick={onBuy}
                             className={primaryButton}
                         >
-                            Beli Sekarang
+                            {t('books.detail.hero.buy')}
                         </button>
                         <button
                             type="button"
@@ -241,7 +260,7 @@ export default function BookDetailHero({
                                         aria-hidden
                                         className="size-[18px]"
                                     />
-                                    Sudah di Keranjang
+                                    {t('books.detail.hero.inCart')}
                                 </>
                             ) : (
                                 <>
@@ -249,7 +268,7 @@ export default function BookDetailHero({
                                         aria-hidden
                                         className="size-[18px]"
                                     />
-                                    Tambah ke Keranjang
+                                    {t('books.detail.hero.addToCart')}
                                 </>
                             )}
                         </button>
@@ -268,7 +287,7 @@ export default function BookDetailHero({
                                         aria-hidden
                                         className="size-[18px]"
                                     />
-                                    Lihat Preview PDF
+                                    {t('books.detail.hero.previewPdf')}
                                 </a>
                             )}
                             {scholarUrl && (
@@ -282,7 +301,7 @@ export default function BookDetailHero({
                                         aria-hidden
                                         className="size-[18px]"
                                     />
-                                    Google Scholar
+                                    {t('books.detail.hero.scholar')}
                                 </a>
                             )}
                         </div>

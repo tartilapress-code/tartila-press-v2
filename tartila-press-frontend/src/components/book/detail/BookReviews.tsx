@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiLockLine } from '@remixicon/react';
 import StarRating from '@/components/ui/StarRating';
 import StarRatingInput from '@/components/ui/StarRatingInput';
 import { useAuth } from '@/context/useAuth';
 import * as bookApi from '@/data/book/bookApi';
 import type { BookReviewEntry } from '@/data/book/bookApi';
-import { formatDate } from '@/lib/bookChapterPublic';
+import { useFormat } from '@/i18n/useFormat';
 import { ApiError } from '@/lib/http';
 
 type Message = { tone: 'error' | 'success'; text: string };
@@ -28,6 +29,8 @@ export default function BookReviews({
     // Dipanggil setelah ulasan tersimpan, untuk memuat ulang data buku.
     onSubmitted: () => Promise<void>;
 }) {
+    const { t } = useTranslation();
+    const { dateLong } = useFormat();
     const { isAuthenticated } = useAuth();
 
     const [rating, setRating] = useState<number>(5);
@@ -47,14 +50,17 @@ export default function BookReviews({
             });
             setComment('');
             await onSubmitted();
-            setMessage({ tone: 'success', text: 'Ulasan Anda tersimpan.' });
+            setMessage({
+                tone: 'success',
+                text: t('books.detail.reviews.saved'),
+            });
         } catch (error) {
             setMessage({
                 tone: 'error',
                 text:
                     error instanceof ApiError
                         ? error.message
-                        : 'Terjadi kesalahan. Silakan coba lagi.',
+                        : t('common.genericError'),
             });
         } finally {
             setIsSubmitting(false);
@@ -75,14 +81,16 @@ export default function BookReviews({
                                 starClassName="size-5"
                             />
                             <p className="text-sm text-oxford-navy-900/60">
-                                dari {reviews.length} ulasan
+                                {t('books.detail.reviews.average', {
+                                    count: reviews.length,
+                                })}
                             </p>
                         </>
                     ) : (
                         <>
                             <StarRating value={0} starClassName="size-5" />
                             <p className="text-sm text-oxford-navy-900/60">
-                                Belum ada penilaian
+                                {t('books.detail.reviews.noRating')}
                             </p>
                         </>
                     )}
@@ -96,12 +104,14 @@ export default function BookReviews({
                         <StarRatingInput value={rating} onChange={setRating} />
 
                         <label className="flex flex-col gap-1.5 text-sm font-semibold text-oxford-navy-700">
-                            Ulasan (opsional)
+                            {t('books.detail.reviews.optionalLabel')}
                             <textarea
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}
                                 rows={3}
-                                placeholder="Ceritakan pendapat Anda tentang buku ini..."
+                                placeholder={t(
+                                    'books.detail.reviews.placeholder'
+                                )}
                                 className="rounded-lg border border-forest-moss-200 bg-white p-3 text-sm font-normal text-oxford-navy-900 outline-none placeholder:text-oxford-navy-900/40 focus:border-forest-moss-600 focus:ring-2 focus:ring-forest-moss-600/20"
                             />
                         </label>
@@ -128,7 +138,9 @@ export default function BookReviews({
                             disabled={isSubmitting}
                             className="inline-flex items-center justify-center self-start rounded-lg bg-oxford-navy-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-oxford-navy-600 disabled:cursor-default disabled:opacity-60"
                         >
-                            {isSubmitting ? 'Mengirim...' : 'Kirim Ulasan'}
+                            {isSubmitting
+                                ? t('books.detail.reviews.sending')
+                                : t('books.detail.reviews.submit')}
                         </button>
                     </form>
                 ) : (
@@ -138,13 +150,13 @@ export default function BookReviews({
                                 aria-hidden
                                 className="mt-0.5 size-4 shrink-0 text-forest-moss-700"
                             />
-                            Masuk untuk menulis ulasan buku ini.
+                            {t('books.detail.reviews.loginToReview')}
                         </p>
                         <Link
                             to="/login"
                             className="inline-flex shrink-0 items-center justify-center rounded-lg bg-oxford-navy-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-oxford-navy-600"
                         >
-                            Masuk
+                            {t('books.detail.reviews.loginButton')}
                         </Link>
                     </div>
                 )}
@@ -152,7 +164,7 @@ export default function BookReviews({
 
             {reviews.length === 0 ? (
                 <p className="text-sm text-oxford-navy-900/55">
-                    Belum ada ulasan.
+                    {t('books.detail.reviews.none')}
                 </p>
             ) : (
                 <ul className="flex flex-col gap-3">
@@ -178,7 +190,7 @@ export default function BookReviews({
                                     </p>
                                     <StarRating value={review.rating} />
                                     <span className="text-xs text-oxford-navy-900/45">
-                                        {formatDate(review.created_at)}
+                                        {dateLong(review.created_at)}
                                     </span>
                                 </div>
 

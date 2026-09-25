@@ -1,0 +1,95 @@
+{
+    "badge": "Bab Buku",
+    "howItWorks": {
+        "title": "Cara Ia Berfungsi",
+        "step1Title": "Pilih projek & bab",
+        "step1Text": "Cari projek yang sesuai, kemudian pilih bab yang masih terbuka.",
+        "step2Title": "Buat pesanan & bayar slot",
+        "step2Text": "Sahkan pesanan, kemudian muat naik bukti bayaran di halaman Pesanan.",
+        "step3Title": "Tulis & terbit bersama",
+        "step3Text": "Hantar manuskrip bab anda. Selepas disunting, bab diterbitkan bersama penulis lain dalam satu buku."
+    },
+    "slotStatus": {
+        "open": "Terbuka",
+        "reserved": "Ditempah",
+        "submitted": "Sedang Ditulis/Disunting",
+        "completed": "Selesai"
+    },
+    "slot": {
+        "srChapter": "Bab {{number}}:",
+        "sop": "SOP: {{text}}",
+        "buyAria": "Beli slot bab {{number}}",
+        "buy": "Beli Slot Ini"
+    },
+    "card": {
+        "editor": "Editor: {{name}}",
+        "estimatedPublish": "Anggaran terbit {{date}}",
+        "deadline": "Tarikh akhir manuskrip {{date}}",
+        "slotsOpen_one": "{{count}} slot terbuka",
+        "slotsOpen_other": "{{count}} slot terbuka",
+        "slotsFilled": "{{taken}}/{{total}} telah diisi",
+        "progressAria": "Slot bab yang telah diisi",
+        "from": "bermula",
+        "perChapter": "/ bab",
+        "allFilled": "Semua slot telah diisi",
+        "view": "Lihat Projek"
+    },
+    "hero": {
+        "pricePerChapter": "Harga setiap bab",
+        "lowestPrice": "(harga terendah)",
+        "noChapters": "Belum ada bab",
+        "allFilled": "Semua slot telah diisi",
+        "deadlinePassed": "Tarikh akhir penghantaran manuskrip telah berlalu — pembelian slot ditutup.",
+        "pickChapter": "Pilih Bab",
+        "allProjects": "Semua Projek"
+    },
+    "list": {
+        "heroBefore": "Tulis ",
+        "heroAccent": "Satu Bab",
+        "heroAfter": ", Terbit Bersama.",
+        "heroText": "Sertai sebagai salah seorang penulis dalam buku kolaborasi Tartila Press. Pilih projek, beli slot bab yang masih terbuka, dan karya anda diterbitkan bersama dalam satu buku.",
+        "scriptTop": "Menulis Bersama,",
+        "scriptBottom": "Terbit Bersama",
+        "quote": "Setiap suara ada tempatnya dalam sebuah buku yang ditulis bersama.",
+        "title": "Projek Terbuka",
+        "count_one": "{{count}} projek",
+        "count_other": "{{count}} projek",
+        "searchPlaceholder": "Cari tajuk projek atau editor...",
+        "searchAria": "Cari tajuk projek atau editor",
+        "allCategories": "Semua Kategori",
+        "categoryAria": "Tapis kategori",
+        "sortAria": "Susun projek",
+        "sort": {
+            "newest": "Terbaharu",
+            "deadline": "Tarikh Akhir Terdekat",
+            "price": "Harga Terendah",
+            "slots": "Slot Terbanyak"
+        },
+        "empty": "Tiada projek Bab Buku yang terbuka pada masa ini.",
+        "noMatch": "Tiada projek yang sepadan dengan carian ini.",
+        "reset": "Set Semula Penapis"
+    },
+    "detail": {
+        "navAria": "Navigasi projek",
+        "nav": {
+            "tentang": "Tentang",
+            "fasilitas": "Apa yang Anda Dapat",
+            "bab": "Senarai Bab"
+        },
+        "aboutTitle": "Tentang Projek",
+        "loginNote": "Log masuk untuk melihat huraian penuh projek dan SOP setiap bab.",
+        "loginButton": "Log Masuk",
+        "includedTitle": "Apa yang Anda Dapat",
+        "services": "Perkhidmatan",
+        "facilities": "Kemudahan",
+        "chaptersTitle": "Senarai Bab",
+        "slotsOpenOf": "{{open}} daripada {{total}} slot terbuka",
+        "deadlineClosed": "Pembelian slot ditutup kerana tarikh akhir penghantaran manuskrip telah berlalu.",
+        "noChapters": "Belum ada bab dalam projek ini.",
+        "included": {
+            "hki": "Hak Harta Intelek (HKI)",
+            "isbnPrint": "ISBN Cetak",
+            "isbnElectronic": "e-ISBN"
+        }
+    }
+}

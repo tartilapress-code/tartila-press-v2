@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiEyeLine, RiEyeOffLine } from '@remixicon/react';
 
 //script
@@ -15,6 +16,7 @@ export default function Input({
     ...props
 }: InputProps) {
     //logic
+    const { t } = useTranslation();
     const [showPassword, setShowPassword] = useState<boolean>(false);
     const generatedId = useId();
     const id = props.id ?? generatedId;
@@ -52,8 +54,8 @@ export default function Input({
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-oxford-navy-900/55 hover:text-oxford-navy-700"
                             aria-label={
                                 showPassword
-                                    ? 'Sembunyikan password'
-                                    : 'Lihat password'
+                                    ? t('common.hidePassword')
+                                    : t('common.showPassword')
                             }
                             tabIndex={-1}
                         >

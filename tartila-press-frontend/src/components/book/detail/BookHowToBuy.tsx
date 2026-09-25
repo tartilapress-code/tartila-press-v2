@@ -1,17 +1,4 @@
-const steps = [
-    {
-        title: 'Pilih buku',
-        text: 'Klik Beli Sekarang, atau tambahkan beberapa buku ke keranjang lebih dulu.',
-    },
-    {
-        title: 'Konfirmasi & bayar',
-        text: 'Isi alamat penerima, lalu unggah bukti bayar di halaman Pesanan.',
-    },
-    {
-        title: 'Buku dicetak & dikirim',
-        text: 'Pantau proses cetak dan pengiriman di halaman Pesanan sampai buku tiba.',
-    },
-];
+import { useTranslation } from 'react-i18next';
 
 /** Kartu "Cara Membeli" tiga langkah untuk pembelian buku. */
 export default function BookHowToBuy({
@@ -19,6 +6,23 @@ export default function BookHowToBuy({
 }: {
     className?: string;
 }) {
+    const { t } = useTranslation();
+
+    const steps = [
+        {
+            title: t('books.detail.howToBuy.step1Title'),
+            text: t('books.detail.howToBuy.step1Text'),
+        },
+        {
+            title: t('books.detail.howToBuy.step2Title'),
+            text: t('books.detail.howToBuy.step2Text'),
+        },
+        {
+            title: t('books.detail.howToBuy.step3Title'),
+            text: t('books.detail.howToBuy.step3Text'),
+        },
+    ];
+
     return (
         <section
             aria-labelledby="book-how-title"
@@ -28,12 +32,12 @@ export default function BookHowToBuy({
                 id="book-how-title"
                 className="font-display text-lg font-bold text-oxford-navy-700"
             >
-                Cara Membeli
+                {t('books.detail.howToBuy.title')}
             </h2>
 
             <ol className="mt-4 flex flex-col gap-4">
                 {steps.map((step, index) => (
-                    <li key={step.title} className="flex gap-3">
+                    <li key={index} className="flex gap-3">
                         <span
                             aria-hidden
                             className="flex size-7 shrink-0 items-center justify-center rounded-full bg-forest-moss-100 text-sm font-semibold text-forest-moss-800"

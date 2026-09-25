@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowRightLine,
     RiCalendar2Line,
@@ -6,45 +7,24 @@ import {
     RiGroupLine,
 } from '@remixicon/react';
 import type { Event } from '@/data/event/eventApi';
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Jakarta',
-});
-
-const timeFormatter = new Intl.DateTimeFormat('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Jakarta',
-});
-
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-});
-
-function scheduleLabel(event: Event): string {
-    const start = new Date(event.starts_at);
-    const datePart = dateFormatter.format(start);
-    const startTime = timeFormatter.format(start);
-
-    if (!event.ends_at) {
-        return `${datePart}, ${startTime} WIB`;
-    }
-
-    const end = new Date(event.ends_at);
-    return `${datePart}, ${startTime}-${timeFormatter.format(end)} WIB`;
-}
+import { useFormat } from '@/i18n/useFormat';
+import { EVENT_DATE, EVENT_TIME } from '@/lib/eventTime';
 
 /**
  * Kartu event (tema terang): spanduk dengan kategori, jadwal, judul serif,
  * cuplikan deskripsi, biaya, dan jumlah peserta. Di layar lebar spanduk di kiri.
  */
 export default function EventCard({ event }: { event: Event }) {
+    const { t } = useTranslation();
+    const { date, rupiah } = useFormat();
     const fee = Number(event.fee);
+
+    // Jadwal dalam WIB: "24 September 2026, 09.00-11.00 WIB".
+    const datePart = date(event.starts_at, EVENT_DATE);
+    const startTime = date(event.starts_at, EVENT_TIME);
+    const schedule = event.ends_at
+        ? `${datePart}, ${startTime}-${date(event.ends_at, EVENT_TIME)} WIB`
+        : `${datePart}, ${startTime} WIB`;
 
     return (
         <Link
@@ -77,7 +57,7 @@ export default function EventCard({ event }: { event: Event }) {
                         aria-hidden
                         className="size-[18px] shrink-0"
                     />
-                    {scheduleLabel(event)}
+                    {schedule}
                 </p>
                 <h3 className="font-display line-clamp-2 text-xl font-bold leading-snug text-oxford-navy-700 transition-colors group-hover:text-oxford-navy-600">
                     {event.title}
@@ -91,7 +71,7 @@ export default function EventCard({ event }: { event: Event }) {
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-2">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                         <span className="text-base font-bold text-oxford-navy-700">
-                            {fee > 0 ? rupiahFormatter.format(fee) : 'Gratis'}
+                            {fee > 0 ? rupiah(fee) : t('common.free')}
                         </span>
                         {event.confirmed_registrations_count > 0 && (
                             <span className="flex items-center gap-1.5 text-xs text-oxford-navy-900/55">
@@ -99,12 +79,14 @@ export default function EventCard({ event }: { event: Event }) {
                                     aria-hidden
                                     className="size-4 text-oxford-navy-700"
                                 />
-                                {event.confirmed_registrations_count} peserta
+                                {t('events.participants', {
+                                    count: event.confirmed_registrations_count,
+                                })}
                             </span>
                         )}
                     </div>
                     <span className="inline-flex items-center gap-1 text-sm font-semibold text-oxford-navy-700">
-                        Detail
+                        {t('events.detail')}
                         <RiArrowRightLine
                             aria-hidden
                             className="size-4 transition-transform group-hover:translate-x-0.5"

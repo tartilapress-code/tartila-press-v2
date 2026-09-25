@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiArrowLeftLine, RiCheckLine } from '@remixicon/react';
 import * as packageApi from '@/data/package/packageApi';
 import Button from '@/components/Button/Button';
@@ -8,6 +9,7 @@ import SectionTitle from '@/components/ui/SectionTitle';
 import ErrorPage from '@/pages/ErrorPage';
 import { ApiError } from '@/lib/http';
 import { useAuth } from '@/context/useAuth';
+import { useFormat } from '@/i18n/useFormat';
 
 type PackageDetail = {
     id: number;
@@ -23,12 +25,6 @@ type PackageDetail = {
     terms: string[] | null;
     notes: string[] | null;
 };
-
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-});
 
 function ListSection({
     title,
@@ -62,6 +58,8 @@ function ListSection({
 }
 
 export default function PackageDetailPage() {
+    const { t } = useTranslation();
+    const { rupiah } = useFormat();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
@@ -87,7 +85,7 @@ export default function PackageDetailPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-dvh">
-                <p className="text-oxford-navy-900/70">Memuat...</p>
+                <p className="text-oxford-navy-900/70">{t('common.loading')}</p>
             </div>
         );
     }
@@ -117,7 +115,7 @@ export default function PackageDetailPage() {
                     className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-forest-moss-700 hover:underline"
                 >
                     <RiArrowLeftLine aria-hidden className="size-4" />
-                    Semua Paket
+                    {t('packages.detail.back')}
                 </Link>
 
                 <div className="flex flex-col gap-5 rounded-2xl border border-forest-moss-100 bg-white p-5 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-8">
@@ -138,15 +136,17 @@ export default function PackageDetailPage() {
                     <div className="flex flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
                         {pkg.discount > 0 && (
                             <span className="text-oxford-navy-900/65 line-through">
-                                {rupiahFormatter.format(Number(pkg.price))}
+                                {rupiah(Number(pkg.price))}
                             </span>
                         )}
                         <span className="text-3xl font-bold text-oxford-navy-700">
-                            {rupiahFormatter.format(pkg.final_price)}
+                            {rupiah(pkg.final_price)}
                         </span>
                         {pkg.discount > 0 && (
                             <span className="rounded-full bg-forest-moss-700 px-2.5 py-1 text-xs font-semibold text-white">
-                                Diskon {pkg.discount}%
+                                {t('common.discount', {
+                                    percent: pkg.discount,
+                                })}
                             </span>
                         )}
                     </div>
@@ -162,7 +162,7 @@ export default function PackageDetailPage() {
                         className="self-start"
                         onClick={handleTakePackage}
                     >
-                        Ambil Paket
+                        {t('packages.detail.take')}
                     </Button>
                 </div>
 
@@ -172,12 +172,24 @@ export default function PackageDetailPage() {
                         className="flex flex-col gap-6 rounded-2xl border border-forest-moss-100 bg-white p-5 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-8"
                     >
                         <SectionTitle id="rincian-paket">
-                            Rincian Paket
+                            {t('packages.detail.sectionTitle')}
                         </SectionTitle>
-                        <ListSection title="Layanan" items={pkg.services} />
-                        <ListSection title="Fasilitas" items={pkg.facilities} />
-                        <ListSection title="Ketentuan" items={pkg.terms} />
-                        <ListSection title="Catatan" items={pkg.notes} />
+                        <ListSection
+                            title={t('packages.detail.services')}
+                            items={pkg.services}
+                        />
+                        <ListSection
+                            title={t('packages.detail.facilities')}
+                            items={pkg.facilities}
+                        />
+                        <ListSection
+                            title={t('packages.detail.terms')}
+                            items={pkg.terms}
+                        />
+                        <ListSection
+                            title={t('packages.detail.notes')}
+                            items={pkg.notes}
+                        />
                     </section>
                 )}
             </div>

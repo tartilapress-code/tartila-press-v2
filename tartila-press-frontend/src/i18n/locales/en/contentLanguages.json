@@ -1,0 +1,38 @@
+{
+    "names": {
+        "id": "Indonesian",
+        "en": "English",
+        "ms": "Malay",
+        "ar": "Arabic",
+        "jv": "Javanese",
+        "su": "Sundanese",
+        "min": "Minangkabau",
+        "ban": "Balinese",
+        "zh": "Mandarin",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "hi": "Hindi",
+        "th": "Thai",
+        "vi": "Vietnamese",
+        "fa": "Persian",
+        "tr": "Turkish",
+        "de": "German",
+        "fr": "French",
+        "nl": "Dutch",
+        "es": "Spanish",
+        "pt": "Portuguese",
+        "it": "Italian",
+        "ru": "Russian"
+    },
+    "metaLine_one": "Language: {{languages}}",
+    "metaLine_other": "Languages: {{languages}}",
+    "factLabel_one": "Language",
+    "factLabel_other": "Languages",
+    "masteredLine": "Languages mastered: {{languages}}",
+    "field": {
+        "bookLabel": "Book Languages",
+        "bookHint": "Choose one or more languages used in this book. Optional.",
+        "editorLabel": "Languages Mastered",
+        "editorHint": "Choose every language you can edit in. Authors see this when choosing an editor."
+    }
+}

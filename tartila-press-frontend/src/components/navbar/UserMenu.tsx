@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowDownSLine,
     RiBookOpenLine,
@@ -11,32 +12,45 @@ import {
 } from '@remixicon/react';
 import { hasAnyRole } from '@/context/AuthContext';
 import { useAuth } from '@/context/useAuth';
+import { useDismiss } from '@/hooks/useDismiss';
 
-type MenuItem = { to: string; label: string; icon: ReactNode };
+type MenuKey =
+    | 'dashboard'
+    | 'myOrders'
+    | 'bookCart'
+    | 'myManuscripts'
+    | 'myEvents'
+    | 'adminPanel';
+
+type MenuItem = { to: string; key: MenuKey; icon: ReactNode };
 
 const baseItems: MenuItem[] = [
-    { to: '/dashboard', label: 'Dashboard', icon: <RiDashboardLine /> },
+    { to: '/dashboard', key: 'dashboard', icon: <RiDashboardLine /> },
     {
         to: '/dashboard/pesanan',
-        label: 'Pesanan Saya',
+        key: 'myOrders',
         icon: <RiFileList3Line />,
     },
     {
         to: '/dashboard/keranjang',
-        label: 'Keranjang Buku',
+        key: 'bookCart',
         icon: <RiShoppingCart2Line />,
     },
-    { to: '/dashboard/naskah', label: 'Naskah Saya', icon: <RiBookOpenLine /> },
+    {
+        to: '/dashboard/naskah',
+        key: 'myManuscripts',
+        icon: <RiBookOpenLine />,
+    },
     {
         to: '/dashboard/event-saya',
-        label: 'Event Saya',
+        key: 'myEvents',
         icon: <RiCalendarEventLine />,
     },
 ];
 
 const adminItem: MenuItem = {
     to: '/admin',
-    label: 'Panel Admin',
+    key: 'adminPanel',
     icon: <RiShieldUserLine />,
 };
 
@@ -45,34 +59,12 @@ const adminItem: MenuItem = {
  * keranjang, dan (untuk admin) panel admin.
  */
 export default function UserMenu() {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const [open, setOpen] = useState<boolean>(false);
     const rootRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        const handlePointerDown = (event: PointerEvent) => {
-            if (!rootRef.current?.contains(event.target as Node)) {
-                setOpen(false);
-            }
-        };
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setOpen(false);
-            }
-        };
-
-        document.addEventListener('pointerdown', handlePointerDown);
-        document.addEventListener('keydown', handleKeyDown);
-
-        return () => {
-            document.removeEventListener('pointerdown', handlePointerDown);
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [open]);
+    useDismiss(open, () => setOpen(false), rootRef);
 
     const items = hasAnyRole(user, ['admin'])
         ? [...baseItems, adminItem]
@@ -85,9 +77,11 @@ export default function UserMenu() {
                 onClick={() => setOpen((previous) => !previous)}
                 aria-expanded={open}
                 aria-haspopup="true"
-                className="inline-flex h-11 max-w-[11rem] min-[1440px]:max-w-[15rem] items-center gap-2 rounded-lg border border-oxford-navy-700 bg-white px-4 text-sm font-semibold text-oxford-navy-700 transition-colors hover:cursor-pointer hover:bg-forest-moss-50"
+                className="inline-flex h-11 max-w-[11rem] min-[1440px]:max-w-[15rem] group-data-[user=narrow]/nav:max-w-[8.5rem] items-center gap-2 rounded-lg border border-oxford-navy-700 bg-white px-4 text-sm font-semibold text-oxford-navy-700 transition-colors hover:cursor-pointer hover:bg-forest-moss-50"
             >
-                <span className="truncate">Halo, {user?.name}</span>
+                <span className="truncate">
+                    {t('nav.hello', { name: user?.name ?? '' })}
+                </span>
                 <RiArrowDownSLine
                     aria-hidden
                     className={`size-5 shrink-0 transition-transform ${
@@ -102,7 +96,7 @@ export default function UserMenu() {
                         <p className="truncate text-sm font-semibold text-oxford-navy-900">
                             {user?.name}
                         </p>
-                        <p className="truncate text-xs text-oxford-navy-900/55">
+                        <p className="truncate text-xs text-oxford-navy-900/65">
                             {user?.email}
                         </p>
                     </div>
@@ -120,7 +114,7 @@ export default function UserMenu() {
                                     >
                                         {item.icon}
                                     </span>
-                                    {item.label}
+                                    {t(`nav.userMenu.${item.key}`)}
                                 </Link>
                             </li>
                         ))}

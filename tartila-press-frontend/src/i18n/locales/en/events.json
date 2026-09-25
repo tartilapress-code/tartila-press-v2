@@ -1,0 +1,28 @@
+{
+    "empty": "No events yet.",
+    "detail": "Details",
+    "participants_one": "{{count}} participant",
+    "participants_other": "{{count}} participants",
+    "list": {
+        "badge": "Events",
+        "heroBefore": "Learn Together at ",
+        "heroAccent": "Our Events",
+        "heroText": "Join seminars, webinars, and workshops from Tartila Press.",
+        "scriptTop": "Growing Together,",
+        "scriptBottom": "Learning Together",
+        "all": "All Events",
+        "count_one": "{{count}} event",
+        "count_other": "{{count}} events"
+    },
+    "page": {
+        "back": "All Events",
+        "when": "Event Time",
+        "fee": "Registration Fee",
+        "deadline": "Registration Deadline",
+        "videoTitle": "{{title}} video",
+        "closed": "Registration for this event is closed.",
+        "register": "Register",
+        "processing": "Processing...",
+        "success": "Registration successful! See it in My Events."
+    }
+}

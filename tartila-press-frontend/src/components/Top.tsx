@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { RiArrowUpLine } from '@remixicon/react';
 import { HashLink } from 'react-router-hash-link';
 
 /** Tombol "Go Up" melayang untuk kembali ke bagian atas beranda. */
 export default function Top(): React.ReactNode {
+    const { t } = useTranslation();
+
     return (
         <>
             <HashLink to="#home" smooth>
@@ -10,7 +13,9 @@ export default function Top(): React.ReactNode {
                     <span className="flex size-7 items-center justify-center rounded-full bg-white text-forest-moss-700">
                         <RiArrowUpLine aria-hidden className="size-4" />
                     </span>
-                    <span className="text-sm font-semibold">Go Up</span>
+                    <span className="text-sm font-semibold">
+                        {t('footer.goUp')}
+                    </span>
                 </div>
             </HashLink>
         </>

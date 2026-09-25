@@ -1,0 +1,11 @@
+{
+    "notFound": {
+        "title": "Page Not Found",
+        "text": "The address you opened does not exist or has been moved."
+    },
+    "unexpected": {
+        "title": "Something Went Wrong",
+        "text": "This page failed to load. Reload the page or go back to the home page."
+    },
+    "backHome": "Back to Home"
+}

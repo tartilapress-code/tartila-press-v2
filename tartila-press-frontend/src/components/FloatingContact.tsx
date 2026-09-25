@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiInstagramLine, RiMailLine, RiWhatsappLine } from '@remixicon/react';
 import socialMedia from '@/data/footer-social-media.json';
 import contacts from '@/data/footer-kontak.json';
@@ -45,18 +46,20 @@ function ContactButton({
  * Di layar sempit hanya WhatsApp supaya tidak menutupi kartu.
  */
 export default function FloatingContact() {
+    const { t } = useTranslation();
+
     return (
         <div className="fixed bottom-5 right-4 z-40 flex flex-col gap-3 sm:right-6">
             <ContactButton
                 href={WHATSAPP_URL}
-                label="Hubungi lewat WhatsApp"
+                label={t('footer.floating.whatsapp')}
                 tone="bg-forest-moss-600 hover:bg-forest-moss-500"
             >
                 <RiWhatsappLine className="size-6" aria-hidden />
             </ContactButton>
             <ContactButton
                 href={instagramUrl}
-                label="Instagram Tartila Press"
+                label={t('footer.floating.instagram')}
                 tone="bg-oxford-navy-700 hover:bg-oxford-navy-600"
                 className="max-lg:hidden"
             >
@@ -64,7 +67,7 @@ export default function FloatingContact() {
             </ContactButton>
             <ContactButton
                 href={`mailto:${email}`}
-                label="Kirim email"
+                label={t('footer.floating.email')}
                 tone="bg-oxford-navy-700 hover:bg-oxford-navy-600"
                 className="max-lg:hidden"
             >

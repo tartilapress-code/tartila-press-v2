@@ -17,6 +17,19 @@ export type FlipbookShape = {
     firstPageOnRight: boolean;
 };
 
+/**
+ * Teks yang tertulis di dalam halaman flipbook. Halaman dibuat lewat DOM biasa,
+ * jadi teksnya (sudah diterjemahkan) diberikan dari luar oleh komponen.
+ */
+export type FlipbookLabels = {
+    // Tulisan di sampul belakang pengganti.
+    endOfPreview: string;
+    // Pengganti halaman PDF yang gagal dirender.
+    pageFailed: string;
+    // Teks alternatif gambar halaman PDF.
+    pageAlt: (page: number) => string;
+};
+
 export type FlipbookPagesOptions = FlipbookShape & {
     title: string;
     frontCover: string | null;
@@ -24,6 +37,7 @@ export type FlipbookPagesOptions = FlipbookShape & {
     // bawaan Book Chapter).
     fallbackCover?: string;
     backCover: string | null;
+    labels: FlipbookLabels;
 };
 
 /** Tampilan satu halaman PDF di flipbook; diperbarui saat gambarnya siap. */
@@ -100,6 +114,16 @@ export function indexToPosition(index: number, shape: FlipbookShape): number {
 }
 
 /**
+ * Keterangan posisi baca: jenis halaman (sampul, bagian dalam sampul, halaman
+ * kosong) atau nomor halaman PDF yang tampil. Teksnya disusun komponen lewat
+ * terjemahan.
+ */
+export type PositionLabel =
+    | { kind: 'cover' | 'backCover' | 'insideCover' | 'blank' }
+    | { kind: 'page'; page: number; total: number }
+    | { kind: 'spread'; left: number; right: number; total: number };
+
+/**
  * Keterangan posisi baca untuk `index` (nomor halaman buku yang sedang
  * ditampilkan; pada tampilan dua halaman = halaman kiri).
  */
@@ -107,20 +131,20 @@ export function describePosition(
     index: number,
     portrait: boolean,
     shape: FlipbookShape
-): string {
+): PositionLabel {
     const { lead } = blankPages(shape);
     const total = shape.pdfPageCount;
 
-    if (index <= 0) return 'Sampul';
-    if (index >= bookPageCount(shape) - 1) return 'Sampul belakang';
+    if (index <= 0) return { kind: 'cover' };
+    if (index >= bookPageCount(shape) - 1) return { kind: 'backCover' };
 
     if (portrait) {
-        if (index <= lead) return 'Bagian dalam sampul';
+        if (index <= lead) return { kind: 'insideCover' };
 
         // Halaman kosong di ujung hanya ada untuk menggenapkan jumlah halaman.
         return index - lead > total
-            ? 'Halaman kosong'
-            : `Halaman ${index - lead} dari ${total}`;
+            ? { kind: 'blank' }
+            : { kind: 'page', page: index - lead, total };
     }
 
     // Tampilan dua halaman: spread dimulai dari halaman buku ganjil.
@@ -128,11 +152,11 @@ export function describePosition(
     const right = left + 1;
 
     // Sisi kiri spread pertama bisa berupa bagian dalam sampul (kosong).
-    if (left < 1) return `Halaman ${right} dari ${total}`;
+    if (left < 1) return { kind: 'page', page: right, total };
 
     return right <= total
-        ? `Halaman ${left}–${right} dari ${total}`
-        : `Halaman ${left} dari ${total}`;
+        ? { kind: 'spread', left, right, total }
+        : { kind: 'page', page: left, total };
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -149,7 +173,8 @@ function element<K extends keyof HTMLElementTagNameMap>(
 // sampul pengganti di katalog. Ukuran huruf mengikuti lebar halaman (cqw).
 function createCoverPlaceholder(
     title: string,
-    side: 'front' | 'back'
+    side: 'front' | 'back',
+    labels: FlipbookLabels
 ): HTMLElement {
     const panel = element(
         'div',
@@ -168,7 +193,7 @@ function createCoverPlaceholder(
     if (side === 'front') {
         heading.textContent = title;
     } else {
-        heading.textContent = 'Akhir preview';
+        heading.textContent = labels.endOfPreview;
     }
     footer.textContent = 'Tartila Press';
     panel.append(rule, heading, footer);
@@ -180,7 +205,8 @@ function createCoverPlaceholder(
 function createCoverPage(
     title: string,
     sources: string[],
-    side: 'front' | 'back'
+    side: 'front' | 'back',
+    labels: FlipbookLabels
 ): HTMLElement {
     const page = element(
         'div',
@@ -201,7 +227,10 @@ function createCoverPage(
         const src = sources[index];
 
         if (!src) {
-            page.replaceChildren(createCoverPlaceholder(title, side), spine);
+            page.replaceChildren(
+                createCoverPlaceholder(title, side, labels),
+                spine
+            );
             return;
         }
 
@@ -231,7 +260,10 @@ function createBlankPage(): HTMLElement {
 }
 
 // Halaman isi (lembut): spinner sampai gambar halaman PDF-nya siap.
-function createPdfPage(pageNumber: number): {
+function createPdfPage(
+    pageNumber: number,
+    labels: FlipbookLabels
+): {
     page: HTMLElement;
     view: PdfPageView;
 } {
@@ -245,13 +277,13 @@ function createPdfPage(pageNumber: number): {
         'span',
         'absolute inset-x-0 top-1/2 hidden -translate-y-1/2 px-6 text-center text-xs text-oxford-navy-900/50'
     );
-    failure.textContent = 'Halaman ini tidak dapat dimuat.';
+    failure.textContent = labels.pageFailed;
 
     const image = element(
         'img',
         'absolute inset-0 h-full w-full select-none object-contain opacity-0 transition-opacity duration-200'
     );
-    image.alt = `Halaman ${pageNumber}`;
+    image.alt = labels.pageAlt(pageNumber);
     image.draggable = false;
     image.addEventListener('load', () => {
         image.classList.remove('opacity-0');
@@ -282,8 +314,14 @@ function createPdfPage(pageNumber: number): {
 export function buildFlipbookPages(
     options: FlipbookPagesOptions
 ): FlipbookPages {
-    const { title, frontCover, fallbackCover, backCover, pdfPageCount } =
-        options;
+    const {
+        title,
+        frontCover,
+        fallbackCover,
+        backCover,
+        pdfPageCount,
+        labels,
+    } = options;
     const { lead, filler } = blankPages(options);
 
     const frontSources = [frontCover, fallbackCover].filter(
@@ -292,7 +330,7 @@ export function buildFlipbookPages(
     const backSources = backCover ? [backCover] : [];
 
     const elements: HTMLElement[] = [
-        createCoverPage(title, frontSources, 'front'),
+        createCoverPage(title, frontSources, 'front', labels),
     ];
     const views = new Map<number, PdfPageView>();
 
@@ -301,7 +339,7 @@ export function buildFlipbookPages(
     }
 
     for (let pageNumber = 1; pageNumber <= pdfPageCount; pageNumber++) {
-        const { page, view } = createPdfPage(pageNumber);
+        const { page, view } = createPdfPage(pageNumber, labels);
 
         elements.push(page);
         views.set(pageNumber, view);
@@ -311,7 +349,7 @@ export function buildFlipbookPages(
         elements.push(createBlankPage());
     }
 
-    elements.push(createCoverPage(title, backSources, 'back'));
+    elements.push(createCoverPage(title, backSources, 'back', labels));
 
     return { elements, views };
 }

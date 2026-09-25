@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiCloseLine, RiSearchLine } from '@remixicon/react';
+import { useDismiss } from '@/hooks/useDismiss';
 import { catalogSearchPath } from '@/lib/catalogSearch';
 
 /**
@@ -16,6 +18,7 @@ function SearchForm({
     focusOnMount?: boolean;
     className?: string;
 }) {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const inputRef = useRef<HTMLInputElement>(null);
     const [term, setTerm] = useState<string>('');
@@ -49,8 +52,8 @@ function SearchForm({
                     type="search"
                     value={term}
                     onChange={(event) => setTerm(event.target.value)}
-                    placeholder="Cari judul atau penulis buku..."
-                    aria-label="Cari buku"
+                    placeholder={t('nav.search.placeholder')}
+                    aria-label={t('nav.search.label')}
                     className="h-11 w-full rounded-xl border border-oxford-navy-900/10 bg-forest-moss-50/60 pl-10 pr-3 text-sm text-oxford-navy-900 outline-none transition placeholder:text-oxford-navy-900/45 focus:border-forest-moss-500 focus:bg-white focus:ring-2 focus:ring-forest-moss-500/30"
                 />
             </label>
@@ -58,7 +61,7 @@ function SearchForm({
                 type="submit"
                 className="h-11 shrink-0 rounded-xl bg-oxford-navy-700 px-4 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-oxford-navy-600"
             >
-                Cari
+                {t('nav.search.submit')}
             </button>
         </form>
     );
@@ -66,33 +69,11 @@ function SearchForm({
 
 /** Ikon kaca pembesar di navbar yang membuka kolom cari di bawahnya. */
 export default function NavbarSearch() {
+    const { t } = useTranslation();
     const [open, setOpen] = useState<boolean>(false);
     const rootRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        const handlePointerDown = (event: PointerEvent) => {
-            if (!rootRef.current?.contains(event.target as Node)) {
-                setOpen(false);
-            }
-        };
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setOpen(false);
-            }
-        };
-
-        document.addEventListener('pointerdown', handlePointerDown);
-        document.addEventListener('keydown', handleKeyDown);
-
-        return () => {
-            document.removeEventListener('pointerdown', handlePointerDown);
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [open]);
+    useDismiss(open, () => setOpen(false), rootRef);
 
     return (
         <div ref={rootRef} className="relative">
@@ -100,7 +81,7 @@ export default function NavbarSearch() {
                 type="button"
                 onClick={() => setOpen((previous) => !previous)}
                 aria-expanded={open}
-                aria-label={open ? 'Tutup pencarian' : 'Cari buku'}
+                aria-label={open ? t('nav.search.close') : t('nav.search.open')}
                 className="inline-flex size-10 items-center justify-center rounded-full text-oxford-navy-900 transition-colors hover:cursor-pointer hover:bg-forest-moss-50 hover:text-oxford-navy-700"
             >
                 {open ? (

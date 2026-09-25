@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowUpDownLine,
     RiEditBoxLine,
@@ -11,7 +12,7 @@ import PersonCard, {
     PersonCardSkeleton,
     type Person,
 } from '@/components/people/PersonCard';
-import { roleCopy, type PeopleRole } from '@/components/people/roleCopy';
+import type { PeopleRole } from '@/components/people/roles';
 import { SearchField, SelectField } from '@/components/ui/FilterControls';
 import ListHero from '@/components/ui/ListHero';
 import QuoteCard from '@/components/ui/QuoteCard';
@@ -22,18 +23,18 @@ type SortMode = 'default' | 'az' | 'za';
 
 const SKELETON_COUNT = 6;
 
-const sortOptions = [
-    { value: 'default', label: 'Urutkan' },
-    { value: 'az', label: 'Nama A–Z' },
-    { value: 'za', label: 'Nama Z–A' },
-];
-
 /**
  * Halaman daftar Penulis/Editor: hero, navigasi samping, dan kartu berisi
  * pencarian nama, pilihan urutan, serta grid orang.
  */
 export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
-    const copy = roleCopy[role];
+    const { t } = useTranslation();
+
+    const sortOptions = [
+        { value: 'default', label: t('people.sort.default') },
+        { value: 'az', label: t('people.sort.az') },
+        { value: 'za', label: t('people.sort.za') },
+    ];
 
     const [people, setPeople] = useState<Person[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -77,21 +78,21 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
     const navItems: SideNavItem[] = [
         {
             key: 'penulis',
-            label: 'List Penulis',
+            label: t('people.penulis.navList'),
             icon: <RiTeamLine />,
             to: '/penulis',
             active: role === 'penulis',
         },
         {
             key: 'editor',
-            label: 'List Editor',
+            label: t('people.editor.navList'),
             icon: <RiEditBoxLine />,
             to: '/editor',
             active: role === 'editor',
         },
         {
             key: 'cari',
-            label: 'Pencarian',
+            label: t('people.search'),
             icon: <RiSearchLine />,
             onSelect: () => {
                 searchRef.current?.scrollIntoView({
@@ -106,10 +107,16 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
     return (
         <div className="-mx-10 -my-2 overflow-x-clip">
             <ListHero
-                badge={copy.label}
-                title={{ before: copy.heroTitle[0], accent: copy.heroTitle[1] }}
-                text={copy.heroText}
-                script={copy.script}
+                badge={t(`people.${role}.label`)}
+                title={{
+                    before: t(`people.${role}.heroTitleBefore`),
+                    accent: t(`people.${role}.heroTitleAccent`),
+                }}
+                text={t(`people.${role}.heroText`)}
+                script={[
+                    t(`people.${role}.scriptTop`),
+                    t(`people.${role}.scriptBottom`),
+                ]}
             />
 
             <div className="mx-auto max-w-[1360px] px-4 pb-20 pt-8 sm:px-8 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-6 lg:px-10">
@@ -117,9 +124,9 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                     <div className="flex flex-col gap-4 lg:sticky lg:top-24">
                         <SideNavCard
                             items={navItems}
-                            ariaLabel="Navigasi daftar"
+                            ariaLabel={t('people.listNavAria')}
                         />
-                        <QuoteCard quote={copy.listQuote} />
+                        <QuoteCard quote={t(`people.${role}.listQuote`)} />
                     </div>
                 </aside>
 
@@ -129,10 +136,12 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                 >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <SectionTitle id="people-directory-title">
-                            {copy.directoryTitle}
+                            {t(`people.${role}.directoryTitle`)}
                             {!isLoading && people.length > 0 && (
                                 <span className="font-sans text-sm font-normal text-oxford-navy-900/50">
-                                    {visible.length} {role}
+                                    {t(`people.${role}.count`, {
+                                        count: visible.length,
+                                    })}
                                 </span>
                             )}
                         </SectionTitle>
@@ -142,18 +151,17 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                                 inputRef={searchRef}
                                 value={query}
                                 onChange={setQuery}
-                                placeholder={copy.searchPlaceholder}
-                                ariaLabel={copy.searchPlaceholder.replace(
-                                    '...',
-                                    ''
+                                placeholder={t(
+                                    `people.${role}.searchPlaceholder`
                                 )}
+                                ariaLabel={t(`people.${role}.searchAria`)}
                                 className="sm:w-72"
                             />
                             <SelectField
                                 value={sort}
                                 onChange={(value) => setSort(value as SortMode)}
                                 options={sortOptions}
-                                ariaLabel="Urutkan daftar"
+                                ariaLabel={t('people.sort.aria')}
                                 icon={<RiArrowUpDownLine />}
                                 className="sm:w-44"
                             />
@@ -170,13 +178,14 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                         </div>
                     ) : people.length === 0 ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                            {copy.emptyText}
+                            {t(`people.${role}.emptyText`)}
                         </p>
                     ) : visible.length === 0 ? (
                         <div className="flex flex-col items-center gap-3 rounded-xl bg-forest-moss-50 px-6 py-14 text-center">
                             <p className="text-sm text-oxford-navy-900/70">
-                                Tidak ada {role} dengan nama &ldquo;
-                                {query.trim()}&rdquo;.
+                                {t(`people.${role}.noMatch`, {
+                                    query: query.trim(),
+                                })}
                             </p>
                             <button
                                 type="button"
@@ -184,7 +193,7 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                                 className="inline-flex items-center gap-2 rounded-lg border border-oxford-navy-700 px-4 py-2 text-sm font-semibold text-oxford-navy-700 transition-colors hover:cursor-pointer hover:bg-oxford-navy-700 hover:text-white"
                             >
                                 <RiRestartLine aria-hidden className="size-4" />
-                                Hapus Pencarian
+                                {t('people.clearSearch')}
                             </button>
                         </div>
                     ) : (

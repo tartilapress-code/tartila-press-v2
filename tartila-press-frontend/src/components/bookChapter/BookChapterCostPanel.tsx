@@ -18,7 +18,9 @@ function Row({
     return (
         <div
             className={`flex flex-row justify-between gap-4 text-sm ${
-                strong ? 'text-oxford-navy-900 font-semibold' : 'text-oxford-navy-900/70'
+                strong
+                    ? 'text-oxford-navy-900 font-semibold'
+                    : 'text-oxford-navy-900/70'
             }`}
         >
             <span>{label}</span>

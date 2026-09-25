@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Input from '@/components/Input/Input';
 import Select from '@/components/Select/Select';
 import Button from '@/components/Button/Button';
@@ -9,6 +11,7 @@ import * as adminApi from '@/data/admin/adminApi';
 import type { ChapterInput } from '@/data/admin/adminApi';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
+import type { ContentLanguage } from '@/lib/contentLanguages';
 import {
     calculateBookChapterCost,
     chapterRowsToCostInput,
@@ -64,6 +67,7 @@ function toChapterInput(row: ChapterRow): ChapterInput {
 }
 
 export default function BookChapterProjectsPage() {
+    const { t } = useTranslation();
     const [projects, setProjects] = useState<ProjectItem[]>([]);
     const [editors, setEditors] = useState<EditorItem[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -72,6 +76,7 @@ export default function BookChapterProjectsPage() {
     const [price, setPrice] = useState<string>('');
     const [discount, setDiscount] = useState<string>('0');
     const [description, setDescription] = useState<string>('');
+    const [languages, setLanguages] = useState<ContentLanguage[]>([]);
     const [ownerEditorId, setOwnerEditorId] = useState<string>('');
     const [submissionDeadline, setSubmissionDeadline] = useState<string>('');
     const [options, setOptions] = useState<PackageOptions>(emptyPackageOptions);
@@ -129,6 +134,7 @@ export default function BookChapterProjectsPage() {
         setPrice('');
         setDiscount('0');
         setDescription('');
+        setLanguages([]);
         setOwnerEditorId('');
         setSubmissionDeadline('');
         setOptions(emptyPackageOptions);
@@ -163,6 +169,7 @@ export default function BookChapterProjectsPage() {
                 price,
                 discount: Number(discount) || 0,
                 description: description || undefined,
+                languages,
                 owner_editor_id: ownerEditorId ? Number(ownerEditorId) : null,
                 submission_deadline: submissionDeadline || undefined,
                 ...options,
@@ -228,6 +235,12 @@ export default function BookChapterProjectsPage() {
                     label="Keterangan"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                />
+                <ContentLanguageField
+                    label={t('contentLanguages.field.bookLabel')}
+                    hint={t('contentLanguages.field.bookHint')}
+                    value={languages}
+                    onChange={setLanguages}
                 />
                 <Select
                     name="owner_editor_id"

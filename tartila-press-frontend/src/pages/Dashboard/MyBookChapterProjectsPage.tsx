@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Input from '@/components/Input/Input';
 import Button from '@/components/Button/Button';
 import BookChapterCostPanel from '@/components/bookChapter/BookChapterCostPanel';
@@ -7,6 +9,7 @@ import PackageOptionsField from '@/components/bookChapter/PackageOptionsField';
 import * as editorApi from '@/data/editor/editorApi';
 import type { ChapterInput } from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
+import type { ContentLanguage } from '@/lib/contentLanguages';
 import {
     calculateBookChapterCost,
     chapterRowsToCostInput,
@@ -58,6 +61,7 @@ function toChapterInput(row: ChapterRow): ChapterInput {
 }
 
 export default function MyBookChapterProjectsPage() {
+    const { t } = useTranslation();
     const [projects, setProjects] = useState<ProjectItem[]>([]);
     const [settings, setSettings] = useState<BookChapterCostSettings | null>(
         null
@@ -70,6 +74,7 @@ export default function MyBookChapterProjectsPage() {
     const [discount, setDiscount] = useState<string>('0');
     const [description, setDescription] = useState<string>('');
     const [about, setAbout] = useState<string>('');
+    const [languages, setLanguages] = useState<ContentLanguage[]>([]);
     const [submissionDeadline, setSubmissionDeadline] = useState<string>('');
     const [options, setOptions] = useState<PackageOptions>(emptyPackageOptions);
     const [chapters, setChapters] = useState<ChapterRow[]>([
@@ -116,6 +121,7 @@ export default function MyBookChapterProjectsPage() {
         setDiscount('0');
         setDescription('');
         setAbout('');
+        setLanguages([]);
         setSubmissionDeadline('');
         setOptions(emptyPackageOptions);
         setChapters([emptyChapterRow(), emptyChapterRow()]);
@@ -148,6 +154,7 @@ export default function MyBookChapterProjectsPage() {
                 discount: Number(discount) || 0,
                 description: description || undefined,
                 about: about || undefined,
+                languages,
                 submission_deadline: submissionDeadline || undefined,
                 ...options,
                 chapters: filledChapters.map(toChapterInput),
@@ -222,6 +229,12 @@ export default function MyBookChapterProjectsPage() {
                     label="Tentang Buku"
                     value={about}
                     onChange={(e) => setAbout(e.target.value)}
+                />
+                <ContentLanguageField
+                    label={t('contentLanguages.field.bookLabel')}
+                    hint={t('contentLanguages.field.bookHint')}
+                    value={languages}
+                    onChange={setLanguages}
                 />
                 <Input
                     label="Batas Pengumpulan Naskah"

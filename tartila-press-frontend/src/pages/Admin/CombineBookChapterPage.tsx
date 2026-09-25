@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import Select from '@/components/Select/Select';
@@ -7,6 +9,7 @@ import Button from '@/components/Button/Button';
 import * as adminApi from '@/data/admin/adminApi';
 import type { BookPayload } from '@/data/admin/adminApi';
 import { ApiError } from '@/lib/http';
+import type { ContentLanguage } from '@/lib/contentLanguages';
 
 type Category = { id: number; name: string };
 
@@ -27,6 +30,7 @@ type FormState = {
     description: string;
     book_category_id: string;
     field_category_id: string;
+    languages: ContentLanguage[];
     price: string;
     discount: string;
 };
@@ -39,11 +43,13 @@ const emptyForm: FormState = {
     description: '',
     book_category_id: '',
     field_category_id: '',
+    languages: [],
     price: '',
     discount: '0',
 };
 
 export default function CombineBookChapterPage() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
 
     const [manuscripts, setManuscripts] = useState<ManuscriptItem[]>([]);
@@ -113,6 +119,7 @@ export default function CombineBookChapterPage() {
             description: form.description || undefined,
             book_category_id: form.book_category_id || undefined,
             field_category_id: form.field_category_id || undefined,
+            languages: form.languages,
             price: form.price,
             discount: Number(form.discount) || 0,
             manuscript_ids: selectedIds,
@@ -289,6 +296,12 @@ export default function CombineBookChapterPage() {
                             field_category_id: e.target.value,
                         })
                     }
+                />
+                <ContentLanguageField
+                    label={t('contentLanguages.field.bookLabel')}
+                    hint={t('contentLanguages.field.bookHint')}
+                    value={form.languages}
+                    onChange={(languages) => setForm({ ...form, languages })}
                 />
                 <Input
                     label="Harga"

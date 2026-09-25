@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowRightSLine,
     RiBookOpenLine,
@@ -9,13 +10,14 @@ import {
 } from '@remixicon/react';
 import ErrorPage from '@/pages/ErrorPage';
 import { ApiError } from '@/lib/http';
+import { toContentLanguages } from '@/lib/contentLanguages';
 import * as publicProfileApi from '@/data/publicProfile/publicProfileApi';
 import { useScrollSpy } from '@/hooks/useScrollSpy';
 import ProfileBookCard, {
     type ProfileBookDetail,
 } from '@/components/people/ProfileBookCard';
 import ProfileHero from '@/components/people/ProfileHero';
-import { roleCopy, type PeopleRole } from '@/components/people/roleCopy';
+import type { PeopleRole } from '@/components/people/roles';
 import QuoteCard from '@/components/ui/QuoteCard';
 import SectionTitle from '@/components/ui/SectionTitle';
 import SideNavCard, { type SideNavItem } from '@/components/ui/SideNavCard';
@@ -34,6 +36,8 @@ type AuthorProfile = {
     city: string | null;
     profile_photo: string | null;
     roles: string[];
+    // Bahasa yang dikuasai; hanya terisi untuk akun editor.
+    editor_languages: string[];
     experiences: Experience[];
     books: ProfileBookDetail[];
     edited_books: ProfileBookDetail[];
@@ -73,6 +77,7 @@ function BooksSection({
     books: ProfileBookDetail[];
     emptyText: string;
 }) {
+    const { t } = useTranslation();
     const [expanded, setExpanded] = useState<boolean>(false);
     const shown = expanded ? books : books.slice(0, BOOK_PREVIEW_COUNT);
     const canExpand = books.length > BOOK_PREVIEW_COUNT;
@@ -93,8 +98,10 @@ function BooksSection({
                             className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-forest-moss-700 hover:cursor-pointer hover:text-forest-moss-600"
                         >
                             {expanded
-                                ? 'Ringkas'
-                                : `Lihat Semua (${books.length})`}
+                                ? t('people.profile.collapse')
+                                : t('people.profile.seeAll', {
+                                      count: books.length,
+                                  })}
                             <RiArrowRightSLine
                                 aria-hidden
                                 className={`size-4 transition-transform ${
@@ -143,13 +150,13 @@ function ProfileSkeleton() {
 }
 
 export default function AuthorProfilePage() {
+    const { t } = useTranslation();
     const { slug } = useParams<{ slug: string }>();
     const { pathname } = useLocation();
     // Halaman ini dipakai bersama oleh /penulis/:slug dan /editor/:slug.
     const role: PeopleRole = pathname.startsWith('/editor')
         ? 'editor'
         : 'penulis';
-    const copy = roleCopy[role];
 
     const [profile, setProfile] = useState<AuthorProfile | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -216,10 +223,19 @@ export default function AuthorProfilePage() {
     }
 
     const navMeta: Record<SectionKey, { label: string; icon: ReactNode }> = {
-        profil: { label: 'Profil', icon: <RiUserLine /> },
-        karya: { label: 'Karya', icon: <RiBookOpenLine /> },
-        diedit: { label: 'Buku Diedit', icon: <RiEditBoxLine /> },
-        pengalaman: { label: 'Pengalaman', icon: <RiFileTextLine /> },
+        profil: { label: t('people.profile.nav.profil'), icon: <RiUserLine /> },
+        karya: {
+            label: t('people.profile.nav.karya'),
+            icon: <RiBookOpenLine />,
+        },
+        diedit: {
+            label: t('people.profile.nav.diedit'),
+            icon: <RiEditBoxLine />,
+        },
+        pengalaman: {
+            label: t('people.profile.nav.pengalaman'),
+            icon: <RiFileTextLine />,
+        },
     };
 
     const navItems: SideNavItem[] = sectionKeys.map((key) => ({
@@ -237,18 +253,18 @@ export default function AuthorProfilePage() {
             <BooksSection
                 key="karya"
                 id="karya"
-                title="Karya Terbaru"
+                title={t('people.profile.worksTitle')}
                 books={profile.books}
-                emptyText="Belum ada karya yang diterbitkan."
+                emptyText={t('people.profile.worksEmpty')}
             />
         ),
         diedit: (
             <BooksSection
                 key="diedit"
                 id="diedit"
-                title="Buku yang Diedit"
+                title={t('people.profile.editedTitle')}
                 books={profile.edited_books}
-                emptyText="Belum ada buku yang diedit."
+                emptyText={t('people.profile.editedEmpty')}
             />
         ),
     };
@@ -264,6 +280,7 @@ export default function AuthorProfilePage() {
                     city: profile.city,
                     bookCount: profile.books.length,
                     editedCount: profile.edited_books.length,
+                    languages: toContentLanguages(profile.editor_languages),
                 }}
             />
 
@@ -272,9 +289,9 @@ export default function AuthorProfilePage() {
                     <div className="flex flex-col gap-4 lg:sticky lg:top-24">
                         <SideNavCard
                             items={navItems}
-                            ariaLabel="Navigasi profil"
+                            ariaLabel={t('people.profile.navAria')}
                         />
-                        <QuoteCard quote={copy.profileQuote} />
+                        <QuoteCard quote={t(`people.${role}.profileQuote`)} />
                     </div>
                 </aside>
 
@@ -285,7 +302,7 @@ export default function AuthorProfilePage() {
                         className="flex scroll-mt-28 flex-col gap-4"
                     >
                         <SectionTitle id="profil-title">
-                            {copy.aboutTitle}
+                            {t(`people.${role}.aboutTitle`)}
                         </SectionTitle>
 
                         {profile.bio ? (
@@ -294,13 +311,15 @@ export default function AuthorProfilePage() {
                             </p>
                         ) : (
                             <p className="text-sm text-oxford-navy-900/55">
-                                {profile.name} belum menulis deskripsi.
+                                {t('people.profile.noBio', {
+                                    name: profile.name,
+                                })}
                             </p>
                         )}
 
                         {topics.length > 0 && (
                             <ul
-                                aria-label="Bidang dan jenis karya"
+                                aria-label={t('people.profile.topicsAria')}
                                 className="flex flex-wrap gap-2 border-t border-forest-moss-100 pt-4"
                             >
                                 {topics.map((topic) => (
@@ -330,12 +349,12 @@ export default function AuthorProfilePage() {
                         className="flex scroll-mt-28 flex-col gap-4 border-t border-forest-moss-100 pt-8"
                     >
                         <SectionTitle id="pengalaman-title">
-                            Jejak Pengalaman
+                            {t('people.profile.experienceTitle')}
                         </SectionTitle>
 
                         {profile.experiences.length === 0 ? (
                             <p className="text-sm text-oxford-navy-900/55">
-                                Belum ada jejak pengalaman.
+                                {t('people.profile.experienceEmpty')}
                             </p>
                         ) : (
                             <ol className="flex flex-col gap-5 border-l-2 border-forest-moss-200 pl-6">

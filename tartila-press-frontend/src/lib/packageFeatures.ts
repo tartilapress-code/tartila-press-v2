@@ -1,9 +1,16 @@
 import type { CustomItem } from '@/data/customPackageItem/customPackageItemApi';
 import type { PackageSummary } from '@/data/package/packageApi';
-import { formatRupiah } from '@/lib/bookChapterPublic';
 
-/** Lencana dan catatan kecil yang ditempel di kartu sebuah paket. */
-export type PackageHighlight = { badge?: string; note?: string };
+/**
+ * Sorotan yang ditempel di kartu sebuah paket: `best` (paling hemat) dan
+ * `saving` (rupiah yang dihemat) terhadap `basis`, yaitu harga item satuan atau
+ * total pilihan pengguna. Teksnya disusun oleh kartu supaya ikut bahasa.
+ */
+export type PackageHighlight = {
+    best: boolean;
+    saving: number;
+    basis: 'unit' | 'selection';
+};
 
 // Fasilitas/layanan paket hanya teks bebas, sedangkan item custom punya harga.
 // Keduanya dicocokkan lewat nama supaya paket bisa dibandingkan dengan harga
@@ -181,7 +188,7 @@ export type PackageOffers = {
 
 function withHighlights(
     entries: { pkg: PackageSummary; saving: number }[],
-    basis: string
+    basis: PackageHighlight['basis']
 ): Pick<PackageOffers, 'packages' | 'highlights'> {
     const highlights: Record<number, PackageHighlight> = {};
     let bestAssigned = false;
@@ -191,10 +198,7 @@ function withHighlights(
             continue;
         }
 
-        highlights[pkg.id] = {
-            badge: bestAssigned ? undefined : 'Paling Hemat',
-            note: `Hemat ${formatRupiah(saving)} ${basis}`,
-        };
+        highlights[pkg.id] = { best: !bestAssigned, saving, basis };
         bestAssigned = true;
     }
 
@@ -229,7 +233,7 @@ export function packageOffers(
         if (covering.length > 0) {
             return {
                 mode: 'selection',
-                ...withHighlights(covering, 'dari pilihan Anda'),
+                ...withHighlights(covering, 'selection'),
             };
         }
     }
@@ -251,6 +255,6 @@ export function packageOffers(
 
     return {
         mode: selected.length > 0 ? 'uncovered' : 'general',
-        ...withHighlights(ranked, 'dari harga satuan'),
+        ...withHighlights(ranked, 'unit'),
     };
 }

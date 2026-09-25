@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import socialMedia from '../data/footer-social-media.json';
 import contacts from '../data/footer-kontak.json';
 import Copyrights from './Copyrights';
@@ -16,6 +17,8 @@ function ColumnTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default function Footer() {
+    const { t } = useTranslation();
+
     return (
         <footer
             id="kontak"
@@ -26,15 +29,12 @@ export default function Footer() {
                     <div className="flex flex-col gap-4">
                         <Logo size="medium" />
                         <p className="max-w-md text-[15px] leading-relaxed text-oxford-navy-900/70">
-                            Penerbit independen yang berfokus pada penerbitan
-                            buku berkualitas, pengembangan literasi, dan
-                            distribusi karya penulis Indonesia secara
-                            profesional.
+                            {t('footer.description')}
                         </p>
                     </div>
 
                     <div className="flex flex-col gap-4">
-                        <ColumnTitle>Kontak</ColumnTitle>
+                        <ColumnTitle>{t('footer.contact')}</ColumnTitle>
 
                         <ul className="flex flex-col gap-2.5">
                             {contacts.map((kontak) => (
@@ -53,7 +53,7 @@ export default function Footer() {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                        <ColumnTitle>Sosial Media</ColumnTitle>
+                        <ColumnTitle>{t('footer.socialMedia')}</ColumnTitle>
 
                         <ul className="flex flex-col gap-2.5">
                             {socialMedia.map((media) => (

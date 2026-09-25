@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiArrowLeftLine, RiHeartFill, RiHeartLine } from '@remixicon/react';
 import ErrorPage from '@/pages/ErrorPage';
 import { ApiError } from '@/lib/http';
@@ -10,14 +11,11 @@ import PillBadge from '@/components/ui/PillBadge';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as articleApi from '@/data/article/articleApi';
 import type { Article, ArticleComment } from '@/data/article/articleApi';
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
+import { useFormat } from '@/i18n/useFormat';
 
 export default function ArticleDetailPage() {
+    const { t } = useTranslation();
+    const { dateLong } = useFormat();
     const { slug } = useParams<{ slug: string }>();
     const { user, isAuthenticated } = useAuth();
 
@@ -107,7 +105,7 @@ export default function ArticleDetailPage() {
     if (isLoading) {
         return (
             <div className="flex h-dvh items-center justify-center">
-                <p className="text-oxford-navy-900/70">Memuat...</p>
+                <p className="text-oxford-navy-900/70">{t('common.loading')}</p>
             </div>
         );
     }
@@ -133,7 +131,7 @@ export default function ArticleDetailPage() {
                     className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-forest-moss-700 hover:underline"
                 >
                     <RiArrowLeftLine aria-hidden className="size-4" />
-                    Semua Artikel
+                    {t('articles.detail.back')}
                 </Link>
 
                 {article.photo && (
@@ -171,12 +169,7 @@ export default function ArticleDetailPage() {
                         )}
                         {authorCity && <span>· {authorCity}</span>}
                         {article.published_at && (
-                            <span>
-                                ·{' '}
-                                {dateFormatter.format(
-                                    new Date(article.published_at)
-                                )}
-                            </span>
+                            <span>· {dateLong(article.published_at)}</span>
                         )}
                     </div>
                 </div>
@@ -197,12 +190,14 @@ export default function ArticleDetailPage() {
                         ) : (
                             <RiHeartLine aria-hidden className="size-5" />
                         )}
-                        {article.liked_by_me ? 'Disukai' : 'Suka'} (
-                        {article.likes_count})
+                        {article.liked_by_me
+                            ? t('articles.detail.liked')
+                            : t('articles.detail.like')}{' '}
+                        ({article.likes_count})
                     </Button>
                     {!isAuthenticated && (
                         <p className="text-sm text-oxford-navy-900/65">
-                            Login untuk menyukai artikel ini.
+                            {t('articles.detail.loginToLike')}
                         </p>
                     )}
                 </div>
@@ -211,11 +206,13 @@ export default function ArticleDetailPage() {
                     aria-labelledby="komentar-title"
                     className="flex flex-col gap-4 rounded-2xl border border-forest-moss-100 bg-forest-moss-50/60 p-5 sm:p-6"
                 >
-                    <SectionTitle id="komentar-title">Komentar</SectionTitle>
+                    <SectionTitle id="komentar-title">
+                        {t('articles.detail.comments')}
+                    </SectionTitle>
 
                     {comments.length === 0 ? (
                         <p className="text-sm text-oxford-navy-900/65">
-                            Belum ada komentar.
+                            {t('articles.detail.noComments')}
                         </p>
                     ) : (
                         <div className="flex flex-col gap-3">
@@ -240,7 +237,7 @@ export default function ArticleDetailPage() {
                                             }
                                             className="shrink-0 text-sm text-red-700 hover:cursor-pointer hover:text-red-600"
                                         >
-                                            Hapus
+                                            {t('articles.detail.delete')}
                                         </button>
                                     )}
                                 </div>
@@ -256,7 +253,9 @@ export default function ArticleDetailPage() {
                             <textarea
                                 value={commentBody}
                                 onChange={(e) => setCommentBody(e.target.value)}
-                                placeholder="Tulis komentar..."
+                                placeholder={t(
+                                    'articles.detail.commentPlaceholder'
+                                )}
                                 rows={3}
                                 className="w-full rounded-xl border border-oxford-navy-900/15 bg-white p-3 text-sm text-oxford-navy-900 outline-none transition placeholder:text-oxford-navy-900/40 focus:border-forest-moss-500 focus:ring-2 focus:ring-forest-moss-500/30"
                             />
@@ -268,12 +267,14 @@ export default function ArticleDetailPage() {
                                     isSubmittingComment || !commentBody.trim()
                                 }
                             >
-                                {isSubmittingComment ? 'Mengirim...' : 'Kirim'}
+                                {isSubmittingComment
+                                    ? t('articles.detail.sending')
+                                    : t('articles.detail.send')}
                             </Button>
                         </form>
                     ) : (
                         <p className="border-t border-forest-moss-100 pt-4 text-sm text-oxford-navy-900/65">
-                            Login untuk menulis komentar.
+                            {t('articles.detail.loginToComment')}
                         </p>
                     )}
                 </section>

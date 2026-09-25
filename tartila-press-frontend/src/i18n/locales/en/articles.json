@@ -1,0 +1,38 @@
+{
+    "empty": "No articles yet.",
+    "likes_one": "{{count}} like",
+    "likes_other": "{{count}} likes",
+    "read": "Read",
+    "badgeNewest": "Newest",
+    "badgeTopLiked": "Most Popular",
+    "list": {
+        "badge": "Articles",
+        "heroBefore": "Insights and Stories from the ",
+        "heroAccent": "Author Community",
+        "heroText": "Insights and stories from the Tartila Press author community.",
+        "scriptTop": "Reading, Writing,",
+        "scriptBottom": "Growing Together",
+        "all": "All Articles",
+        "count_one": "{{count}} article",
+        "count_other": "{{count}} articles",
+        "searchPlaceholder": "Search article title or author...",
+        "searchAria": "Search article title or author",
+        "allCategories": "All Categories",
+        "categoryAria": "Filter article category",
+        "noMatch": "No articles match this search.",
+        "reset": "Reset Filters"
+    },
+    "detail": {
+        "back": "All Articles",
+        "liked": "Liked",
+        "like": "Like",
+        "loginToLike": "Log in to like this article.",
+        "comments": "Comments",
+        "noComments": "No comments yet.",
+        "delete": "Delete",
+        "commentPlaceholder": "Write a comment...",
+        "sending": "Sending...",
+        "send": "Send",
+        "loginToComment": "Log in to write a comment."
+    }
+}

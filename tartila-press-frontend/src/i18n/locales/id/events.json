@@ -1,0 +1,28 @@
+{
+    "empty": "Belum ada event.",
+    "detail": "Detail",
+    "participants_one": "{{count}} peserta",
+    "participants_other": "{{count}} peserta",
+    "list": {
+        "badge": "Event",
+        "heroBefore": "Belajar Bersama di ",
+        "heroAccent": "Event Kami",
+        "heroText": "Ikuti seminar, webinar, dan lokakarya dari Tartila Press.",
+        "scriptTop": "Tumbuh Bersama,",
+        "scriptBottom": "Belajar Bersama",
+        "all": "Semua Event",
+        "count_one": "{{count}} event",
+        "count_other": "{{count}} event"
+    },
+    "page": {
+        "back": "Semua Event",
+        "when": "Waktu Pelaksanaan",
+        "fee": "Biaya Pendaftaran",
+        "deadline": "Batas Pendaftaran",
+        "videoTitle": "Video {{title}}",
+        "closed": "Pendaftaran untuk event ini sudah ditutup.",
+        "register": "Daftar",
+        "processing": "Memproses...",
+        "success": "Pendaftaran berhasil! Lihat di Event Saya."
+    }
+}

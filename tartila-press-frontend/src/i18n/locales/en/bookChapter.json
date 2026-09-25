@@ -1,0 +1,95 @@
+{
+    "badge": "Book Chapter",
+    "howItWorks": {
+        "title": "How It Works",
+        "step1Title": "Choose a project & chapter",
+        "step1Text": "Find a project that suits you, then pick a chapter that is still open.",
+        "step2Title": "Order & pay for a slot",
+        "step2Text": "Confirm your order, then upload your payment proof on the Orders page.",
+        "step3Title": "Write & publish together",
+        "step3Text": "Submit your chapter manuscript. Once edited, your chapter is published together with other authors in one book."
+    },
+    "slotStatus": {
+        "open": "Open",
+        "reserved": "Reserved",
+        "submitted": "Being Written/Edited",
+        "completed": "Completed"
+    },
+    "slot": {
+        "srChapter": "Chapter {{number}}:",
+        "sop": "SOP: {{text}}",
+        "buyAria": "Buy the slot for chapter {{number}}",
+        "buy": "Buy This Slot"
+    },
+    "card": {
+        "editor": "Editor: {{name}}",
+        "estimatedPublish": "Estimated publication {{date}}",
+        "deadline": "Manuscript deadline {{date}}",
+        "slotsOpen_one": "{{count}} slot open",
+        "slotsOpen_other": "{{count}} slots open",
+        "slotsFilled": "{{taken}}/{{total}} filled",
+        "progressAria": "Chapter slots that have been filled",
+        "from": "from",
+        "perChapter": "/ chapter",
+        "allFilled": "All slots are filled",
+        "view": "View Project"
+    },
+    "hero": {
+        "pricePerChapter": "Price per chapter",
+        "lowestPrice": "(lowest price)",
+        "noChapters": "No chapters yet",
+        "allFilled": "All slots are filled",
+        "deadlinePassed": "The manuscript submission deadline has passed — slot purchases are closed.",
+        "pickChapter": "Choose a Chapter",
+        "allProjects": "All Projects"
+    },
+    "list": {
+        "heroBefore": "Write ",
+        "heroAccent": "One Chapter",
+        "heroAfter": ", Publish Together.",
+        "heroText": "Join as one of the authors of a Tartila Press collaborative book. Choose a project, buy a slot for a chapter that is still open, and your work is published together in one book.",
+        "scriptTop": "Writing Together,",
+        "scriptBottom": "Publishing Together",
+        "quote": "Every voice has a place in a book written together.",
+        "title": "Open Projects",
+        "count_one": "{{count}} project",
+        "count_other": "{{count}} projects",
+        "searchPlaceholder": "Search project title or editor...",
+        "searchAria": "Search project title or editor",
+        "allCategories": "All Categories",
+        "categoryAria": "Filter category",
+        "sortAria": "Sort projects",
+        "sort": {
+            "newest": "Newest",
+            "deadline": "Nearest Deadline",
+            "price": "Lowest Price",
+            "slots": "Most Slots"
+        },
+        "empty": "There are no open Book Chapter projects right now.",
+        "noMatch": "No projects match this search.",
+        "reset": "Reset Filters"
+    },
+    "detail": {
+        "navAria": "Project navigation",
+        "nav": {
+            "tentang": "About",
+            "fasilitas": "What You Get",
+            "bab": "Chapters"
+        },
+        "aboutTitle": "About the Project",
+        "loginNote": "Log in to see the full project description and the SOP for each chapter.",
+        "loginButton": "Log In",
+        "includedTitle": "What You Get",
+        "services": "Services",
+        "facilities": "Facilities",
+        "chaptersTitle": "Chapters",
+        "slotsOpenOf": "{{open}} of {{total}} slots open",
+        "deadlineClosed": "Slot purchases are closed because the manuscript submission deadline has passed.",
+        "noChapters": "There are no chapters in this project yet.",
+        "included": {
+            "hki": "Intellectual Property Rights (HKI)",
+            "isbnPrint": "ISBN (Print)",
+            "isbnElectronic": "e-ISBN"
+        }
+    }
+}

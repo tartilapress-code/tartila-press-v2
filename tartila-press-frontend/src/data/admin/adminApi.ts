@@ -155,6 +155,8 @@ export type BookPayload = Partial<{
     description: string;
     book_category_id: number | string;
     field_category_id: number | string;
+    // Bahasa buku (kode, lihat lib/contentLanguages).
+    languages: string[];
     price: number | string;
     discount: number;
     royalty_percentage: number | string | null;
@@ -231,6 +233,7 @@ export type BookChapterProjectPayload = Partial<{
     discount: number;
     description: string;
     about: string;
+    languages: string[];
     facilities: string[];
     services: string[];
     front_cover: string;

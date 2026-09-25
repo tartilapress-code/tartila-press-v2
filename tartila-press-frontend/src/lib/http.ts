@@ -1,3 +1,5 @@
+import i18n from 'i18next';
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 const TOKEN_KEY = 'tartila_token';
@@ -39,7 +41,7 @@ async function parseJsonOrThrow(response: globalThis.Response) {
 
     if (!response.ok) {
         throw new ApiError(
-            body?.message ?? 'Terjadi kesalahan. Silakan coba lagi.',
+            body?.message ?? i18n.t('common.genericError'),
             response.status,
             body?.errors
         );

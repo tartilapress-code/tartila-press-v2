@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
     RiChat1Line,
     RiFileList3Line,
@@ -23,60 +25,91 @@ import BookReviews from '@/components/book/detail/BookReviews';
 import PersonLink from '@/components/book/detail/PersonLink';
 import SectionTitle from '@/components/ui/SectionTitle';
 import SideNavCard, { type SideNavItem } from '@/components/ui/SideNavCard';
-import { formatDate } from '@/lib/bookChapterPublic';
+import { useContentLanguages } from '@/components/language/useContentLanguages';
+import { useFormat } from '@/i18n/useFormat';
 import { averageRating, hasAuthors } from '@/lib/bookDetail';
+import { toContentLanguages } from '@/lib/contentLanguages';
 
 type SectionKey = 'tentang' | 'detail' | 'bab' | 'ulasan';
 
-const sectionMeta: Record<SectionKey, { title: string; icon: ReactNode }> = {
-    tentang: { title: 'Tentang Buku', icon: <RiInformationLine /> },
-    detail: { title: 'Detail Buku', icon: <RiFileList3Line /> },
-    bab: { title: 'Daftar Bab', icon: <RiListOrdered /> },
-    ulasan: { title: 'Ulasan', icon: <RiChat1Line /> },
-};
+// Ikon tiap seksi dan kunci terjemahan judulnya (`books.detail.sections.<kunci>`).
+const sectionMeta = {
+    tentang: { titleKey: 'about', icon: <RiInformationLine /> },
+    detail: { titleKey: 'details', icon: <RiFileList3Line /> },
+    bab: { titleKey: 'chapters', icon: <RiListOrdered /> },
+    ulasan: { titleKey: 'reviews', icon: <RiChat1Line /> },
+} as const satisfies Record<SectionKey, { titleKey: string; icon: ReactNode }>;
 
 // Rincian buku yang terisi, urut seperti lembar spesifikasi.
-function buildFacts(book: BookDetail): BookFact[] {
+function buildFacts(
+    book: BookDetail,
+    t: TFunction,
+    dateLong: (value: string) => string,
+    contentLanguages: ReturnType<typeof useContentLanguages>
+): BookFact[] {
     const facts: BookFact[] = [];
-    const published = formatDate(book.citation_publication_date);
+    const languages = toContentLanguages(book.languages);
+    const published = book.citation_publication_date
+        ? dateLong(book.citation_publication_date)
+        : null;
 
     if (hasAuthors(book)) {
-        facts.push({ label: 'Penulis', value: <BookAuthors book={book} /> });
+        facts.push({
+            label: t('books.detail.facts.authors'),
+            value: <BookAuthors book={book} />,
+        });
     }
     if (book.editor_profile) {
         facts.push({
-            label: 'Editor',
+            label: t('books.detail.facts.editor'),
             value: <PersonLink person={book.editor_profile} role="editor" />,
         });
     }
     if (book.isbn) {
-        facts.push({ label: 'ISBN', value: book.isbn });
+        facts.push({ label: t('books.detail.facts.isbn'), value: book.isbn });
     }
     if (book.citation_publisher) {
-        facts.push({ label: 'Penerbit', value: book.citation_publisher });
+        facts.push({
+            label: t('books.detail.facts.publisher'),
+            value: book.citation_publisher,
+        });
     }
     if (published) {
-        facts.push({ label: 'Tanggal Terbit', value: published });
+        facts.push({
+            label: t('books.detail.facts.publishedDate'),
+            value: published,
+        });
     }
     if (book.category) {
-        facts.push({ label: 'Kategori Buku', value: book.category.name });
+        facts.push({
+            label: t('books.detail.facts.bookCategory'),
+            value: book.category.name,
+        });
     }
     if (book.field_category) {
         facts.push({
-            label: 'Kategori Keilmuan',
+            label: t('books.detail.facts.fieldCategory'),
             value: book.field_category.name,
+        });
+    }
+    if (languages.length > 0) {
+        facts.push({
+            label: contentLanguages.factLabel(languages),
+            value: contentLanguages.sentence(languages),
         });
     }
     if (book.cover_layout_designer) {
         facts.push({
-            label: 'Desain Sampul & Tata Letak',
+            label: t('books.detail.facts.designer'),
             value: book.cover_layout_designer,
         });
     }
     if (book.is_chapter_compilation && book.chapters.length > 0) {
         facts.push({
-            label: 'Jumlah Bab',
-            value: `${book.chapters.length} bab`,
+            label: t('books.detail.facts.chapterCount'),
+            value: t('books.detail.chapterCountValue', {
+                count: book.chapters.length,
+            }),
         });
     }
 
@@ -95,6 +128,8 @@ function Section({
     action?: ReactNode;
     children: ReactNode;
 }) {
+    const { t } = useTranslation();
+
     return (
         <section
             id={id}
@@ -104,7 +139,7 @@ function Section({
             }`}
         >
             <SectionTitle id={`${id}-title`} action={action}>
-                {sectionMeta[id].title}
+                {t(`books.detail.sections.${sectionMeta[id].titleKey}`)}
             </SectionTitle>
             {children}
         </section>
@@ -133,6 +168,9 @@ function DetailSkeleton() {
 }
 
 export default function BookDetailPage() {
+    const { t } = useTranslation();
+    const { dateLong } = useFormat();
+    const contentLanguages = useContentLanguages();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { addToCart, isInCart } = useCart();
@@ -236,7 +274,7 @@ export default function BookDetailPage() {
         };
     }, [book]);
 
-    const facts = book ? buildFacts(book) : [];
+    const facts = book ? buildFacts(book, t, dateLong, contentLanguages) : [];
     const isCompilation = Boolean(
         book?.is_chapter_compilation && book.chapters.length > 0
     );
@@ -265,7 +303,7 @@ export default function BookDetailPage() {
 
     const navItems: SideNavItem[] = sectionKeys.map((key) => ({
         key,
-        label: sectionMeta[key].title,
+        label: t(`books.detail.sections.${sectionMeta[key].titleKey}`),
         icon: sectionMeta[key].icon,
         active: activeKey === key,
         onSelect: () => scrollToSection(key),
@@ -289,7 +327,7 @@ export default function BookDetailPage() {
                         <div className="flex flex-col gap-4 lg:sticky lg:top-24">
                             <SideNavCard
                                 items={navItems}
-                                ariaLabel="Navigasi buku"
+                                ariaLabel={t('books.detail.navAria')}
                             />
                             <BookHowToBuy className="hidden lg:block" />
                         </div>
@@ -304,12 +342,17 @@ export default function BookDetailPage() {
                                 action={
                                     key === 'bab' ? (
                                         <span className="shrink-0 text-sm text-oxford-navy-900/55">
-                                            {book.chapters.length} bab
+                                            {t(
+                                                'books.detail.chapterCountValue',
+                                                { count: book.chapters.length }
+                                            )}
                                         </span>
                                     ) : key === 'ulasan' &&
                                       book.reviews.length > 0 ? (
                                         <span className="shrink-0 text-sm text-oxford-navy-900/55">
-                                            {book.reviews.length} ulasan
+                                            {t('books.detail.reviewsCount', {
+                                                count: book.reviews.length,
+                                            })}
                                         </span>
                                     ) : undefined
                                 }

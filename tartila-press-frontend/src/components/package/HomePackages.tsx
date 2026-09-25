@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiArrowRightLine } from '@remixicon/react';
 import Card2Flip, {
     PackageCardSkeleton,
@@ -15,6 +16,7 @@ const LIMIT = 4;
  * paket-paket itu. Daftar lengkap dan tabel semua paket ada di /paket.
  */
 export default function HomePackages(): ReactNode {
+    const { t } = useTranslation();
     const { packages, isLoading } = usePackages();
 
     if (isLoading) {
@@ -30,7 +32,7 @@ export default function HomePackages(): ReactNode {
     if (packages.length === 0) {
         return (
             <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                Belum ada paket yang ditampilkan.
+                {t('packages.empty')}
             </p>
         );
     }
@@ -50,7 +52,7 @@ export default function HomePackages(): ReactNode {
                         id="bandingkan-paket-beranda"
                         className="font-display text-xl font-bold text-oxford-navy-700"
                     >
-                        Bandingkan Paket
+                        {t('packages.compare')}
                     </h3>
                     <PackageComparison packages={shown} />
                 </section>
@@ -62,7 +64,7 @@ export default function HomePackages(): ReactNode {
                         to="/paket"
                         className="inline-flex items-center gap-1.5 rounded-lg border border-oxford-navy-200 bg-white px-5 py-3 text-sm font-semibold text-oxford-navy-700 transition-colors hover:bg-forest-moss-50"
                     >
-                        Lihat semua {packages.length} paket
+                        {t('packages.seeAllCount', { count: packages.length })}
                         <RiArrowRightLine aria-hidden className="size-4" />
                     </Link>
                 </div>

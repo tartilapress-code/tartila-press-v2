@@ -1,9 +1,6 @@
-import {
-    formatRupiah,
-    slotStatusLabels,
-    type ChapterSlot,
-    type SlotStatus,
-} from '@/lib/bookChapterPublic';
+import { useTranslation } from 'react-i18next';
+import { useFormat } from '@/i18n/useFormat';
+import type { ChapterSlot, SlotStatus } from '@/lib/bookChapterPublic';
 
 const statusStyles: Record<SlotStatus, string> = {
     open: 'bg-forest-moss-100 text-forest-moss-800',
@@ -29,6 +26,8 @@ export default function ChapterSlotRow({
     showSop: boolean;
     onBuy: () => void;
 }) {
+    const { t } = useTranslation();
+    const { rupiah } = useFormat();
     const hasDiscount = chapter.effective_discount > 0;
 
     return (
@@ -43,7 +42,9 @@ export default function ChapterSlotRow({
             <div className="min-w-0 flex-1">
                 <h3 className="font-semibold leading-snug text-oxford-navy-700">
                     <span className="sr-only">
-                        Bab {chapter.chapter_number}:{' '}
+                        {t('bookChapter.slot.srChapter', {
+                            number: chapter.chapter_number,
+                        })}{' '}
                     </span>
                     {chapter.title}
                 </h3>
@@ -52,15 +53,17 @@ export default function ChapterSlotRow({
                     <span className="inline-flex flex-wrap items-baseline gap-x-2">
                         {hasDiscount && (
                             <span className="text-xs text-oxford-navy-900/45 line-through">
-                                {formatRupiah(Number(chapter.effective_price))}
+                                {rupiah(Number(chapter.effective_price))}
                             </span>
                         )}
                         <span className="font-semibold text-oxford-navy-700">
-                            {formatRupiah(chapter.final_price)}
+                            {rupiah(chapter.final_price)}
                         </span>
                         {hasDiscount && (
                             <span className="text-xs font-semibold text-forest-moss-700">
-                                Diskon {chapter.effective_discount}%
+                                {t('common.discount', {
+                                    percent: chapter.effective_discount,
+                                })}
                             </span>
                         )}
                     </span>
@@ -68,13 +71,13 @@ export default function ChapterSlotRow({
                     <span
                         className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[chapter.slot_status]}`}
                     >
-                        {slotStatusLabels[chapter.slot_status]}
+                        {t(`bookChapter.slotStatus.${chapter.slot_status}`)}
                     </span>
                 </div>
 
                 {showSop && chapter.sop_terms && (
                     <p className="mt-2 text-xs leading-relaxed text-oxford-navy-900/55">
-                        SOP: {chapter.sop_terms}
+                        {t('bookChapter.slot.sop', { text: chapter.sop_terms })}
                     </p>
                 )}
             </div>
@@ -83,10 +86,12 @@ export default function ChapterSlotRow({
                 <button
                     type="button"
                     onClick={onBuy}
-                    aria-label={`Beli slot bab ${chapter.chapter_number}`}
+                    aria-label={t('bookChapter.slot.buyAria', {
+                        number: chapter.chapter_number,
+                    })}
                     className="inline-flex shrink-0 items-center justify-center rounded-lg bg-oxford-navy-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-oxford-navy-600"
                 >
-                    Beli Slot Ini
+                    {t('bookChapter.slot.buy')}
                 </button>
             )}
         </li>

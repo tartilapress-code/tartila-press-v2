@@ -1,0 +1,28 @@
+{
+    "empty": "Belum ada acara.",
+    "detail": "Butiran",
+    "participants_one": "{{count}} peserta",
+    "participants_other": "{{count}} peserta",
+    "list": {
+        "badge": "Acara",
+        "heroBefore": "Belajar Bersama di ",
+        "heroAccent": "Acara Kami",
+        "heroText": "Sertai seminar, webinar, dan bengkel daripada Tartila Press.",
+        "scriptTop": "Berkembang Bersama,",
+        "scriptBottom": "Belajar Bersama",
+        "all": "Semua Acara",
+        "count_one": "{{count}} acara",
+        "count_other": "{{count}} acara"
+    },
+    "page": {
+        "back": "Semua Acara",
+        "when": "Masa Pelaksanaan",
+        "fee": "Yuran Pendaftaran",
+        "deadline": "Tarikh Tutup Pendaftaran",
+        "videoTitle": "Video {{title}}",
+        "closed": "Pendaftaran untuk acara ini telah ditutup.",
+        "register": "Daftar",
+        "processing": "Memproses...",
+        "success": "Pendaftaran berjaya! Lihat di Acara Saya."
+    }
+}

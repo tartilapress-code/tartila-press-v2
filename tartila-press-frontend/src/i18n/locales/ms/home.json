@@ -1,0 +1,42 @@
+{
+    "hero": {
+        "badge": "Penerbit Bebas",
+        "headlineLead": "Terbitkan Buku Berkualiti Bersama",
+        "subheadline": "Membantu penulis menerbitkan karya secara profesional dengan sistem yang moden, telus, dan boleh dipercayai.",
+        "viewPackages": "Lihat Pakej",
+        "photoAlt": "Rak buku di perpustakaan"
+    },
+    "sections": {
+        "services": {
+            "title": "Perkhidmatan Kami",
+            "subtitle": "Dari manuskrip hingga buku diterbitkan, kami membantu anda pada setiap peringkat.",
+            "all": "Lihat semua perkhidmatan"
+        },
+        "packages": {
+            "title": "Pakej Penerbitan",
+            "subtitle": "Pilih pakej yang sesuai dengan keperluan penerbitan anda.",
+            "all": "Lihat semua pakej"
+        },
+        "books": {
+            "title": "Katalog Buku",
+            "all": "Lihat semua buku"
+        },
+        "authors": {
+            "title": "Penulis Kami",
+            "all": "Lihat semua penulis"
+        },
+        "editors": {
+            "title": "Editor Kami",
+            "all": "Lihat semua editor"
+        },
+        "articles": {
+            "title": "Artikel",
+            "subtitle": "Wawasan dan cerita daripada komuniti penulis Tartila Press.",
+            "all": "Lihat semua artikel"
+        },
+        "events": {
+            "title": "Acara",
+            "all": "Lihat semua acara"
+        }
+    }
+}

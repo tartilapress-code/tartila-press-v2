@@ -44,7 +44,9 @@ function CheckRow({
             </span>
             <span
                 className={`text-sm shrink-0 ${
-                    cost > 0 ? 'text-forest-moss-700' : 'text-oxford-navy-900/55'
+                    cost > 0
+                        ? 'text-forest-moss-700'
+                        : 'text-oxford-navy-900/55'
                 }`}
             >
                 {cost > 0 ? `− ${rupiahFormatter.format(cost)}` : 'Gratis'}
@@ -66,7 +68,9 @@ function ItemGroup({
 }) {
     return (
         <div className="flex flex-col gap-2">
-            <p className="text-oxford-navy-900/80 text-sm font-semibold">{title}</p>
+            <p className="text-oxford-navy-900/80 text-sm font-semibold">
+                {title}
+            </p>
             {items.length === 0 ? (
                 <p className="text-oxford-navy-900/55 text-sm">
                     Belum ada item di daftar Paket Custom.

@@ -7,6 +7,7 @@ import {
     type KeyboardEvent,
     type PointerEvent,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiArrowLeftRightLine, RiExternalLinkLine } from '@remixicon/react';
 import BookCover from '@/components/book/catalog/BookCover';
 import FlipbookDialog from '@/components/book/detail/FlipbookDialog';
@@ -57,6 +58,7 @@ export default function BookCoverStage({
     previewApiUrl,
     previewFileUrl,
 }: BookCoverStageProps) {
+    const { t } = useTranslation();
     const canPreview = previewApiUrl !== null;
 
     const [mode, setMode] = useState<'cover' | 'flipbook'>('cover');
@@ -250,7 +252,11 @@ export default function BookCoverStage({
                     role={canPreview ? 'button' : undefined}
                     tabIndex={canPreview ? 0 : undefined}
                     aria-label={
-                        canPreview ? `Buka preview buku ${title}` : undefined
+                        canPreview
+                            ? t('books.detail.coverStage.openPreview', {
+                                  title,
+                              })
+                            : undefined
                     }
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
@@ -275,13 +281,13 @@ export default function BookCoverStage({
                         src={frontCover}
                         fallbackSrc={fallbackCover}
                         title={title}
-                        alt={`Sampul buku ${title}`}
+                        alt={t('books.detail.coverStage.coverAlt', { title })}
                         className="w-full"
                     />
 
                     {discount > 0 && (
                         <span className="absolute -right-3 -top-3 rounded-full bg-forest-moss-600 px-3 py-1.5 text-xs font-semibold leading-none text-white shadow-md">
-                            Diskon {discount}%
+                            {t('common.discount', { percent: discount })}
                         </span>
                     )}
 
@@ -291,7 +297,7 @@ export default function BookCoverStage({
                             className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-center gap-1.5 rounded-full bg-oxford-navy-900/75 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
                         >
                             <RiArrowLeftRightLine className="size-4" />
-                            Geser untuk baca preview
+                            {t('books.detail.coverStage.hint')}
                         </span>
                     )}
 
@@ -301,7 +307,7 @@ export default function BookCoverStage({
                             className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded bg-oxford-navy-900/45 text-xs font-medium text-white backdrop-blur-[1px]"
                         >
                             <span className="size-7 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                            Menyiapkan preview…
+                            {t('books.detail.coverStage.preparing')}
                         </span>
                     )}
                 </div>
@@ -312,7 +318,7 @@ export default function BookCoverStage({
                     role="alert"
                     className="mt-4 flex flex-col items-center gap-2 text-center text-sm text-oxford-navy-900/70"
                 >
-                    <p>Preview belum bisa dimuat.</p>
+                    <p>{t('books.detail.coverStage.error')}</p>
                     <div className="flex flex-wrap justify-center gap-2">
                         {previewFileUrl && (
                             <a
@@ -321,7 +327,7 @@ export default function BookCoverStage({
                                 rel="noreferrer"
                                 className={chipClass}
                             >
-                                Buka PDF
+                                {t('books.detail.coverStage.openPdf')}
                                 <RiExternalLinkLine
                                     aria-hidden
                                     className="size-4"
@@ -333,7 +339,7 @@ export default function BookCoverStage({
                             onClick={closeFlipbook}
                             className={chipClass}
                         >
-                            Tutup
+                            {t('books.detail.coverStage.close')}
                         </button>
                     </div>
                 </div>

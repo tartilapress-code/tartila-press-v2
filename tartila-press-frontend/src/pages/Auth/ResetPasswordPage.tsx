@@ -1,17 +1,21 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
 import AuthCard from '@/components/AuthCard';
 import Button from '@/components/Button/Button';
 import Input from '@/components/Input/Input';
 import * as authApi from '@/data/auth/authApi';
 import { ApiError } from '@/lib/http';
-import { PASSWORD_HINT, validatePassword } from '@/lib/passwordPolicy';
+import { validatePassword } from '@/lib/passwordPolicy';
+import type { LoginNotice } from '@/pages/Login/LoginPage';
 
 function InvalidLinkPanel({ message }: { message: string }) {
+    const { t } = useTranslation();
+
     return (
         <AuthCard>
             <h5 className="font-display block text-oxford-navy-700 text-2xl font-bold text-left">
-                Link Tidak Valid
+                {t('auth.reset.invalidTitle')}
             </h5>
             <p className="text-oxford-navy-900 text-base leading-relaxed">
                 {message}
@@ -20,7 +24,7 @@ function InvalidLinkPanel({ message }: { message: string }) {
                 to="/lupa-password"
                 className="inline-flex items-center justify-center font-semibold text-sm rounded-lg px-4 py-3 bg-oxford-navy-700 text-white hover:bg-oxford-navy-600 transition-colors"
             >
-                Minta Link Baru
+                {t('auth.reset.askNew')}
             </Link>
         </AuthCard>
     );
@@ -31,6 +35,7 @@ function InvalidLinkPanel({ message }: { message: string }) {
  * /reset-password?token=...&email=...
  */
 export default function ResetPasswordPage() {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
@@ -43,20 +48,14 @@ export default function ResetPasswordPage() {
         {}
     );
     // Token ditolak server (dipakai / kedaluwarsa) → link perlu diminta ulang.
-    const [tokenProblem, setTokenProblem] = useState<string>('');
+    const [tokenRejected, setTokenRejected] = useState<boolean>(false);
 
     if (!token || !email) {
-        return (
-            <InvalidLinkPanel message="Link reset password ini tidak lengkap. Minta link yang baru untuk melanjutkan." />
-        );
+        return <InvalidLinkPanel message={t('auth.reset.incomplete')} />;
     }
 
-    if (tokenProblem) {
-        return (
-            <InvalidLinkPanel
-                message={`${tokenProblem} Minta link yang baru untuk melanjutkan.`}
-            />
-        );
+    if (tokenRejected) {
+        return <InvalidLinkPanel message={t('auth.reset.rejected')} />;
     }
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -72,13 +71,13 @@ export default function ResetPasswordPage() {
 
         const problem = validatePassword(password);
         if (problem) {
-            setFieldErrors({ password: [problem] });
+            setFieldErrors({ password: [t(problem)] });
             return;
         }
 
         if (password !== passwordConfirmation) {
             setFieldErrors({
-                password_confirmation: ['Konfirmasi password tidak sesuai.'],
+                password_confirmation: [t('auth.password.mismatch')],
             });
             return;
         }
@@ -95,8 +94,8 @@ export default function ResetPasswordPage() {
 
             navigate('/login', {
                 replace: true,
-                state: {
-                    notice: 'Password berhasil diubah. Silakan login dengan password baru Anda.',
+                state: { notice: 'passwordReset' } satisfies {
+                    notice: LoginNotice;
                 },
             });
         } catch (error) {
@@ -104,17 +103,15 @@ export default function ResetPasswordPage() {
                 if (error.errors) {
                     setFieldErrors(error.errors);
                 } else {
-                    setTokenProblem(error.message);
+                    setTokenRejected(true);
                 }
             } else if (error instanceof ApiError && error.status === 429) {
-                setErrorMessage(
-                    'Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.'
-                );
+                setErrorMessage(t('auth.reset.throttled'));
             } else {
                 setErrorMessage(
                     error instanceof ApiError
                         ? error.message
-                        : 'Terjadi kesalahan. Silakan coba lagi.'
+                        : t('common.genericError')
                 );
             }
         } finally {
@@ -125,16 +122,21 @@ export default function ResetPasswordPage() {
     return (
         <AuthCard>
             <h5 className="font-display block text-oxford-navy-700 text-2xl font-bold text-left">
-                Buat Password Baru
+                {t('auth.reset.title')}
             </h5>
             <p className="text-oxford-navy-900 text-base leading-relaxed">
-                Untuk akun <strong className="break-all">{email}</strong>
+                <Trans
+                    t={t}
+                    i18nKey="auth.reset.forAccount"
+                    values={{ email }}
+                    components={{ strong: <strong className="break-all" /> }}
+                />
             </p>
 
             <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-4">
                     <Input
-                        label="Password Baru"
+                        label={t('auth.reset.passwordLabel')}
                         name="password"
                         type="password"
                         placeholder="********"
@@ -143,11 +145,11 @@ export default function ResetPasswordPage() {
                         required
                     />
                     <small className="text-oxford-navy-900/70 -mt-2">
-                        {PASSWORD_HINT}
+                        {t('auth.password.hint')}
                     </small>
 
                     <Input
-                        label="Konfirmasi Password Baru"
+                        label={t('auth.reset.confirmLabel')}
                         name="password_confirmation"
                         type="password"
                         placeholder="********"
@@ -167,7 +169,9 @@ export default function ResetPasswordPage() {
                         type="submit"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? 'Menyimpan...' : 'Simpan Password Baru'}
+                        {isSubmitting
+                            ? t('auth.reset.submitting')
+                            : t('auth.reset.submit')}
                     </Button>
                 </div>
             </form>

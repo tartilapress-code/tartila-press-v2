@@ -1,0 +1,45 @@
+{
+    "viewDetail": "View Details",
+    "facilities": "Facilities",
+    "backTitle": "Facilities & Services",
+    "noDetails": "Facility details are not available yet.",
+    "flipBack": "Click the card to flip back.",
+    "best": "Best Value",
+    "saveUnit": "Save {{amount}} vs. buying individually",
+    "saveSelection": "Save {{amount}} vs. your selection",
+    "empty": "No packages to display yet.",
+    "compare": "Compare Packages",
+    "seeAllCount_one": "View all {{count}} package",
+    "seeAllCount_other": "View all {{count}} packages",
+    "table": {
+        "caption": "Comparison of price, services, and facilities across publishing packages",
+        "name": "Package Name",
+        "price": "Price",
+        "services": "Services",
+        "facilities": "Facilities",
+        "empty": "There are no service and facility details to compare yet."
+    },
+    "list": {
+        "badge": "Packages",
+        "heroBefore": "Choose a Publishing ",
+        "heroAccent": "Package",
+        "heroText": "Compare the facilities and services of each package, then choose the one that best fits your manuscript and budget.",
+        "scriptTop": "One Package,",
+        "scriptBottom": "Many Benefits",
+        "all": "All Packages",
+        "count_one": "{{count}} package",
+        "count_other": "{{count}} packages",
+        "ctaTitle": "Want to choose individual services?",
+        "ctaText": "Build a custom package from the services and facilities you need, or discuss your needs with us first.",
+        "ctaAction": "View Services"
+    },
+    "detail": {
+        "back": "All Packages",
+        "take": "Get This Package",
+        "sectionTitle": "Package Details",
+        "services": "Services",
+        "facilities": "Facilities",
+        "terms": "Terms",
+        "notes": "Notes"
+    }
+}

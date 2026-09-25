@@ -11,7 +11,7 @@ export default function SectionTitle({
     id?: string;
 }) {
     return (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <h2
                 id={id}
                 className="font-display flex items-center gap-3 text-xl font-bold text-oxford-navy-700 sm:text-2xl"

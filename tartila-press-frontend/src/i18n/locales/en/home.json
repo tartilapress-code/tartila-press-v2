@@ -1,0 +1,42 @@
+{
+    "hero": {
+        "badge": "Independent Publisher",
+        "headlineLead": "Publish Quality Books with",
+        "subheadline": "Helping authors publish their work professionally with a modern, transparent, and trusted system.",
+        "viewPackages": "View Packages",
+        "photoAlt": "Bookshelves in a library"
+    },
+    "sections": {
+        "services": {
+            "title": "Our Services",
+            "subtitle": "From manuscript to published book, we guide you through every step.",
+            "all": "View all services"
+        },
+        "packages": {
+            "title": "Publishing Packages",
+            "subtitle": "Choose the package that fits your publishing needs.",
+            "all": "View all packages"
+        },
+        "books": {
+            "title": "Book Catalog",
+            "all": "View all books"
+        },
+        "authors": {
+            "title": "Our Authors",
+            "all": "View all authors"
+        },
+        "editors": {
+            "title": "Our Editors",
+            "all": "View all editors"
+        },
+        "articles": {
+            "title": "Articles",
+            "subtitle": "Insights and stories from the Tartila Press author community.",
+            "all": "View all articles"
+        },
+        "events": {
+            "title": "Events",
+            "all": "View all events"
+        }
+    }
+}

@@ -1,10 +1,12 @@
 import {
     useEffect,
+    useMemo,
     useRef,
     useState,
     type KeyboardEvent,
     type ReactNode,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PageFlip, type FlipSetting } from 'page-flip';
 import {
     RiArrowLeftSLine,
@@ -19,6 +21,8 @@ import {
     flipbookShape,
     indexToPosition,
     positionToIndex,
+    type FlipbookLabels,
+    type PositionLabel,
 } from '@/lib/flipbookPages';
 import type { PdfPageStore } from '@/lib/pdfPreview';
 
@@ -103,6 +107,7 @@ export default function BookFlipbook({
     onExpand,
     onClose,
 }: BookFlipbookProps) {
+    const { t } = useTranslation();
     const hostRef = useRef<HTMLDivElement>(null);
     const flipRef = useRef<PageFlip | null>(null);
     // Nilai awal hanya dipakai saat membuat flipbook; ref menjaga efek di
@@ -115,6 +120,34 @@ export default function BookFlipbook({
     // PDF yang menandai halaman pertamanya di kanan diberi halaman kosong di
     // depan (bagian dalam sampul).
     const shape = flipbookShape(store, layout === 'dialog');
+
+    // Teks di dalam halaman buku (dibuat lewat DOM); berubah hanya saat bahasa diganti.
+    const labels = useMemo<FlipbookLabels>(
+        () => ({
+            endOfPreview: t('books.detail.flipbook.endOfPreview'),
+            pageFailed: t('books.detail.flipbook.pageFailed'),
+            pageAlt: (page) => t('books.detail.flipbook.pageAlt', { page }),
+        }),
+        [t]
+    );
+
+    function positionText(position: PositionLabel): string {
+        switch (position.kind) {
+            case 'page':
+                return t('books.detail.flipbook.position.page', {
+                    page: position.page,
+                    total: position.total,
+                });
+            case 'spread':
+                return t('books.detail.flipbook.position.spread', {
+                    left: position.left,
+                    right: position.right,
+                    total: position.total,
+                });
+            default:
+                return t(`books.detail.flipbook.position.${position.kind}`);
+        }
+    }
 
     const [view, setView] = useState(() => ({
         index: positionToIndex(initialPage, shape),
@@ -144,6 +177,7 @@ export default function BookFlipbook({
             frontCover,
             fallbackCover,
             backCover,
+            labels,
         });
 
         // Wadah milik library: dihapus sendiri oleh `destroy()`.
@@ -256,7 +290,7 @@ export default function BookFlipbook({
             flipRef.current = null;
             flip.destroy();
         };
-    }, [store, title, frontCover, fallbackCover, backCover, layout]);
+    }, [store, title, frontCover, fallbackCover, backCover, layout, labels]);
 
     function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
         if (event.key === 'ArrowRight') {
@@ -284,7 +318,7 @@ export default function BookFlipbook({
                 tabIndex={0}
                 role="group"
                 aria-roledescription="flipbook"
-                aria-label={`Preview buku ${title}. Gunakan panah kiri dan kanan untuk membalik halaman.`}
+                aria-label={t('books.detail.flipbook.aria', { title })}
                 onKeyDown={handleKeyDown}
                 onPointerDown={() =>
                     hostRef.current?.focus({ preventScroll: true })
@@ -296,12 +330,12 @@ export default function BookFlipbook({
 
             <div
                 role="group"
-                aria-label="Kontrol flipbook"
+                aria-label={t('books.detail.flipbook.controls')}
                 className="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-2"
             >
                 <div className="flex items-center gap-1">
                     <ToolbarButton
-                        label="Halaman sebelumnya"
+                        label={t('books.detail.flipbook.prev')}
                         tone={tone}
                         disabled={view.index <= 0}
                         onClick={() => flipRef.current?.flipPrev()}
@@ -313,11 +347,13 @@ export default function BookFlipbook({
                         aria-live="polite"
                         className={`min-w-28 text-center text-sm font-medium ${toneClasses[tone].label}`}
                     >
-                        {describePosition(view.index, view.portrait, shape)}
+                        {positionText(
+                            describePosition(view.index, view.portrait, shape)
+                        )}
                     </span>
 
                     <ToolbarButton
-                        label="Halaman berikutnya"
+                        label={t('books.detail.flipbook.next')}
                         tone={tone}
                         disabled={view.index >= lastIndex}
                         onClick={() => flipRef.current?.flipNext()}
@@ -329,7 +365,7 @@ export default function BookFlipbook({
                 <div className="flex items-center gap-1">
                     {onExpand && (
                         <ToolbarButton
-                            label="Perbesar"
+                            label={t('books.detail.flipbook.expand')}
                             tone={tone}
                             onClick={onExpand}
                         >
@@ -340,8 +376,8 @@ export default function BookFlipbook({
                     <ToolbarButton
                         label={
                             layout === 'inline'
-                                ? 'Tutup preview'
-                                : 'Tutup tampilan besar'
+                                ? t('books.detail.flipbook.closePreview')
+                                : t('books.detail.flipbook.closeLarge')
                         }
                         tone={tone}
                         onClick={onClose}

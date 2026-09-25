@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import Select from '@/components/Select/Select';
@@ -13,6 +15,10 @@ import PackageOptionsField from '@/components/bookChapter/PackageOptionsField';
 import * as adminApi from '@/data/admin/adminApi';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
+import {
+    toContentLanguages,
+    type ContentLanguage,
+} from '@/lib/contentLanguages';
 import {
     calculateBookChapterCost,
     emptyPackageOptions,
@@ -30,6 +36,7 @@ type ProjectDetail = {
     price: string;
     discount: number;
     description: string | null;
+    languages: string[];
     front_cover: string | null;
     back_cover: string | null;
     is_active: boolean;
@@ -54,6 +61,7 @@ function errorText(error: unknown): string {
 }
 
 export default function BookChapterProjectDetailPage() {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
 
     const [project, setProject] = useState<ProjectDetail | null>(null);
@@ -67,6 +75,7 @@ export default function BookChapterProjectDetailPage() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [notice, setNotice] = useState<Notice | null>(null);
     const [options, setOptions] = useState<PackageOptions>(emptyPackageOptions);
+    const [languages, setLanguages] = useState<ContentLanguage[]>([]);
 
     const [form, setForm] = useState({
         title: '',
@@ -108,6 +117,7 @@ export default function BookChapterProjectDetailPage() {
             includes_isbn_electronic: data.includes_isbn_electronic,
             package_item_ids: data.package_items.map((item) => item.id),
         });
+        setLanguages(toContentLanguages(data.languages));
     }
 
     function load() {
@@ -158,6 +168,7 @@ export default function BookChapterProjectDetailPage() {
                 price: form.price,
                 discount: Number(form.discount) || 0,
                 description: form.description || undefined,
+                languages,
                 front_cover: form.front_cover || undefined,
                 back_cover: form.back_cover || undefined,
                 book_category_id: form.book_category_id || undefined,
@@ -295,6 +306,12 @@ export default function BookChapterProjectDetailPage() {
                     onChange={(e) =>
                         setForm({ ...form, description: e.target.value })
                     }
+                />
+                <ContentLanguageField
+                    label={t('contentLanguages.field.bookLabel')}
+                    hint={t('contentLanguages.field.bookHint')}
+                    value={languages}
+                    onChange={setLanguages}
                 />
                 <ImageInput
                     label="Sampul Depan"

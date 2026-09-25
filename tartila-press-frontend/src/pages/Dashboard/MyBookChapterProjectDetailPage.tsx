@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import ContentLanguageField from '@/components/language/ContentLanguageField';
 import ErrorPage from '@/pages/ErrorPage';
 import Input from '@/components/Input/Input';
 import Button from '@/components/Button/Button';
@@ -11,6 +13,10 @@ import ChapterRowEditor, {
 import PackageOptionsField from '@/components/bookChapter/PackageOptionsField';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
+import {
+    toContentLanguages,
+    type ContentLanguage,
+} from '@/lib/contentLanguages';
 import {
     calculateBookChapterCost,
     toNumber,
@@ -26,6 +32,7 @@ type ProjectDetail = {
     discount: number;
     description: string | null;
     about: string | null;
+    languages: string[];
     is_active: boolean;
     includes_hki: boolean;
     includes_isbn_print: boolean;
@@ -57,6 +64,7 @@ function optionsOf(project: ProjectDetail): PackageOptions {
  * membuat sisa biaya 1 buku di bawah minimal.
  */
 export default function MyBookChapterProjectDetailPage() {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
 
     const [project, setProject] = useState<ProjectDetail | null>(null);
@@ -80,6 +88,7 @@ export default function MyBookChapterProjectDetailPage() {
         includes_isbn_electronic: false,
         package_item_ids: [],
     });
+    const [languages, setLanguages] = useState<ContentLanguage[]>([]);
     const [notice, setNotice] = useState<Notice | null>(null);
     const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -97,6 +106,7 @@ export default function MyBookChapterProjectDetailPage() {
             about: data.about ?? '',
         });
         setOptions(optionsOf(data));
+        setLanguages(toContentLanguages(data.languages));
     }
 
     function reload() {
@@ -171,6 +181,7 @@ export default function MyBookChapterProjectDetailPage() {
                 discount: Number(form.discount) || 0,
                 description: form.description,
                 about: form.about,
+                languages,
                 ...options,
             });
             await reload();
@@ -270,6 +281,12 @@ export default function MyBookChapterProjectDetailPage() {
                     onChange={(e) =>
                         setForm({ ...form, about: e.target.value })
                     }
+                />
+                <ContentLanguageField
+                    label={t('contentLanguages.field.bookLabel')}
+                    hint={t('contentLanguages.field.bookHint')}
+                    value={languages}
+                    onChange={setLanguages}
                 />
 
                 <PackageOptionsField

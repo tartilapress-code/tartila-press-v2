@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiFileTextLine } from '@remixicon/react';
 import PersonLink from '@/components/book/detail/PersonLink';
 import type { BookChapterEntry } from '@/data/book/bookApi';
@@ -14,6 +15,7 @@ export default function BookChapterRow({
     bookSlug: string;
     chapter: BookChapterEntry;
 }) {
+    const { t } = useTranslation();
     const previewPath = `/buku/${bookSlug}/bab/${chapter.id}`;
     // Bab yang belum terhubung ke naskah tidak punya penulis.
     const author = chapter.manuscript?.user ?? null;
@@ -34,14 +36,17 @@ export default function BookChapterRow({
                         className="hover:text-forest-moss-700 hover:underline"
                     >
                         <span className="sr-only">
-                            Bab {chapter.chapter_number}:{' '}
+                            {t('books.detail.chapterRow.srChapter', {
+                                number: chapter.chapter_number,
+                            })}{' '}
                         </span>
                         {chapter.title}
                     </Link>
                 </h3>
                 {author && (
                     <p className="mt-1 text-sm text-oxford-navy-900/65">
-                        Oleh <PersonLink person={author} />
+                        {t('books.detail.hero.by')}{' '}
+                        <PersonLink person={author} />
                     </p>
                 )}
             </div>
@@ -49,15 +54,17 @@ export default function BookChapterRow({
             {chapter.preview_url ? (
                 <Link
                     to={previewPath}
-                    aria-label={`Baca preview bab ${chapter.chapter_number}`}
+                    aria-label={t('books.detail.chapterRow.readPreviewAria', {
+                        number: chapter.chapter_number,
+                    })}
                     className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-oxford-navy-700 px-4 py-2.5 text-sm font-semibold text-oxford-navy-700 transition-colors hover:bg-oxford-navy-700 hover:text-white"
                 >
                     <RiFileTextLine aria-hidden className="size-[18px]" />
-                    Baca Preview
+                    {t('books.detail.chapterRow.readPreview')}
                 </Link>
             ) : (
                 <span className="shrink-0 text-xs text-oxford-navy-900/45">
-                    Preview belum tersedia
+                    {t('books.detail.chapterRow.noPreview')}
                 </span>
             )}
         </li>

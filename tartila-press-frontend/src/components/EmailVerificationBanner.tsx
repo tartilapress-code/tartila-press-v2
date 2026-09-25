@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { RiMailSendLine } from '@remixicon/react';
 import Button from '@/components/Button/Button';
 import { useAuth } from '@/context/useAuth';
@@ -10,6 +11,7 @@ import { useResendVerification } from '@/hooks/useResendVerification';
  * di tab/perangkat lain, banner hilang sendiri.
  */
 export default function EmailVerificationBanner() {
+    const { t } = useTranslation();
     const { user, isAuthenticated, refreshUser } = useAuth();
     const { send, isSending, cooldown, message, isError } =
         useResendVerification();
@@ -42,9 +44,11 @@ export default function EmailVerificationBanner() {
                     className="text-forest-moss-800 shrink-0 mt-0.5"
                 />
                 <p className="text-oxford-navy-900 text-sm sm:text-base">
-                    <strong>Email Anda belum diverifikasi.</strong> Buka email
-                    dari kami dan klik tombol verifikasi (cek juga folder
-                    spam).
+                    <Trans
+                        t={t}
+                        i18nKey="auth.banner.text"
+                        components={{ strong: <strong /> }}
+                    />
                 </p>
             </div>
 
@@ -66,10 +70,10 @@ export default function EmailVerificationBanner() {
                     disabled={isSending || cooldown > 0}
                 >
                     {isSending
-                        ? 'Mengirim...'
+                        ? t('auth.resend.sending')
                         : cooldown > 0
-                          ? `Kirim ulang (${cooldown} dtk)`
-                          : 'Kirim Ulang Email'}
+                          ? t('auth.resend.wait', { seconds: cooldown })
+                          : t('auth.banner.resend')}
                 </Button>
             </div>
         </div>

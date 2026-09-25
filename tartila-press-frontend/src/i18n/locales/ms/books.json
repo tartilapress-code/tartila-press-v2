@@ -1,0 +1,153 @@
+{
+    "emptyHome": "Belum ada buku yang dipaparkan.",
+    "card": {
+        "editor": "Editor:",
+        "inCart": "Dalam Troli",
+        "cartShort": "Troli",
+        "addToCart": "Tambah ke Troli"
+    },
+    "cartFab": "Troli ({{count}})",
+    "catalog": {
+        "sort": {
+            "newest": "Terbaharu",
+            "priceAsc": "Harga Terendah",
+            "priceDesc": "Harga Tertinggi",
+            "rating": "Penilaian Tertinggi"
+        },
+        "listAria": "Senarai buku",
+        "quote": "Baca Hari Ini, Berkembang Esok.",
+        "noResultTitle": "Buku tidak ditemui",
+        "noResultText": "Belum ada buku yang sepadan dengan carian ini. Cuba kata kunci atau kategori lain.",
+        "reset": "Set Semula Penapis",
+        "hero": {
+            "eyebrow": "Katalog Buku",
+            "titleLine1": "Terokai Buku-buku",
+            "titleLine2": "Terbitan Tartila Press.",
+            "text": "Buku berkualiti untuk menambah ilmu, meluaskan wawasan, dan memperkukuh tamadun.",
+            "quote": "“Ilmu yang baik ialah yang memberi manfaat kepada ramai orang.”"
+        },
+        "filters": {
+            "searchPlaceholder": "Cari tajuk atau penulis...",
+            "searchAria": "Cari tajuk atau penulis",
+            "bookCategory": "Kategori Buku",
+            "allBookCategories": "Semua Kategori Buku",
+            "fieldCategory": "Bidang Ilmu",
+            "allFieldCategories": "Semua Bidang Ilmu",
+            "sort": "Susun mengikut"
+        }
+    },
+    "detail": {
+        "sections": {
+            "about": "Tentang Buku",
+            "details": "Butiran Buku",
+            "chapters": "Senarai Bab",
+            "reviews": "Ulasan"
+        },
+        "facts": {
+            "authors": "Penulis",
+            "editor": "Editor",
+            "isbn": "ISBN",
+            "publisher": "Penerbit",
+            "publishedDate": "Tarikh Terbit",
+            "bookCategory": "Kategori Buku",
+            "fieldCategory": "Bidang Ilmu",
+            "designer": "Reka Bentuk Kulit & Susun Atur",
+            "chapterCount": "Bilangan Bab"
+        },
+        "chapterCountValue_one": "{{count}} bab",
+        "chapterCountValue_other": "{{count}} bab",
+        "reviewsCount_one": "{{count}} ulasan",
+        "reviewsCount_other": "{{count}} ulasan",
+        "navAria": "Navigasi buku",
+        "howToBuy": {
+            "title": "Cara Membeli",
+            "step1Title": "Pilih buku",
+            "step1Text": "Klik Beli Sekarang, atau tambahkan beberapa buku ke troli terlebih dahulu.",
+            "step2Title": "Sahkan & bayar",
+            "step2Text": "Isi alamat penerima, kemudian muat naik bukti bayaran di halaman Pesanan.",
+            "step3Title": "Buku dicetak & dihantar",
+            "step3Text": "Pantau proses cetakan dan penghantaran di halaman Pesanan sehingga buku tiba."
+        },
+        "hero": {
+            "back": "Semua Buku",
+            "chapterBadge": "Bab Buku",
+            "by": "Oleh",
+            "editorLabel": "Editor:",
+            "isbn": "ISBN {{isbn}}",
+            "publishedOn": "Diterbitkan {{date}}",
+            "price": "Harga",
+            "noReviews": "Belum ada ulasan",
+            "buy": "Beli Sekarang",
+            "inCart": "Sudah dalam Troli",
+            "addToCart": "Tambah ke Troli",
+            "previewPdf": "Lihat Pratonton PDF",
+            "scholar": "Google Scholar"
+        },
+        "chapterRow": {
+            "srChapter": "Bab {{number}}:",
+            "readPreviewAria": "Baca pratonton bab {{number}}",
+            "readPreview": "Baca Pratonton",
+            "noPreview": "Pratonton belum tersedia"
+        },
+        "reviews": {
+            "average_one": "daripada {{count}} ulasan",
+            "average_other": "daripada {{count}} ulasan",
+            "noRating": "Belum ada penilaian",
+            "optionalLabel": "Ulasan (pilihan)",
+            "placeholder": "Kongsikan pendapat anda tentang buku ini...",
+            "submit": "Hantar Ulasan",
+            "sending": "Menghantar...",
+            "saved": "Ulasan anda telah disimpan.",
+            "loginToReview": "Log masuk untuk menulis ulasan buku ini.",
+            "loginButton": "Log Masuk",
+            "none": "Belum ada ulasan."
+        },
+        "stars": {
+            "ratingAria": "Penilaian {{value}} daripada 5",
+            "legend": "Penilaian Anda",
+            "star_one": "{{count}} bintang",
+            "star_other": "{{count}} bintang",
+            "label1": "Kurang",
+            "label2": "Sederhana",
+            "label3": "Baik",
+            "label4": "Bagus",
+            "label5": "Sangat bagus"
+        },
+        "chapterPreview": {
+            "back": "Kembali ke butiran buku",
+            "badge": "Bab {{number}}",
+            "partOf": "Sebahagian daripada buku",
+            "noPreview": "Pratonton belum tersedia untuk bab ini."
+        },
+        "coverStage": {
+            "openPreview": "Buka pratonton buku {{title}}",
+            "coverAlt": "Kulit buku {{title}}",
+            "hint": "Seret untuk membaca pratonton",
+            "preparing": "Menyediakan pratonton…",
+            "error": "Pratonton tidak dapat dimuatkan.",
+            "openPdf": "Buka PDF",
+            "close": "Tutup"
+        },
+        "flipbook": {
+            "aria": "Pratonton buku {{title}}. Gunakan anak panah kiri dan kanan untuk menyelak halaman.",
+            "controls": "Kawalan buku selak",
+            "prev": "Halaman sebelumnya",
+            "next": "Halaman seterusnya",
+            "expand": "Besarkan",
+            "closePreview": "Tutup pratonton",
+            "closeLarge": "Tutup paparan besar",
+            "dialogAria": "Pratonton buku {{title}}",
+            "position": {
+                "cover": "Kulit",
+                "backCover": "Kulit belakang",
+                "insideCover": "Bahagian dalam kulit",
+                "blank": "Halaman kosong",
+                "page": "Halaman {{page}} daripada {{total}}",
+                "spread": "Halaman {{left}}–{{right}} daripada {{total}}"
+            },
+            "pageAlt": "Halaman {{page}}",
+            "endOfPreview": "Akhir pratonton",
+            "pageFailed": "Halaman ini tidak dapat dimuatkan."
+        }
+    }
+}

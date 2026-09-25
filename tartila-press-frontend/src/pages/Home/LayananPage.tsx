@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HashLink } from 'react-router-hash-link';
+import { useTranslation } from 'react-i18next';
 import { RiArrowRightLine } from '@remixicon/react';
 import Card2Flip, {
     PackageCardSkeleton,
@@ -16,7 +17,7 @@ import type { CustomItem } from '@/data/customPackageItem/customPackageItemApi';
 import { useAuth } from '@/context/useAuth';
 import { useCustomItems } from '@/hooks/useCustomItems';
 import { usePackages } from '@/hooks/usePackages';
-import { formatRupiah } from '@/lib/bookChapterPublic';
+import { useFormat } from '@/i18n/useFormat';
 import { itemsTotal, packageOffers } from '@/lib/packageFeatures';
 
 const OFFERS_ID = 'paket-hemat';
@@ -64,6 +65,8 @@ function ItemGroup({
  * hemat dari harga satuan.
  */
 function LayananPage() {
+    const { t } = useTranslation();
+    const { rupiah } = useFormat();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const { items, isLoading: itemsLoading } = useCustomItems();
@@ -100,13 +103,15 @@ function LayananPage() {
         navigate(`/dashboard/paket-custom?${query}`);
     }
 
-    const offersText = {
-        general:
-            'Butuh beberapa layanan sekaligus? Paket menggabungkannya dalam satu harga, lebih hemat daripada membeli satuan.',
-        selection: `${offers.packages.length} paket sudah mencakup semua pilihan Anda dan lebih hemat dari total ${formatRupiah(total)}.`,
-        uncovered:
-            'Belum ada paket yang mencakup semua pilihan Anda dengan harga lebih hemat. Berikut paket lain yang layak dipertimbangkan.',
-    }[offers.mode];
+    const offersText =
+        offers.mode === 'general'
+            ? t('services.page.offersGeneral')
+            : offers.mode === 'selection'
+              ? t('services.page.offersSelection', {
+                    count: offers.packages.length,
+                    total: rupiah(total),
+                })
+              : t('services.page.offersUncovered');
 
     let hint = null;
 
@@ -114,42 +119,43 @@ function LayananPage() {
         hint = (
             <>
                 <strong className="font-semibold">{bestOffer.name}</strong>{' '}
-                sudah mencakup pilihan Anda dan lebih hemat.{' '}
+                {t('services.page.hintBest')}{' '}
                 <HashLink
                     to={`#${OFFERS_ID}`}
                     smooth
                     className="font-semibold underline"
                 >
-                    Lihat paket
+                    {t('services.page.hintLink')}
                 </HashLink>
             </>
         );
     } else if (offers.mode === 'uncovered') {
-        hint =
-            'Belum ada paket yang mencakup semua pilihan Anda dengan harga lebih hemat.';
+        hint = t('services.page.hintUncovered');
     }
 
     return (
         <div className="-mx-10 -my-2 overflow-x-clip">
             <ListHero
-                badge="Layanan"
+                badge={t('services.page.badge')}
                 title={{
-                    before: 'Layanan Penerbitan ',
-                    accent: 'Tartila Press',
+                    before: t('services.page.heroBefore'),
+                    accent: t('common.brand.name'),
                 }}
-                text="Dari naskah sampai buku terbit, kami dampingi setiap tahapnya dengan sistem yang modern, transparan, dan terpercaya."
-                script={['Karya Anda,', 'Kami Terbitkan']}
+                text={t('services.page.heroText')}
+                script={[
+                    t('services.page.scriptTop'),
+                    t('services.page.scriptBottom'),
+                ]}
             />
 
             <div className="mx-auto flex max-w-[1232px] flex-col gap-6 px-4 pb-20 pt-8 sm:px-8 lg:px-10">
                 <section aria-labelledby="layanan-title" className={cardClass}>
                     <div className="flex flex-col gap-2">
                         <SectionTitle id="layanan-title">
-                            Layanan &amp; Fasilitas
+                            {t('services.page.sectionTitle')}
                         </SectionTitle>
                         <p className="max-w-2xl pl-4 text-[15px] leading-relaxed text-oxford-navy-900/65">
-                            Centang yang Anda butuhkan untuk merakit paket
-                            custom sendiri.
+                            {t('services.page.sectionText')}
                         </p>
                     </div>
 
@@ -161,13 +167,13 @@ function LayananPage() {
                         </div>
                     ) : items.length === 0 ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                            Belum ada layanan yang ditampilkan.
+                            {t('services.empty')}
                         </p>
                     ) : (
                         <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
                             <div className="flex flex-col gap-6">
                                 <ItemGroup
-                                    title="Layanan"
+                                    title={t('services.page.groupServices')}
                                     items={items.filter(
                                         (item) => item.type === 'service'
                                     )}
@@ -175,7 +181,7 @@ function LayananPage() {
                                     onToggle={toggleItem}
                                 />
                                 <ItemGroup
-                                    title="Fasilitas"
+                                    title={t('services.page.groupFacilities')}
                                     items={items.filter(
                                         (item) => item.type === 'facility'
                                     )}
@@ -210,7 +216,7 @@ function LayananPage() {
                                         to="/paket"
                                         className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-oxford-navy-700 hover:underline"
                                     >
-                                        Lihat semua paket
+                                        {t('services.page.offersAll')}
                                         <RiArrowRightLine
                                             aria-hidden
                                             className="size-4"
@@ -218,7 +224,7 @@ function LayananPage() {
                                     </Link>
                                 }
                             >
-                                Lebih Hemat dengan Paket Penerbitan
+                                {t('services.page.offersTitle')}
                             </SectionTitle>
                             <p
                                 aria-live="polite"
@@ -245,9 +251,12 @@ function LayananPage() {
                 )}
 
                 <CtaBand
-                    title="Siap menerbitkan buku Anda?"
-                    text="Bandingkan semua paket penerbitan atau konsultasikan kebutuhan Anda lebih dulu."
-                    action={{ to: '/paket', label: 'Lihat Semua Paket' }}
+                    title={t('services.page.ctaTitle')}
+                    text={t('services.page.ctaText')}
+                    action={{
+                        to: '/paket',
+                        label: t('services.page.ctaAction'),
+                    }}
                 />
             </div>
         </div>

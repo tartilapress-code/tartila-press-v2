@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiCheckLine, RiLeafLine } from '@remixicon/react';
 
 import PillBadge from '@/components/ui/PillBadge';
 import type { PackageSummary } from '@/data/package/packageApi';
-import { formatRupiah } from '@/lib/bookChapterPublic';
+import { useFormat } from '@/i18n/useFormat';
 import type { PackageHighlight } from '@/lib/packageFeatures';
 
 type Card2Props = {
     packages: PackageSummary[];
-    // Lencana/catatan hemat per paket (id paket → keterangan).
+    // Sorotan hemat per paket (id paket → keterangan); teksnya disusun di sini.
     highlights?: Record<number, PackageHighlight>;
     // Jumlah kolom terlebar; 3 untuk daftar pendek supaya tidak ada kolom kosong.
     maxColumns?: 3 | 4;
@@ -25,6 +26,8 @@ export default function Card2({
     highlights = {},
     maxColumns = 4,
 }: Card2Props) {
+    const { t } = useTranslation();
+    const { rupiah } = useFormat();
     const [flipped, setFlipped] = useState<Set<number>>(new Set<number>());
 
     const toogleFlipped = (id: number) => {
@@ -85,12 +88,14 @@ export default function Card2({
                                     )}
                                     {pkg.discount > 0 && (
                                         <span className="absolute left-3 top-3 rounded-full bg-forest-moss-700 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                                            Diskon {pkg.discount}%
+                                            {t('common.discount', {
+                                                percent: pkg.discount,
+                                            })}
                                         </span>
                                     )}
-                                    {highlight?.badge && (
+                                    {highlight?.best && (
                                         <span className="absolute right-3 top-3 rounded-full bg-oxford-navy-700 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                                            {highlight.badge}
+                                            {t('packages.best')}
                                         </span>
                                     )}
                                 </div>
@@ -105,18 +110,25 @@ export default function Card2({
                                     <div className="flex flex-wrap items-baseline gap-x-2">
                                         {pkg.discount > 0 && (
                                             <span className="text-sm text-oxford-navy-900/65 line-through">
-                                                {formatRupiah(
-                                                    Number(pkg.price)
-                                                )}
+                                                {rupiah(Number(pkg.price))}
                                             </span>
                                         )}
                                         <span className="text-lg font-bold text-oxford-navy-700">
-                                            {formatRupiah(pkg.final_price)}
+                                            {rupiah(pkg.final_price)}
                                         </span>
                                     </div>
-                                    {highlight?.note && (
+                                    {highlight && (
                                         <p className="text-xs font-semibold text-forest-moss-700">
-                                            {highlight.note}
+                                            {t(
+                                                highlight.basis === 'unit'
+                                                    ? 'packages.saveUnit'
+                                                    : 'packages.saveSelection',
+                                                {
+                                                    amount: rupiah(
+                                                        highlight.saving
+                                                    ),
+                                                }
+                                            )}
                                         </p>
                                     )}
 
@@ -126,7 +138,7 @@ export default function Card2({
                                             onClick={(e) => e.stopPropagation()}
                                             className="inline-flex flex-1 items-center justify-center rounded-lg bg-oxford-navy-700 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-oxford-navy-600"
                                         >
-                                            Lihat Detail
+                                            {t('packages.viewDetail')}
                                         </Link>
                                         <button
                                             type="button"
@@ -137,7 +149,7 @@ export default function Card2({
                                             }}
                                             className="inline-flex items-center justify-center rounded-lg border border-oxford-navy-200 px-3 py-2.5 text-sm font-semibold text-oxford-navy-700 transition-colors hover:cursor-pointer hover:bg-forest-moss-50"
                                         >
-                                            Fasilitas
+                                            {t('packages.facilities')}
                                         </button>
                                     </div>
                                 </div>
@@ -146,7 +158,7 @@ export default function Card2({
                             {/* Belakang */}
                             <div className="absolute inset-0 flex flex-col gap-4 overflow-y-auto rounded-2xl border border-forest-moss-200 bg-forest-moss-100/80 p-6 backface-hidden rotate-y-180">
                                 <h5 className="font-display text-xl font-bold text-oxford-navy-700">
-                                    Fasilitas & Layanan
+                                    {t('packages.backTitle')}
                                 </h5>
                                 {items.length > 0 ? (
                                     <ul className="flex flex-col gap-2 text-oxford-navy-900/80">
@@ -165,11 +177,11 @@ export default function Card2({
                                     </ul>
                                 ) : (
                                     <p className="text-sm text-oxford-navy-900/65">
-                                        Rincian fasilitas belum tersedia.
+                                        {t('packages.noDetails')}
                                     </p>
                                 )}
                                 <p className="mt-auto text-xs text-oxford-navy-900/65">
-                                    Klik kartu untuk kembali.
+                                    {t('packages.flipBack')}
                                 </p>
                             </div>
                         </div>

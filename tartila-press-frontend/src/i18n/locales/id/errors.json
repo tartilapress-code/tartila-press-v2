@@ -1,0 +1,11 @@
+{
+    "notFound": {
+        "title": "Halaman Tidak Ditemukan",
+        "text": "Alamat yang Anda buka tidak ada atau sudah dipindahkan."
+    },
+    "unexpected": {
+        "title": "Terjadi Kesalahan",
+        "text": "Halaman ini gagal ditampilkan. Muat ulang halaman atau kembali ke beranda."
+    },
+    "backHome": "Kembali ke Beranda"
+}

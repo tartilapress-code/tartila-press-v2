@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import loginField from '@/data/login/login.json';
+import { useTranslation } from 'react-i18next';
 import Button from '../../components/Button/Button';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ArrowBack from '../../components/ArrowBack';
@@ -9,13 +9,20 @@ import { useAuth } from '@/context/useAuth';
 import { ApiError } from '@/lib/http';
 import type { LoginPayload } from '@/data/auth/authApi';
 
+/**
+ * Pesan yang dibawa halaman lain lewat `location.state`. Yang dikirim hanya
+ * jenisnya; kalimatnya diterjemahkan di sini sesuai bahasa yang dipilih.
+ */
+export type LoginNotice = 'passwordReset';
+
 export default function Login(): React.ReactNode {
+    const { t } = useTranslation();
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     // Pesan dari halaman sebelumnya, mis. "Password berhasil diubah".
-    const notice = (location.state as { notice?: string } | null)?.notice;
+    const notice = (location.state as { notice?: LoginNotice } | null)?.notice;
 
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string>('');
@@ -38,7 +45,7 @@ export default function Login(): React.ReactNode {
             if (error instanceof ApiError) {
                 setErrorMessage(error.message);
             } else {
-                setErrorMessage('Terjadi kesalahan. Silakan coba lagi.');
+                setErrorMessage(t('common.genericError'));
             }
         } finally {
             setIsSubmitting(false);
@@ -50,36 +57,41 @@ export default function Login(): React.ReactNode {
             <ArrowBack />
             <div className="flex flex-col gap-1.5">
                 <h1 className="font-display text-2xl font-bold text-oxford-navy-700">
-                    Masuk ke akun Anda
+                    {t('auth.login.title')}
                 </h1>
                 <p className="text-sm leading-relaxed text-oxford-navy-900/65">
-                    Kelola naskah, pesanan, dan buku Anda di Tartila Press.
+                    {t('auth.login.subtitle')}
                 </p>
             </div>
-            {notice && (
+            {notice === 'passwordReset' && (
                 <p className="rounded-xl bg-forest-moss-100 px-4 py-3 text-sm text-forest-moss-800">
-                    {notice}
+                    {t('auth.login.passwordReset')}
                 </p>
             )}
             <form onSubmit={handleLoginSubmit}>
                 <div className="flex flex-col gap-4">
-                    {loginField.map((field) => (
-                        <Input
-                            key={field.id}
-                            id={field.id}
-                            name={field.name}
-                            type={field.type}
-                            label={field.label}
-                            placeholder={field.placeholder}
-                            required={field.required}
-                        />
-                    ))}
+                    <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        label={t('auth.login.emailLabel')}
+                        placeholder={t('auth.login.emailPlaceholder')}
+                        required
+                    />
+                    <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        label={t('auth.login.passwordLabel')}
+                        placeholder="********"
+                        required
+                    />
 
                     <Link
                         to="/lupa-password"
                         className="self-end text-sm text-forest-moss-700 underline hover:text-forest-moss-800"
                     >
-                        Lupa password?
+                        {t('auth.login.forgot')}
                     </Link>
 
                     {errorMessage && (
@@ -91,18 +103,22 @@ export default function Login(): React.ReactNode {
                         type="submit"
                         disabled={isSubmitting}
                     >
-                        {isSubmitting ? 'Memproses...' : 'Login'}
+                        {isSubmitting
+                            ? t('auth.login.submitting')
+                            : t('auth.login.submit')}
                     </Button>
                 </div>
             </form>
 
             <div className="flex flex-row justify-center gap-2 text-sm">
-                <p className="text-oxford-navy-900/65">Belum punya akun?</p>
+                <p className="text-oxford-navy-900/65">
+                    {t('auth.login.noAccount')}
+                </p>
                 <Link
                     to="/register"
                     className="font-semibold text-forest-moss-700 hover:text-forest-moss-800 hover:underline"
                 >
-                    Daftar
+                    {t('auth.login.register')}
                 </Link>
             </div>
         </AuthCard>

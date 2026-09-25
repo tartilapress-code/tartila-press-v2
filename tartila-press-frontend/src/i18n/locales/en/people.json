@@ -1,0 +1,80 @@
+{
+    "roleLabels": {
+        "Penulis": "Author",
+        "Editor": "Editor"
+    },
+    "penulis": {
+        "label": "Author",
+        "heroTitleBefore": "List of ",
+        "heroTitleAccent": "Other Authors",
+        "heroText": "Discover other great authors who have joined Tartila Press. They are part of a growing literacy ecosystem that brings the best works to life.",
+        "scriptTop": "With Authors,",
+        "scriptBottom": "Building Literacy",
+        "directoryTitle": "Author Directory",
+        "searchPlaceholder": "Search author name...",
+        "searchAria": "Search author name",
+        "emptyText": "No authors to display yet.",
+        "noMatch": "No authors named “{{query}}”.",
+        "count_one": "{{count}} author",
+        "count_other": "{{count}} authors",
+        "listQuote": "Every author has a unique story, and every story deserves to be read.",
+        "profileQuote": "Books are the bridge to a better future.",
+        "aboutTitle": "About the Author",
+        "navList": "Author List"
+    },
+    "editor": {
+        "label": "Editor",
+        "heroTitleBefore": "List of ",
+        "heroTitleAccent": "Other Editors",
+        "heroText": "Get to know the professional editors who refine every manuscript with Tartila Press. They read carefully, polish ideas, and make sure every work is ready to reach its readers.",
+        "scriptTop": "With Editors,",
+        "scriptBottom": "Perfecting Works",
+        "directoryTitle": "Editor Directory",
+        "searchPlaceholder": "Search editor name...",
+        "searchAria": "Search editor name",
+        "emptyText": "No editors to display yet.",
+        "noMatch": "No editors named “{{query}}”.",
+        "count_one": "{{count}} editor",
+        "count_other": "{{count}} editors",
+        "listQuote": "Behind every good book, there is an editor who reads with care.",
+        "profileQuote": "A good manuscript is born from the hands of a careful editor.",
+        "aboutTitle": "About the Editor",
+        "navList": "Editor List"
+    },
+    "sort": {
+        "default": "Sort",
+        "az": "Name A–Z",
+        "za": "Name Z–A",
+        "aria": "Sort list"
+    },
+    "search": "Search",
+    "listNavAria": "List navigation",
+    "clearSearch": "Clear Search",
+    "card": {
+        "noBio": "This profile has not been completed yet.",
+        "viewProfile": "View Profile"
+    },
+    "profile": {
+        "navAria": "Profile navigation",
+        "nav": {
+            "profil": "Profile",
+            "karya": "Works",
+            "diedit": "Edited Books",
+            "pengalaman": "Experience"
+        },
+        "worksTitle": "Latest Works",
+        "worksEmpty": "No published works yet.",
+        "editedTitle": "Books Edited",
+        "editedEmpty": "No edited books yet.",
+        "collapse": "Show less",
+        "seeAll": "View All ({{count}})",
+        "noBio": "{{name}} has not written a description yet.",
+        "topicsAria": "Fields and types of work",
+        "experienceTitle": "Experience Timeline",
+        "experienceEmpty": "No experience recorded yet.",
+        "metaWorks_one": "{{count}} work",
+        "metaWorks_other": "{{count}} works",
+        "metaEdited_one": "{{count}} book edited",
+        "metaEdited_other": "{{count}} books edited"
+    }
+}

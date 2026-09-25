@@ -1,13 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiArrowRightLine, RiArticleLine, RiHeartLine } from '@remixicon/react';
 import logo from '@/assets/logo/logo.png';
 import type { Article } from '@/data/article/articleApi';
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
+import { useFormat } from '@/i18n/useFormat';
 
 function excerptOf(body: string, maxLength = 160): string {
     const plain = body.replace(/\s+/g, ' ').trim();
@@ -26,6 +22,8 @@ export default function ArticleCard({
     article: Article;
     badge?: string;
 }) {
+    const { t } = useTranslation();
+    const { dateLong } = useFormat();
     const authorName =
         article.user.public_profile?.pen_name || article.user.name;
     const authorPhoto = article.user.public_profile?.profile_photo;
@@ -66,7 +64,7 @@ export default function ArticleCard({
                         aria-hidden
                         className="size-4 text-forest-moss-600"
                     />
-                    {article.likes_count} suka
+                    {t('articles.likes', { count: article.likes_count })}
                 </p>
                 <h3 className="font-display line-clamp-2 text-lg font-bold leading-snug text-oxford-navy-700 transition-colors group-hover:text-oxford-navy-600">
                     {article.title}
@@ -88,15 +86,13 @@ export default function ArticleCard({
                             </p>
                             <p className="text-xs text-oxford-navy-900/55">
                                 {article.published_at
-                                    ? dateFormatter.format(
-                                          new Date(article.published_at)
-                                      )
+                                    ? dateLong(article.published_at)
                                     : ''}
                             </p>
                         </div>
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-oxford-navy-700">
-                        Baca
+                        {t('articles.read')}
                         <RiArrowRightLine
                             aria-hidden
                             className="size-4 transition-transform group-hover:translate-x-0.5"

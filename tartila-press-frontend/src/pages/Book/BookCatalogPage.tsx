@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiBookOpenLine, RiRestartLine, RiSearchLine } from '@remixicon/react';
 import * as bookApi from '@/data/book/bookApi';
 import type { BookCategoryItem, BookSummary } from '@/data/book/bookApi';
@@ -14,13 +15,6 @@ import CatalogHero from '@/components/book/catalog/CatalogHero';
 import CartFab from '@/components/cart/CartFab';
 import FloatingContact from '@/components/FloatingContact';
 import { CATALOG_SEARCH_PARAM } from '@/lib/catalogSearch';
-
-const sortOptions = [
-    { value: 'newest', label: 'Terbaru' },
-    { value: 'price_asc', label: 'Harga Terendah' },
-    { value: 'price_desc', label: 'Harga Tertinggi' },
-    { value: 'rating', label: 'Rating Tertinggi' },
-];
 
 const defaultFilters: CatalogFilters = {
     search: '',
@@ -39,6 +33,13 @@ const SKELETON_COUNT = 8;
 
 // Kata kunci awal berasal dari kolom cari di navbar (/buku?cari=...).
 function BookCatalog({ initialSearch }: { initialSearch: string }) {
+    const { t } = useTranslation();
+    const sortOptions = [
+        { value: 'newest', label: t('books.catalog.sort.newest') },
+        { value: 'price_asc', label: t('books.catalog.sort.priceAsc') },
+        { value: 'price_desc', label: t('books.catalog.sort.priceDesc') },
+        { value: 'rating', label: t('books.catalog.sort.rating') },
+    ];
     const [books, setBooks] = useState<BookSummary[]>([]);
     const [bookCategories, setBookCategories] = useState<BookCategoryItem[]>(
         []
@@ -127,7 +128,7 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                     />
 
                     <section
-                        aria-label="Daftar buku"
+                        aria-label={t('books.catalog.listAria')}
                         aria-busy={isLoading}
                         className="relative mt-8 xl:grid xl:grid-cols-[9rem_minmax(0,1fr)] xl:gap-8"
                     >
@@ -140,7 +141,7 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                                     className="size-11 text-forest-moss-600"
                                 />
                                 <p className="font-display text-[1.4rem] font-medium leading-snug text-oxford-navy-700">
-                                    Baca Hari Ini, Tumbuh Esok.
+                                    {t('books.catalog.quote')}
                                 </p>
                                 <span className="h-0.5 w-12 rounded bg-forest-moss-500" />
                             </div>
@@ -166,12 +167,10 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                                         />
                                     </span>
                                     <p className="font-display text-lg font-semibold text-oxford-navy-700">
-                                        Buku belum ditemukan
+                                        {t('books.catalog.noResultTitle')}
                                     </p>
                                     <p className="max-w-sm text-sm text-oxford-navy-900/65">
-                                        Belum ada buku yang cocok dengan
-                                        pencarian ini. Coba kata kunci atau
-                                        kategori lain.
+                                        {t('books.catalog.noResultText')}
                                     </p>
                                     {hasActiveFilters && (
                                         <button
@@ -185,7 +184,7 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                                                 aria-hidden
                                                 className="size-4"
                                             />
-                                            Reset Filter
+                                            {t('books.catalog.reset')}
                                         </button>
                                     )}
                                 </div>

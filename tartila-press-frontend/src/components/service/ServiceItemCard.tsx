@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     RiCheckLine,
     RiCustomerService2Line,
@@ -6,11 +7,11 @@ import {
 } from '@remixicon/react';
 import PillBadge from '@/components/ui/PillBadge';
 import type { CustomItem } from '@/data/customPackageItem/customPackageItemApi';
-import { formatRupiah } from '@/lib/bookChapterPublic';
+import { useFormat } from '@/i18n/useFormat';
 
 const TYPE_META = {
-    facility: { label: 'Fasilitas', Icon: RiStackLine },
-    service: { label: 'Layanan', Icon: RiCustomerService2Line },
+    facility: { Icon: RiStackLine },
+    service: { Icon: RiCustomerService2Line },
 } as const;
 
 const cardBase =
@@ -36,10 +37,12 @@ export default function ServiceItemCard({
     onToggle,
     showType = false,
 }: ServiceItemCardProps): ReactNode {
-    const { label, Icon } = TYPE_META[item.type];
+    const { t } = useTranslation();
+    const { rupiah } = useFormat();
+    const { Icon } = TYPE_META[item.type];
     const isSelectable = onToggle !== undefined;
     const priceLabel =
-        item.final_price === 0 ? 'Gratis' : formatRupiah(item.final_price);
+        item.final_price === 0 ? t('common.free') : rupiah(item.final_price);
 
     const content = (
         <>
@@ -65,7 +68,9 @@ export default function ServiceItemCard({
                         <RiCheckLine className="size-4" />
                     </span>
                 ) : (
-                    showType && <PillBadge label={label} />
+                    showType && (
+                        <PillBadge label={t(`services.type.${item.type}`)} />
+                    )
                 )}
             </div>
 
@@ -83,7 +88,7 @@ export default function ServiceItemCard({
             <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-1 pt-1">
                 {item.discount > 0 && (
                     <span className="text-sm text-oxford-navy-900/65 line-through">
-                        {formatRupiah(Number(item.price))}
+                        {rupiah(Number(item.price))}
                     </span>
                 )}
                 <span className="text-lg font-bold text-oxford-navy-700">
@@ -91,7 +96,7 @@ export default function ServiceItemCard({
                 </span>
                 {item.discount > 0 && (
                     <span className="rounded-full bg-forest-moss-700 px-2.5 py-0.5 text-xs font-semibold text-white">
-                        Diskon {item.discount}%
+                        {t('common.discount', { percent: item.discount })}
                     </span>
                 )}
             </div>
@@ -110,7 +115,10 @@ export default function ServiceItemCard({
                 <input
                     type="checkbox"
                     className="sr-only"
-                    aria-label={`${item.name}, ${priceLabel}`}
+                    aria-label={t('services.itemAria', {
+                        name: item.name,
+                        price: priceLabel,
+                    })}
                     checked={selected}
                     onChange={() => onToggle(item.id)}
                 />

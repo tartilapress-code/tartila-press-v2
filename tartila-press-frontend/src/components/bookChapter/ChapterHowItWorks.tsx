@@ -1,17 +1,4 @@
-const steps = [
-    {
-        title: 'Pilih proyek & bab',
-        text: 'Temukan proyek yang cocok, lalu pilih bab yang masih terbuka.',
-    },
-    {
-        title: 'Pesan & bayar slot',
-        text: 'Konfirmasi pesanan, lalu unggah bukti bayar di halaman Pesanan.',
-    },
-    {
-        title: 'Tulis & terbit bersama',
-        text: 'Kirim naskah bab Anda. Setelah diedit, bab terbit bersama penulis lain dalam satu buku.',
-    },
-];
+import { useTranslation } from 'react-i18next';
 
 /** Kartu "Cara Kerja" tiga langkah untuk membeli slot Book Chapter. */
 export default function ChapterHowItWorks({
@@ -19,6 +6,23 @@ export default function ChapterHowItWorks({
 }: {
     className?: string;
 }) {
+    const { t } = useTranslation();
+
+    const steps = [
+        {
+            title: t('bookChapter.howItWorks.step1Title'),
+            text: t('bookChapter.howItWorks.step1Text'),
+        },
+        {
+            title: t('bookChapter.howItWorks.step2Title'),
+            text: t('bookChapter.howItWorks.step2Text'),
+        },
+        {
+            title: t('bookChapter.howItWorks.step3Title'),
+            text: t('bookChapter.howItWorks.step3Text'),
+        },
+    ];
+
     return (
         <section
             aria-labelledby="chapter-how-title"
@@ -28,12 +32,12 @@ export default function ChapterHowItWorks({
                 id="chapter-how-title"
                 className="font-display text-lg font-bold text-oxford-navy-700"
             >
-                Cara Kerja
+                {t('bookChapter.howItWorks.title')}
             </h2>
 
             <ol className="mt-4 flex flex-col gap-4">
                 {steps.map((step, index) => (
-                    <li key={step.title} className="flex gap-3">
+                    <li key={index} className="flex gap-3">
                         <span
                             aria-hidden
                             className="flex size-7 shrink-0 items-center justify-center rounded-full bg-forest-moss-100 text-sm font-semibold text-forest-moss-800"

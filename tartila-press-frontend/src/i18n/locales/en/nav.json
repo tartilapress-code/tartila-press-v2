@@ -1,0 +1,41 @@
+{
+    "main": "Main navigation",
+    "homeLink": "{{name}} — home",
+    "menu": {
+        "home": "Home",
+        "services": "Services",
+        "packages": "Packages",
+        "articles": "Articles",
+        "contact": "Contact",
+        "books": "Books",
+        "events": "Events",
+        "authors": "Authors",
+        "editors": "Editors",
+        "bookChapter": "Book Chapters"
+    },
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "hello": "Hello, {{name}}",
+    "search": {
+        "open": "Search books",
+        "close": "Close search",
+        "label": "Search books",
+        "placeholder": "Search book title or author...",
+        "submit": "Search"
+    },
+    "userMenu": {
+        "dashboard": "Dashboard",
+        "myOrders": "My Orders",
+        "bookCart": "Book Cart",
+        "myManuscripts": "My Manuscripts",
+        "myEvents": "My Events",
+        "adminPanel": "Admin Panel"
+    },
+    "language": {
+        "choose": "Choose language",
+        "label": "Language"
+    }
+}

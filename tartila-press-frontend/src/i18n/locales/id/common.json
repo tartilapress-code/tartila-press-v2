@@ -1,0 +1,15 @@
+{
+    "brand": {
+        "name": "Tartila Press",
+        "slogan": "Menata Ilmu, Menguatkan Peradaban"
+    },
+    "loading": "Memuat...",
+    "free": "Gratis",
+    "discount": "Diskon {{percent}}%",
+    "consult": "Konsultasi",
+    "included": "Termasuk",
+    "notIncluded": "Tidak termasuk",
+    "genericError": "Terjadi kesalahan. Silakan coba lagi.",
+    "showPassword": "Lihat password",
+    "hidePassword": "Sembunyikan password"
+}

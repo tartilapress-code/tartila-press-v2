@@ -33,6 +33,8 @@ export type ChapterProject = {
     // Disembunyikan server untuk pengunjung yang belum login.
     description?: string | null;
     about: string | null;
+    // Bahasa isi buku (kode); kosong bila belum diisi.
+    languages: string[];
     // Daftar teks lama (sebelum fasilitas/layanan dicentang dari Paket Custom).
     facilities: string[] | null;
     services: string[] | null;
@@ -52,40 +54,6 @@ export type ChapterProject = {
     owner_editor: { id: number; name: string } | null;
     chapters: ChapterSlot[];
 };
-
-export const slotStatusLabels: Record<SlotStatus, string> = {
-    open: 'Terbuka',
-    reserved: 'Dipesan',
-    submitted: 'Sedang Ditulis/Diedit',
-    completed: 'Selesai',
-};
-
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-});
-
-const monthYearFormatter = new Intl.DateTimeFormat('id-ID', {
-    month: 'long',
-    year: 'numeric',
-});
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
-
-export const formatRupiah = (amount: number) => rupiahFormatter.format(amount);
-
-export function formatMonthYear(date: string | null): string | null {
-    return date ? monthYearFormatter.format(new Date(date)) : null;
-}
-
-export function formatDate(date: string | null): string | null {
-    return date ? dateFormatter.format(new Date(date)) : null;
-}
 
 export function isPast(date: string | null): boolean {
     return date !== null && new Date(date).getTime() < Date.now();

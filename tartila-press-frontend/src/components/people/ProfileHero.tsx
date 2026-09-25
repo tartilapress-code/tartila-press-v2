@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     RiBookOpenLine,
     RiEditBoxLine,
     RiMapPinLine,
+    RiTranslate2,
     RiUserLine,
 } from '@remixicon/react';
 import {
@@ -10,13 +12,15 @@ import {
     HeroHill,
     HeroLeafRight,
 } from '@/components/art/HeroArt';
+import { useContentLanguages } from '@/components/language/useContentLanguages';
 import PersonAvatar from '@/components/people/PersonAvatar';
 import PillBadge from '@/components/ui/PillBadge';
 import {
+    ROLE_NAME,
     displayRoles,
-    roleCopy,
     type PeopleRole,
-} from '@/components/people/roleCopy';
+} from '@/components/people/roles';
+import type { ContentLanguage } from '@/lib/contentLanguages';
 
 export type ProfileHeroData = {
     name: string;
@@ -25,6 +29,8 @@ export type ProfileHeroData = {
     city: string | null;
     bookCount: number;
     editedCount: number;
+    // Bahasa yang dikuasai (hanya terisi untuk editor).
+    languages: ContentLanguage[];
 };
 
 type MetaItem = { key: string; icon: ReactNode; text: string };
@@ -40,8 +46,12 @@ export default function ProfileHero({
     profile: ProfileHeroData;
     role: PeopleRole;
 }) {
+    const { t } = useTranslation();
+    const { masteredLine } = useContentLanguages();
     const roles = displayRoles(profile.roles);
-    const labels = roles.length > 0 ? roles : [roleCopy[role].label];
+    const labels = (roles.length > 0 ? roles : [ROLE_NAME[role]]).map((name) =>
+        t(`people.roleLabels.${name}`)
+    );
 
     const meta: MetaItem[] = [
         { key: 'role', icon: <RiUserLine />, text: labels.join(' · ') },
@@ -51,11 +61,19 @@ export default function ProfileHero({
         meta.push({ key: 'city', icon: <RiMapPinLine />, text: profile.city });
     }
 
+    if (profile.languages.length > 0) {
+        meta.push({
+            key: 'languages',
+            icon: <RiTranslate2 />,
+            text: masteredLine(profile.languages),
+        });
+    }
+
     if (profile.bookCount > 0) {
         meta.push({
             key: 'books',
             icon: <RiBookOpenLine />,
-            text: `${profile.bookCount} karya`,
+            text: t('people.profile.metaWorks', { count: profile.bookCount }),
         });
     }
 
@@ -63,7 +81,9 @@ export default function ProfileHero({
         meta.push({
             key: 'edited',
             icon: <RiEditBoxLine />,
-            text: `${profile.editedCount} buku diedit`,
+            text: t('people.profile.metaEdited', {
+                count: profile.editedCount,
+            }),
         });
     }
 

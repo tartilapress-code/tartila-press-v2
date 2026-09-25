@@ -1,0 +1,42 @@
+{
+    "empty": "Belum ada layanan yang ditampilkan.",
+    "type": {
+        "service": "Layanan",
+        "facility": "Fasilitas"
+    },
+    "itemAria": "{{name}}, {{price}}",
+    "page": {
+        "badge": "Layanan",
+        "heroBefore": "Layanan Penerbitan ",
+        "heroText": "Dari naskah sampai buku terbit, kami dampingi setiap tahapnya dengan sistem yang modern, transparan, dan terpercaya.",
+        "scriptTop": "Karya Anda,",
+        "scriptBottom": "Kami Terbitkan",
+        "sectionTitle": "Layanan & Fasilitas",
+        "sectionText": "Centang yang Anda butuhkan untuk merakit paket custom sendiri.",
+        "groupServices": "Layanan",
+        "groupFacilities": "Fasilitas",
+        "offersTitle": "Lebih Hemat dengan Paket Penerbitan",
+        "offersAll": "Lihat semua paket",
+        "offersGeneral": "Butuh beberapa layanan sekaligus? Paket menggabungkannya dalam satu harga, lebih hemat daripada membeli satuan.",
+        "offersSelection_one": "{{count}} paket sudah mencakup semua pilihan Anda dan lebih hemat dari total {{total}}.",
+        "offersSelection_other": "{{count}} paket sudah mencakup semua pilihan Anda dan lebih hemat dari total {{total}}.",
+        "offersUncovered": "Belum ada paket yang mencakup semua pilihan Anda dengan harga lebih hemat. Berikut paket lain yang layak dipertimbangkan.",
+        "hintBest": "sudah mencakup pilihan Anda dan lebih hemat.",
+        "hintLink": "Lihat paket",
+        "hintUncovered": "Belum ada paket yang mencakup semua pilihan Anda dengan harga lebih hemat.",
+        "ctaTitle": "Siap menerbitkan buku Anda?",
+        "ctaText": "Bandingkan semua paket penerbitan atau konsultasikan kebutuhan Anda lebih dulu.",
+        "ctaAction": "Lihat Semua Paket"
+    },
+    "summary": {
+        "aria": "Ringkasan pilihan",
+        "title": "Rakit Paket Custom",
+        "empty": "Centang layanan atau fasilitas yang Anda butuhkan untuk melihat estimasi biaya dan paket yang lebih hemat.",
+        "selected_one": "{{count}} item dipilih",
+        "selected_other": "{{count}} item dipilih",
+        "estimate": "Estimasi, belum termasuk biaya editor pilihan.",
+        "continue": "Lanjut Rakit Paket",
+        "clear": "Kosongkan pilihan",
+        "loginNote": "Anda perlu masuk untuk memesan."
+    }
+}

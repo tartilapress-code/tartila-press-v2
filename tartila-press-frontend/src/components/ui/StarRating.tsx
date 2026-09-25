@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { RiStarFill } from '@remixicon/react';
 
 const STARS = [1, 2, 3, 4, 5];
@@ -15,12 +16,15 @@ export default function StarRating({
     // Ukuran satu bintang (kelas Tailwind `size-*`).
     starClassName?: string;
 }) {
+    const { t } = useTranslation();
     const percent = Math.min(100, Math.max(0, (value / 5) * 100));
 
     return (
         <span
             role="img"
-            aria-label={`Penilaian ${value.toFixed(1)} dari 5`}
+            aria-label={t('books.detail.stars.ratingAria', {
+                value: value.toFixed(1),
+            })}
             className="relative inline-flex shrink-0"
         >
             <span className="flex text-oxford-navy-900/15">

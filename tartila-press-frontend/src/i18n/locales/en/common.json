@@ -1,0 +1,15 @@
+{
+    "brand": {
+        "name": "Tartila Press",
+        "slogan": "Organizing Knowledge, Strengthening Civilization"
+    },
+    "loading": "Loading...",
+    "free": "Free",
+    "discount": "{{percent}}% off",
+    "consult": "Consultation",
+    "included": "Included",
+    "notIncluded": "Not included",
+    "genericError": "Something went wrong. Please try again.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+}

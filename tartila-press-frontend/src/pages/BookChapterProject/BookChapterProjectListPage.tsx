@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     RiArrowUpDownLine,
     RiLayoutGridLine,
@@ -23,13 +24,6 @@ import {
 type SortMode = 'newest' | 'deadline' | 'price' | 'slots';
 
 const SKELETON_COUNT = 6;
-
-const sortOptions = [
-    { value: 'newest', label: 'Terbaru' },
-    { value: 'deadline', label: 'Deadline Terdekat' },
-    { value: 'price', label: 'Harga Terendah' },
-    { value: 'slots', label: 'Slot Terbanyak' },
-];
 
 // Urutan "terbaru" mengikuti urutan dari server; lainnya diurutkan di sini.
 function sortProjects(projects: ChapterProject[], mode: SortMode) {
@@ -59,6 +53,13 @@ function sortProjects(projects: ChapterProject[], mode: SortMode) {
  * dan urutan.
  */
 export default function BookChapterProjectListPage() {
+    const { t } = useTranslation();
+    const sortOptions = [
+        { value: 'newest', label: t('bookChapter.list.sort.newest') },
+        { value: 'deadline', label: t('bookChapter.list.sort.deadline') },
+        { value: 'price', label: t('bookChapter.list.sort.price') },
+        { value: 'slots', label: t('bookChapter.list.sort.slots') },
+    ];
     const [projects, setProjects] = useState<ChapterProject[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [query, setQuery] = useState<string>('');
@@ -113,21 +114,24 @@ export default function BookChapterProjectListPage() {
     return (
         <div className="-mx-10 -my-2 overflow-x-clip">
             <ListHero
-                badge="Book Chapter"
+                badge={t('bookChapter.badge')}
                 title={{
-                    before: 'Tulis ',
-                    accent: 'Satu Bab',
-                    after: ', Terbit Bersama.',
+                    before: t('bookChapter.list.heroBefore'),
+                    accent: t('bookChapter.list.heroAccent'),
+                    after: t('bookChapter.list.heroAfter'),
                 }}
-                text="Gabung jadi salah satu penulis di buku kolaborasi Tartila Press. Pilih proyek, beli slot bab yang masih terbuka, dan karyamu terbit bersama dalam satu buku."
-                script={['Menulis Bersama,', 'Terbit Bersama']}
+                text={t('bookChapter.list.heroText')}
+                script={[
+                    t('bookChapter.list.scriptTop'),
+                    t('bookChapter.list.scriptBottom'),
+                ]}
             />
 
             <div className="mx-auto flex max-w-[1360px] flex-col gap-6 px-4 pb-20 pt-8 sm:px-8 lg:grid lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start lg:px-10">
                 <aside className="order-last lg:order-none">
                     <div className="flex flex-col gap-4 lg:sticky lg:top-24">
                         <ChapterHowItWorks />
-                        <QuoteCard quote="Setiap suara punya tempat di dalam satu buku yang ditulis bersama." />
+                        <QuoteCard quote={t('bookChapter.list.quote')} />
                     </div>
                 </aside>
 
@@ -137,10 +141,12 @@ export default function BookChapterProjectListPage() {
                 >
                     <div className="flex flex-col gap-4">
                         <SectionTitle id="chapter-list-title">
-                            Proyek Terbuka
+                            {t('bookChapter.list.title')}
                             {!isLoading && projects.length > 0 && (
-                                <span className="font-sans text-sm font-normal text-oxford-navy-900/50">
-                                    {visible.length} proyek
+                                <span className="font-sans text-sm font-normal text-oxford-navy-900/65">
+                                    {t('bookChapter.list.count', {
+                                        count: visible.length,
+                                    })}
                                 </span>
                             )}
                         </SectionTitle>
@@ -149,28 +155,35 @@ export default function BookChapterProjectListPage() {
                             <SearchField
                                 value={query}
                                 onChange={setQuery}
-                                placeholder="Cari judul proyek atau editor..."
-                                ariaLabel="Cari judul proyek atau editor"
+                                placeholder={t(
+                                    'bookChapter.list.searchPlaceholder'
+                                )}
+                                ariaLabel={t('bookChapter.list.searchAria')}
                                 className="sm:col-span-2 xl:col-span-1"
                             />
                             <SelectField
                                 value={category}
                                 onChange={setCategory}
                                 options={[
-                                    { value: '', label: 'Semua Kategori' },
+                                    {
+                                        value: '',
+                                        label: t(
+                                            'bookChapter.list.allCategories'
+                                        ),
+                                    },
                                     ...categories.map((name) => ({
                                         value: name,
                                         label: name,
                                     })),
                                 ]}
-                                ariaLabel="Filter kategori"
+                                ariaLabel={t('bookChapter.list.categoryAria')}
                                 icon={<RiLayoutGridLine />}
                             />
                             <SelectField
                                 value={sort}
                                 onChange={(value) => setSort(value as SortMode)}
                                 options={sortOptions}
-                                ariaLabel="Urutkan proyek"
+                                ariaLabel={t('bookChapter.list.sortAria')}
                                 icon={<RiArrowUpDownLine />}
                             />
                         </div>
@@ -186,13 +199,12 @@ export default function BookChapterProjectListPage() {
                         </div>
                     ) : projects.length === 0 ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                            Belum ada proyek Book Chapter yang terbuka saat ini.
+                            {t('bookChapter.list.empty')}
                         </p>
                     ) : visible.length === 0 ? (
                         <div className="flex flex-col items-center gap-3 rounded-xl bg-forest-moss-50 px-6 py-14 text-center">
                             <p className="text-sm text-oxford-navy-900/70">
-                                Tidak ada proyek yang cocok dengan pencarian
-                                ini.
+                                {t('bookChapter.list.noMatch')}
                             </p>
                             {hasFilters && (
                                 <button
@@ -204,7 +216,7 @@ export default function BookChapterProjectListPage() {
                                         aria-hidden
                                         className="size-4"
                                     />
-                                    Reset Filter
+                                    {t('bookChapter.list.reset')}
                                 </button>
                             )}
                         </div>

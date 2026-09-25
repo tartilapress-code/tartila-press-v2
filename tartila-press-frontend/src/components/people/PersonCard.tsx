@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiArrowRightLine } from '@remixicon/react';
 import PersonAvatar from '@/components/people/PersonAvatar';
 import PillBadge from '@/components/ui/PillBadge';
 import {
+    ROLE_NAME,
     displayRoles,
-    roleCopy,
     type PeopleRole,
-} from '@/components/people/roleCopy';
+} from '@/components/people/roles';
 
 export type Person = {
     slug: string;
@@ -27,9 +28,13 @@ export default function PersonCard({
     person: Person;
     role: PeopleRole;
 }) {
+    const { t } = useTranslation();
+
     // Tanpa peran yang dikenali, pakai peran halaman daftar ini.
     const roles = displayRoles(person.roles);
-    const labels = roles.length > 0 ? roles : [roleCopy[role].label];
+    const labels = (roles.length > 0 ? roles : [ROLE_NAME[role]]).map((name) =>
+        t(`people.roleLabels.${name}`)
+    );
 
     return (
         <article className="group relative flex min-w-0 gap-4 rounded-2xl border border-forest-moss-100 bg-white p-4 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(1,26,44,0.32)] sm:p-5">
@@ -57,14 +62,14 @@ export default function PersonCard({
                             : 'italic text-oxford-navy-900/40'
                     }`}
                 >
-                    {person.bio || 'Profil ini belum dilengkapi.'}
+                    {person.bio || t('people.card.noBio')}
                 </p>
 
                 <Link
                     to={`/${role}/${person.slug}`}
                     className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-full border border-forest-moss-600 px-4 py-1.5 text-sm font-medium text-forest-moss-700 transition-colors after:absolute after:inset-0 after:rounded-2xl group-hover:bg-forest-moss-600 group-hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest-moss-600"
                 >
-                    Lihat Profil
+                    {t('people.card.viewProfile')}
                     <RiArrowRightLine aria-hidden className="size-4" />
                 </Link>
             </div>

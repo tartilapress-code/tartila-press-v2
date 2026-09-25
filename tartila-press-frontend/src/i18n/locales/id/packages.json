@@ -1,0 +1,45 @@
+{
+    "viewDetail": "Lihat Detail",
+    "facilities": "Fasilitas",
+    "backTitle": "Fasilitas & Layanan",
+    "noDetails": "Rincian fasilitas belum tersedia.",
+    "flipBack": "Klik kartu untuk kembali.",
+    "best": "Paling Hemat",
+    "saveUnit": "Hemat {{amount}} dari harga satuan",
+    "saveSelection": "Hemat {{amount}} dari pilihan Anda",
+    "empty": "Belum ada paket yang ditampilkan.",
+    "compare": "Bandingkan Paket",
+    "seeAllCount_one": "Lihat semua {{count}} paket",
+    "seeAllCount_other": "Lihat semua {{count}} paket",
+    "table": {
+        "caption": "Perbandingan harga, layanan, dan fasilitas antar paket penerbitan",
+        "name": "Nama Paket",
+        "price": "Harga",
+        "services": "Layanan",
+        "facilities": "Fasilitas",
+        "empty": "Belum ada rincian layanan dan fasilitas untuk dibandingkan."
+    },
+    "list": {
+        "badge": "Paket",
+        "heroBefore": "Pilih Paket ",
+        "heroAccent": "Penerbitan",
+        "heroText": "Bandingkan fasilitas dan layanan setiap paket, lalu pilih yang paling sesuai dengan naskah dan anggaran Anda.",
+        "scriptTop": "Satu Paket,",
+        "scriptBottom": "Banyak Manfaat",
+        "all": "Semua Paket",
+        "count_one": "{{count}} paket",
+        "count_other": "{{count}} paket",
+        "ctaTitle": "Ingin memilih layanan satuan?",
+        "ctaText": "Rakit paket custom dari layanan dan fasilitas yang Anda butuhkan, atau konsultasikan kebutuhan Anda lebih dulu.",
+        "ctaAction": "Lihat Layanan"
+    },
+    "detail": {
+        "back": "Semua Paket",
+        "take": "Ambil Paket",
+        "sectionTitle": "Rincian Paket",
+        "services": "Layanan",
+        "facilities": "Fasilitas",
+        "terms": "Ketentuan",
+        "notes": "Catatan"
+    }
+}

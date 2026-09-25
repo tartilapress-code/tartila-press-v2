@@ -1,16 +1,24 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import Input from '@/components/Input/Input';
+import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Button from '@/components/Button/Button';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
+import {
+    toContentLanguages,
+    type ContentLanguage,
+} from '@/lib/contentLanguages';
 
 const textareaClass = `
     w-full p-3 outline-none rounded-xl ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40
     focus:ring-1 focus:ring-oxford-navy-500 focus:bg-forest-moss-50`;
 
 export default function EditorProfilePage() {
+    const { t } = useTranslation();
     const [fee, setFee] = useState<string>('0');
     const [bio, setBio] = useState<string>('');
+    const [languages, setLanguages] = useState<ContentLanguage[]>([]);
     const [isAvailable, setIsAvailable] = useState<boolean>(true);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -24,6 +32,7 @@ export default function EditorProfilePage() {
                 if (profile) {
                     setFee(profile.fee?.toString() ?? '0');
                     setBio(profile.bio ?? '');
+                    setLanguages(toContentLanguages(profile.languages));
                     setIsAvailable(Boolean(profile.is_available));
                 }
             })
@@ -39,6 +48,7 @@ export default function EditorProfilePage() {
             await editorApi.upsertMyProfile({
                 fee,
                 bio,
+                languages,
                 is_available: isAvailable,
             });
             setStatusMessage('Profil editor berhasil disimpan.');
@@ -86,6 +96,13 @@ export default function EditorProfilePage() {
                         onChange={(e) => setBio(e.target.value)}
                     />
                 </div>
+
+                <ContentLanguageField
+                    label={t('contentLanguages.field.editorLabel')}
+                    hint={t('contentLanguages.field.editorHint')}
+                    value={languages}
+                    onChange={setLanguages}
+                />
 
                 <label className="flex flex-row items-center gap-2 text-oxford-navy-900">
                     <input

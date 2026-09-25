@@ -1,0 +1,13 @@
+{
+    "picker": {
+        "groupAria": "Pilih editor",
+        "empty": "Belum ada editor yang tersedia.",
+        "hint": "Klik nama editor untuk melihat bahasa yang dikuasai dan bionya.",
+        "nameAria": "Lihat bahasa dan bio {{name}}",
+        "selectAria": "Pilih {{name}}",
+        "languagesTitle": "Bahasa yang dikuasai",
+        "languagesEmpty": "Belum diisi.",
+        "bioTitle": "Bio",
+        "bioEmpty": "Editor ini belum menulis bio."
+    }
+}

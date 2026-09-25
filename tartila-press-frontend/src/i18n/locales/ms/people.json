@@ -1,0 +1,80 @@
+{
+    "roleLabels": {
+        "Penulis": "Penulis",
+        "Editor": "Editor"
+    },
+    "penulis": {
+        "label": "Penulis",
+        "heroTitleBefore": "Senarai ",
+        "heroTitleAccent": "Penulis Lain",
+        "heroText": "Temui penulis-penulis hebat lain yang menyertai Tartila Press. Mereka sebahagian daripada ekosistem literasi yang terus berkembang untuk menghasilkan karya-karya terbaik.",
+        "scriptTop": "Bersama Penulis,",
+        "scriptBottom": "Membina Literasi",
+        "directoryTitle": "Senarai Penulis",
+        "searchPlaceholder": "Cari nama penulis...",
+        "searchAria": "Cari nama penulis",
+        "emptyText": "Belum ada penulis yang dipaparkan.",
+        "noMatch": "Tiada penulis bernama “{{query}}”.",
+        "count_one": "{{count}} penulis",
+        "count_other": "{{count}} penulis",
+        "listQuote": "Setiap penulis mempunyai kisah yang unik, dan setiap kisah wajar dibaca.",
+        "profileQuote": "Buku ialah jambatan menuju masa depan yang lebih baik.",
+        "aboutTitle": "Tentang Penulis",
+        "navList": "Senarai Penulis"
+    },
+    "editor": {
+        "label": "Editor",
+        "heroTitleBefore": "Senarai ",
+        "heroTitleAccent": "Editor Lain",
+        "heroText": "Kenali editor profesional yang menyempurnakan setiap manuskrip bersama Tartila Press. Mereka membaca dengan teliti, mengemas idea, dan memastikan karya sedia sampai kepada pembaca.",
+        "scriptTop": "Bersama Editor,",
+        "scriptBottom": "Menyempurnakan Karya",
+        "directoryTitle": "Senarai Editor",
+        "searchPlaceholder": "Cari nama editor...",
+        "searchAria": "Cari nama editor",
+        "emptyText": "Belum ada editor yang dipaparkan.",
+        "noMatch": "Tiada editor bernama “{{query}}”.",
+        "count_one": "{{count}} editor",
+        "count_other": "{{count}} editor",
+        "listQuote": "Di sebalik setiap buku yang baik, ada editor yang membaca dengan teliti.",
+        "profileQuote": "Manuskrip yang baik lahir daripada tangan editor yang teliti.",
+        "aboutTitle": "Tentang Editor",
+        "navList": "Senarai Editor"
+    },
+    "sort": {
+        "default": "Susun",
+        "az": "Nama A–Z",
+        "za": "Nama Z–A",
+        "aria": "Susun senarai"
+    },
+    "search": "Carian",
+    "listNavAria": "Navigasi senarai",
+    "clearSearch": "Padam Carian",
+    "card": {
+        "noBio": "Profil ini belum dilengkapkan.",
+        "viewProfile": "Lihat Profil"
+    },
+    "profile": {
+        "navAria": "Navigasi profil",
+        "nav": {
+            "profil": "Profil",
+            "karya": "Karya",
+            "diedit": "Buku Disunting",
+            "pengalaman": "Pengalaman"
+        },
+        "worksTitle": "Karya Terbaharu",
+        "worksEmpty": "Belum ada karya yang diterbitkan.",
+        "editedTitle": "Buku yang Disunting",
+        "editedEmpty": "Belum ada buku yang disunting.",
+        "collapse": "Ringkaskan",
+        "seeAll": "Lihat Semua ({{count}})",
+        "noBio": "{{name}} belum menulis huraian.",
+        "topicsAria": "Bidang dan jenis karya",
+        "experienceTitle": "Jejak Pengalaman",
+        "experienceEmpty": "Belum ada jejak pengalaman.",
+        "metaWorks_one": "{{count}} karya",
+        "metaWorks_other": "{{count}} karya",
+        "metaEdited_one": "{{count}} buku disunting",
+        "metaEdited_other": "{{count}} buku disunting"
+    }
+}

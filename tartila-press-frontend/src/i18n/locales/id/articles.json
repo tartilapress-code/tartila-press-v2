@@ -1,0 +1,38 @@
+{
+    "empty": "Belum ada artikel.",
+    "likes_one": "{{count}} suka",
+    "likes_other": "{{count}} suka",
+    "read": "Baca",
+    "badgeNewest": "Terbaru",
+    "badgeTopLiked": "Terpopuler",
+    "list": {
+        "badge": "Artikel",
+        "heroBefore": "Wawasan dan Cerita dari ",
+        "heroAccent": "Komunitas Penulis",
+        "heroText": "Wawasan dan cerita dari komunitas penulis Tartila Press.",
+        "scriptTop": "Membaca, Menulis,",
+        "scriptBottom": "Bertumbuh Bersama",
+        "all": "Semua Artikel",
+        "count_one": "{{count}} artikel",
+        "count_other": "{{count}} artikel",
+        "searchPlaceholder": "Cari judul artikel atau penulis...",
+        "searchAria": "Cari judul artikel atau penulis",
+        "allCategories": "Semua Kategori",
+        "categoryAria": "Filter kategori artikel",
+        "noMatch": "Tidak ada artikel yang cocok dengan pencarian ini.",
+        "reset": "Reset Filter"
+    },
+    "detail": {
+        "back": "Semua Artikel",
+        "liked": "Disukai",
+        "like": "Suka",
+        "loginToLike": "Login untuk menyukai artikel ini.",
+        "comments": "Komentar",
+        "noComments": "Belum ada komentar.",
+        "delete": "Hapus",
+        "commentPlaceholder": "Tulis komentar...",
+        "sending": "Mengirim...",
+        "send": "Kirim",
+        "loginToComment": "Login untuk menulis komentar."
+    }
+}

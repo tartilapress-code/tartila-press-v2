@@ -1,0 +1,13 @@
+{
+    "picker": {
+        "groupAria": "Choose an editor",
+        "empty": "No editors are available yet.",
+        "hint": "Click an editor's name to see the languages they master and their bio.",
+        "nameAria": "See the languages and bio of {{name}}",
+        "selectAria": "Choose {{name}}",
+        "languagesTitle": "Languages mastered",
+        "languagesEmpty": "Not filled in yet.",
+        "bioTitle": "Bio",
+        "bioEmpty": "This editor has not written a bio yet."
+    }
+}

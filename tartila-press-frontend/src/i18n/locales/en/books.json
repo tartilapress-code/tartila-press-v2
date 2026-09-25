@@ -1,0 +1,153 @@
+{
+    "emptyHome": "No books to display yet.",
+    "card": {
+        "editor": "Editor:",
+        "inCart": "In Cart",
+        "cartShort": "Cart",
+        "addToCart": "Add to Cart"
+    },
+    "cartFab": "Cart ({{count}})",
+    "catalog": {
+        "sort": {
+            "newest": "Newest",
+            "priceAsc": "Lowest Price",
+            "priceDesc": "Highest Price",
+            "rating": "Top Rated"
+        },
+        "listAria": "Book list",
+        "quote": "Read Today, Grow Tomorrow.",
+        "noResultTitle": "No books found",
+        "noResultText": "No books match this search yet. Try another keyword or category.",
+        "reset": "Reset Filters",
+        "hero": {
+            "eyebrow": "Book Catalog",
+            "titleLine1": "Explore the Books",
+            "titleLine2": "Published by Tartila Press.",
+            "text": "Quality books to add knowledge, broaden horizons, and strengthen civilization.",
+            "quote": "“Good knowledge is the kind that benefits many people.”"
+        },
+        "filters": {
+            "searchPlaceholder": "Search title or author...",
+            "searchAria": "Search title or author",
+            "bookCategory": "Book Category",
+            "allBookCategories": "All Book Categories",
+            "fieldCategory": "Field of Study",
+            "allFieldCategories": "All Fields of Study",
+            "sort": "Sort by"
+        }
+    },
+    "detail": {
+        "sections": {
+            "about": "About the Book",
+            "details": "Book Details",
+            "chapters": "Chapters",
+            "reviews": "Reviews"
+        },
+        "facts": {
+            "authors": "Author",
+            "editor": "Editor",
+            "isbn": "ISBN",
+            "publisher": "Publisher",
+            "publishedDate": "Publication Date",
+            "bookCategory": "Book Category",
+            "fieldCategory": "Field of Study",
+            "designer": "Cover & Layout Design",
+            "chapterCount": "Number of Chapters"
+        },
+        "chapterCountValue_one": "{{count}} chapter",
+        "chapterCountValue_other": "{{count}} chapters",
+        "reviewsCount_one": "{{count}} review",
+        "reviewsCount_other": "{{count}} reviews",
+        "navAria": "Book navigation",
+        "howToBuy": {
+            "title": "How to Buy",
+            "step1Title": "Choose a book",
+            "step1Text": "Click Buy Now, or add several books to your cart first.",
+            "step2Title": "Confirm & pay",
+            "step2Text": "Enter the recipient address, then upload your payment proof on the Orders page.",
+            "step3Title": "Book is printed & shipped",
+            "step3Text": "Track the printing and shipping progress on the Orders page until the book arrives."
+        },
+        "hero": {
+            "back": "All Books",
+            "chapterBadge": "Book Chapter",
+            "by": "By",
+            "editorLabel": "Editor:",
+            "isbn": "ISBN {{isbn}}",
+            "publishedOn": "Published {{date}}",
+            "price": "Price",
+            "noReviews": "No reviews yet",
+            "buy": "Buy Now",
+            "inCart": "Already in Cart",
+            "addToCart": "Add to Cart",
+            "previewPdf": "View PDF Preview",
+            "scholar": "Google Scholar"
+        },
+        "chapterRow": {
+            "srChapter": "Chapter {{number}}:",
+            "readPreviewAria": "Read preview of chapter {{number}}",
+            "readPreview": "Read Preview",
+            "noPreview": "Preview not available yet"
+        },
+        "reviews": {
+            "average_one": "from {{count}} review",
+            "average_other": "from {{count}} reviews",
+            "noRating": "No ratings yet",
+            "optionalLabel": "Review (optional)",
+            "placeholder": "Tell us what you think about this book...",
+            "submit": "Submit Review",
+            "sending": "Sending...",
+            "saved": "Your review has been saved.",
+            "loginToReview": "Log in to write a review of this book.",
+            "loginButton": "Log In",
+            "none": "No reviews yet."
+        },
+        "stars": {
+            "ratingAria": "Rating {{value}} out of 5",
+            "legend": "Your Rating",
+            "star_one": "{{count}} star",
+            "star_other": "{{count}} stars",
+            "label1": "Poor",
+            "label2": "Fair",
+            "label3": "Good",
+            "label4": "Great",
+            "label5": "Excellent"
+        },
+        "chapterPreview": {
+            "back": "Back to book details",
+            "badge": "Chapter {{number}}",
+            "partOf": "Part of the book",
+            "noPreview": "Preview is not available for this chapter yet."
+        },
+        "coverStage": {
+            "openPreview": "Open preview of {{title}}",
+            "coverAlt": "Cover of {{title}}",
+            "hint": "Drag to read the preview",
+            "preparing": "Preparing preview…",
+            "error": "The preview could not be loaded.",
+            "openPdf": "Open PDF",
+            "close": "Close"
+        },
+        "flipbook": {
+            "aria": "Preview of {{title}}. Use the left and right arrow keys to turn pages.",
+            "controls": "Flipbook controls",
+            "prev": "Previous page",
+            "next": "Next page",
+            "expand": "Enlarge",
+            "closePreview": "Close preview",
+            "closeLarge": "Close large view",
+            "dialogAria": "Preview of {{title}}",
+            "position": {
+                "cover": "Cover",
+                "backCover": "Back cover",
+                "insideCover": "Inside cover",
+                "blank": "Blank page",
+                "page": "Page {{page}} of {{total}}",
+                "spread": "Pages {{left}}–{{right}} of {{total}}"
+            },
+            "pageAlt": "Page {{page}}",
+            "endOfPreview": "End of preview",
+            "pageFailed": "This page could not be loaded."
+        }
+    }
+}

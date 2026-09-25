@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import Select from '@/components/Select/Select';
@@ -7,6 +9,10 @@ import Button from '@/components/Button/Button';
 import * as adminApi from '@/data/admin/adminApi';
 import type { BookPayload } from '@/data/admin/adminApi';
 import { ApiError } from '@/lib/http';
+import {
+    toContentLanguages,
+    type ContentLanguage,
+} from '@/lib/contentLanguages';
 
 type Category = { id: number; name: string };
 
@@ -21,6 +27,7 @@ type BookItem = {
     price: string;
     discount: number;
     royalty_percentage: string | null;
+    languages: string[];
     is_active: boolean;
     is_chapter_compilation: boolean;
     category: Category | null;
@@ -38,6 +45,7 @@ type FormState = {
     description: string;
     book_category_id: string;
     field_category_id: string;
+    languages: ContentLanguage[];
     price: string;
     discount: string;
     royalty_percentage: string;
@@ -56,6 +64,7 @@ const emptyForm: FormState = {
     description: '',
     book_category_id: '',
     field_category_id: '',
+    languages: [],
     price: '',
     discount: '0',
     royalty_percentage: '',
@@ -101,6 +110,7 @@ function PreviewUploader({
 }
 
 export default function BooksPage() {
+    const { t } = useTranslation();
     const [books, setBooks] = useState<BookItem[]>([]);
     const [bookCategories, setBookCategories] = useState<Category[]>([]);
     const [fieldCategories, setFieldCategories] = useState<Category[]>([]);
@@ -147,6 +157,7 @@ export default function BooksPage() {
             field_category_id: book.field_category
                 ? String(book.field_category.id)
                 : '',
+            languages: toContentLanguages(book.languages),
             price: book.price,
             discount: String(book.discount),
             royalty_percentage: book.royalty_percentage ?? '',
@@ -165,6 +176,7 @@ export default function BooksPage() {
             description: form.description || undefined,
             book_category_id: form.book_category_id || undefined,
             field_category_id: form.field_category_id || undefined,
+            languages: form.languages,
             price: form.price,
             discount: Number(form.discount) || 0,
             royalty_percentage:
@@ -342,6 +354,12 @@ export default function BooksPage() {
                             field_category_id: e.target.value,
                         })
                     }
+                />
+                <ContentLanguageField
+                    label={t('contentLanguages.field.bookLabel')}
+                    hint={t('contentLanguages.field.bookHint')}
+                    value={form.languages}
+                    onChange={(languages) => setForm({ ...form, languages })}
                 />
 
                 <Input

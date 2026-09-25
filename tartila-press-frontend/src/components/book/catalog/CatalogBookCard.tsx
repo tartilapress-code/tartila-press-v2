@@ -1,15 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { RiCheckLine, RiShoppingCartLine, RiStarFill } from '@remixicon/react';
 import BookCover from '@/components/book/catalog/BookCover';
 import { useCart } from '@/context/useCart';
 import { DEFAULT_CHAPTER_COVER } from '@/lib/bookChapterPublic';
 import type { BookSummary, ProfileLinkable } from '@/data/book/bookApi';
-
-const rupiahFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-});
+import { useFormat } from '@/i18n/useFormat';
 
 function ProfileNameLink({
     person,
@@ -58,6 +54,8 @@ function Authors({ book }: { book: BookSummary }) {
  * judul, penulis, harga, dan tombol keranjang.
  */
 export default function CatalogBookCard({ book }: { book: BookSummary }) {
+    const { t } = useTranslation();
+    const { rupiah } = useFormat();
     const { addToCart, isInCart } = useCart();
     const inCart = isInCart(book.id);
     const categories = [book.category?.name, book.field_category?.name].filter(
@@ -68,7 +66,7 @@ export default function CatalogBookCard({ book }: { book: BookSummary }) {
         <article className="group @container relative flex h-full flex-col rounded-2xl bg-white p-3 shadow-[0_6px_24px_-10px_rgba(1,26,44,0.22)] ring-1 ring-oxford-navy-900/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-14px_rgba(1,26,44,0.34)] sm:p-4">
             {book.discount > 0 && (
                 <span className="absolute right-3 top-3 z-10 rounded-full bg-forest-moss-600 px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-sm sm:right-4 sm:top-4 sm:text-xs">
-                    Diskon {book.discount}%
+                    {t('common.discount', { percent: book.discount })}
                 </span>
             )}
 
@@ -120,7 +118,7 @@ export default function CatalogBookCard({ book }: { book: BookSummary }) {
 
                 {book.editor_profile && (
                     <p className="line-clamp-1 text-xs text-oxford-navy-900/50">
-                        Editor:{' '}
+                        {t('books.card.editor')}{' '}
                         <ProfileNameLink
                             person={book.editor_profile}
                             role="editor"
@@ -132,11 +130,11 @@ export default function CatalogBookCard({ book }: { book: BookSummary }) {
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         {book.discount > 0 && (
                             <span className="text-xs text-oxford-navy-900/45 line-through sm:text-sm">
-                                {rupiahFormatter.format(Number(book.price))}
+                                {rupiah(Number(book.price))}
                             </span>
                         )}
                         <span className="text-base font-bold text-oxford-navy-700 sm:text-lg">
-                            {rupiahFormatter.format(book.final_price)}
+                            {rupiah(book.final_price)}
                         </span>
                     </div>
 
@@ -149,7 +147,7 @@ export default function CatalogBookCard({ book }: { book: BookSummary }) {
                         {inCart ? (
                             <>
                                 <RiCheckLine className="size-4" aria-hidden />
-                                Di Keranjang
+                                {t('books.card.inCart')}
                             </>
                         ) : (
                             <>
@@ -158,10 +156,10 @@ export default function CatalogBookCard({ book }: { book: BookSummary }) {
                                     aria-hidden
                                 />
                                 <span className="@[11.5rem]:hidden">
-                                    Keranjang
+                                    {t('books.card.cartShort')}
                                 </span>
                                 <span className="hidden @[11.5rem]:inline">
-                                    Tambah ke Keranjang
+                                    {t('books.card.addToCart')}
                                 </span>
                             </>
                         )}

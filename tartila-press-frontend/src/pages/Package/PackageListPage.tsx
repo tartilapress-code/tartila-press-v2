@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import Card2Flip, {
     PackageCardSkeleton,
 } from '@/components/card/flipcard/Card2Flip';
@@ -9,15 +10,22 @@ import { usePackages } from '@/hooks/usePackages';
 
 /** Semua paket penerbitan, lalu tabel perbandingan fasilitas dan layanannya. */
 export default function PackageListPage() {
+    const { t } = useTranslation();
     const { packages, isLoading } = usePackages();
 
     return (
         <div className="-mx-10 -my-2 overflow-x-clip">
             <ListHero
-                badge="Paket"
-                title={{ before: 'Pilih Paket ', accent: 'Penerbitan' }}
-                text="Bandingkan fasilitas dan layanan setiap paket, lalu pilih yang paling sesuai dengan naskah dan anggaran Anda."
-                script={['Satu Paket,', 'Banyak Manfaat']}
+                badge={t('packages.list.badge')}
+                title={{
+                    before: t('packages.list.heroBefore'),
+                    accent: t('packages.list.heroAccent'),
+                }}
+                text={t('packages.list.heroText')}
+                script={[
+                    t('packages.list.scriptTop'),
+                    t('packages.list.scriptBottom'),
+                ]}
             />
 
             <div className="mx-auto flex max-w-[1232px] flex-col gap-12 px-4 pb-20 pt-8 sm:px-8 lg:px-10">
@@ -26,10 +34,12 @@ export default function PackageListPage() {
                     className="flex flex-col gap-6"
                 >
                     <SectionTitle id="semua-paket">
-                        Semua Paket
+                        {t('packages.list.all')}
                         {!isLoading && packages.length > 0 && (
                             <span className="font-sans text-sm font-normal text-oxford-navy-900/65">
-                                {packages.length} paket
+                                {t('packages.list.count', {
+                                    count: packages.length,
+                                })}
                             </span>
                         )}
                     </SectionTitle>
@@ -42,7 +52,7 @@ export default function PackageListPage() {
                         </div>
                     ) : packages.length === 0 ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                            Belum ada paket yang ditampilkan.
+                            {t('packages.empty')}
                         </p>
                     ) : (
                         <Card2Flip packages={packages} />
@@ -55,16 +65,19 @@ export default function PackageListPage() {
                         className="flex flex-col gap-6"
                     >
                         <SectionTitle id="bandingkan-paket">
-                            Bandingkan Paket
+                            {t('packages.compare')}
                         </SectionTitle>
                         <PackageComparison packages={packages} />
                     </section>
                 )}
 
                 <CtaBand
-                    title="Ingin memilih layanan satuan?"
-                    text="Rakit paket custom dari layanan dan fasilitas yang Anda butuhkan, atau konsultasikan kebutuhan Anda lebih dulu."
-                    action={{ to: '/layanan', label: 'Lihat Layanan' }}
+                    title={t('packages.list.ctaTitle')}
+                    text={t('packages.list.ctaText')}
+                    action={{
+                        to: '/layanan',
+                        label: t('packages.list.ctaAction'),
+                    }}
                 />
             </div>
         </div>

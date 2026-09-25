@@ -1,0 +1,41 @@
+{
+    "main": "Navigasi utama",
+    "homeLink": "{{name}} — laman utama",
+    "menu": {
+        "home": "Utama",
+        "services": "Perkhidmatan",
+        "packages": "Pakej",
+        "articles": "Artikel",
+        "contact": "Hubungi",
+        "books": "Buku",
+        "events": "Acara",
+        "authors": "Penulis",
+        "editors": "Editor",
+        "bookChapter": "Bab Buku"
+    },
+    "openMenu": "Buka menu",
+    "closeMenu": "Tutup menu",
+    "login": "Log Masuk",
+    "register": "Daftar",
+    "logout": "Log Keluar",
+    "hello": "Hai, {{name}}",
+    "search": {
+        "open": "Cari buku",
+        "close": "Tutup carian",
+        "label": "Cari buku",
+        "placeholder": "Cari tajuk atau penulis buku...",
+        "submit": "Cari"
+    },
+    "userMenu": {
+        "dashboard": "Papan Pemuka",
+        "myOrders": "Pesanan Saya",
+        "bookCart": "Troli Buku",
+        "myManuscripts": "Manuskrip Saya",
+        "myEvents": "Acara Saya",
+        "adminPanel": "Panel Admin"
+    },
+    "language": {
+        "choose": "Pilih bahasa",
+        "label": "Bahasa"
+    }
+}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as bookApi from '@/data/book/bookApi';
 import type { BookSummary } from '@/data/book/bookApi';
 import CatalogBookCard, {
@@ -9,6 +10,7 @@ const COUNT = 4;
 
 /** Empat buku terbaru di beranda, memakai kartu yang sama dengan katalog. */
 export default function BookCatalogHome() {
+    const { t } = useTranslation();
     const [books, setBooks] = useState<BookSummary[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -33,7 +35,7 @@ export default function BookCatalogHome() {
     if (books.length === 0) {
         return (
             <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                Belum ada buku yang ditampilkan.
+                {t('books.emptyHome')}
             </p>
         );
     }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Jendela layar penuh untuk flipbook, memakai elemen <dialog> bawaan browser
@@ -16,6 +17,7 @@ export default function FlipbookDialog({
     onClose: () => void;
     children: ReactNode;
 }) {
+    const { t } = useTranslation();
     const dialogRef = useRef<HTMLDialogElement>(null);
     const onCloseRef = useRef(onClose);
 
@@ -60,7 +62,7 @@ export default function FlipbookDialog({
     return createPortal(
         <dialog
             ref={dialogRef}
-            aria-label={`Preview buku ${title}`}
+            aria-label={t('books.detail.flipbook.dialogAria', { title })}
             onClick={(event) => {
                 // Klik di luar isi (pada latar dialog) menutupnya.
                 if (event.target === event.currentTarget) {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import EventCard from '@/components/event/EventCard';
 import ListHero from '@/components/ui/ListHero';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -22,6 +23,7 @@ function EventCardSkeleton() {
 }
 
 export default function EventListPage() {
+    const { t } = useTranslation();
     const [events, setEvents] = useState<Event[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -35,13 +37,16 @@ export default function EventListPage() {
     return (
         <div className="-mx-10 -my-2 overflow-x-clip">
             <ListHero
-                badge="Event"
+                badge={t('events.list.badge')}
                 title={{
-                    before: 'Belajar Bersama di ',
-                    accent: 'Event Kami',
+                    before: t('events.list.heroBefore'),
+                    accent: t('events.list.heroAccent'),
                 }}
-                text="Ikuti seminar, webinar, dan lokakarya dari Tartila Press."
-                script={['Tumbuh Bersama,', 'Belajar Bersama']}
+                text={t('events.list.heroText')}
+                script={[
+                    t('events.list.scriptTop'),
+                    t('events.list.scriptBottom'),
+                ]}
             />
 
             <div className="mx-auto max-w-[1232px] px-4 pb-20 pt-8 sm:px-8 lg:px-10">
@@ -50,10 +55,12 @@ export default function EventListPage() {
                     className="flex min-w-0 flex-col gap-6 rounded-2xl border border-forest-moss-100 bg-white p-4 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-6"
                 >
                     <SectionTitle id="event-title">
-                        Semua Event
+                        {t('events.list.all')}
                         {!isLoading && events.length > 0 && (
-                            <span className="font-sans text-sm font-normal text-oxford-navy-900/50">
-                                {events.length} event
+                            <span className="font-sans text-sm font-normal text-oxford-navy-900/65">
+                                {t('events.list.count', {
+                                    count: events.length,
+                                })}
                             </span>
                         )}
                     </SectionTitle>
@@ -66,7 +73,7 @@ export default function EventListPage() {
                         </div>
                     ) : events.length === 0 ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
-                            Belum ada event.
+                            {t('events.empty')}
                         </p>
                     ) : (
                         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
