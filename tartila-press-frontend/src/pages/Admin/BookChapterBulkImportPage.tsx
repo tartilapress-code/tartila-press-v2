@@ -55,15 +55,14 @@ export default function BookChapterBulkImportPage() {
                     Import CSV Book Chapter
                 </h5>
                 <p className="text-oxford-navy-900/65 text-sm">
-                    Kolom yang dikenali (semua opsional kecuali title):
-                    title, book_category_id, field_category_id, price,
-                    discount, chapter_count, estimated_publish_date,
-                    submission_deadline, description, about,
-                    owner_editor_email, front_cover, languages (kode
-                    bahasa dipisah titik koma, mis. id;en). Tiap baris membuat 1
-                    buku dengan bab default berjudul &quot;Bab 1&quot;..&quot;Bab
-                    N&quot; — judul/harga per-bab bisa diubah manual sesudahnya
-                    lewat halaman Kelola.
+                    Kolom yang dikenali (semua opsional kecuali title): title,
+                    book_category_id, field_category_id, price, discount,
+                    chapter_count, estimated_publish_date, submission_deadline,
+                    description, about, owner_editor_email, front_cover,
+                    languages (kode bahasa dipisah titik koma, mis. id;en). Tiap
+                    baris membuat 1 buku dengan bab default berjudul &quot;Bab
+                    1&quot;..&quot;Bab N&quot; — judul/harga per-bab bisa diubah
+                    manual sesudahnya lewat halaman Kelola.
                 </p>
 
                 <input

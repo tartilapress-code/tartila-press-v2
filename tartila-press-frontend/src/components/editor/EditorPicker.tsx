@@ -98,7 +98,7 @@ export default function EditorPicker({
                                     }
                                     className="flex min-w-0 flex-1 items-center gap-1 text-left font-medium hover:cursor-pointer hover:underline"
                                 >
-                                    <span className="truncate">
+                                    <span className="min-w-0 break-words">
                                         {editor.name}
                                     </span>
                                     <RiArrowDownSLine

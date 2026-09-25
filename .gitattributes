@@ -1,0 +1,4 @@
+# Skrip dan konfigurasi server harus berakhiran baris LF (bukan CRLF Windows),
+# kalau tidak `bash deploy/deploy.sh` gagal di Linux.
+*.sh text eol=lf
+deploy/* text eol=lf

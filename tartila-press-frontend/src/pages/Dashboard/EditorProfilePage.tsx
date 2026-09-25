@@ -75,7 +75,9 @@ export default function EditorProfilePage() {
                 </h5>
                 <p className="text-oxford-navy-900/70 text-sm">
                     Atur fee tambahan Anda saat dipilih langsung oleh penulis,
-                    dan status ketersediaan.
+                    bio, bahasa yang dikuasai, dan status ketersediaan. Bio dan
+                    bahasa tampil saat penulis mengklik nama Anda di daftar
+                    editor.
                 </p>
             </div>
 
