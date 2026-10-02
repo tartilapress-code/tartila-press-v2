@@ -225,33 +225,48 @@ Kalau hasilnya `kode HTTP: 200`, Launchpad terjangkau -- ulangi
 atau `getent` tidak menemukan alamatnya, Launchpad memang tidak terjangkau dari
 server ini; ada dua jalan lain:
 
-**A. Unduh paketnya lewat komputer Anda, lalu kirim ke server.** Cari dulu versi
-PHP yang sudah terpasang di server (nomornya harus PERSIS sama dengan paket yang
-diunduh):
+**A. Ambil berkas `.so`-nya saja dari paket terbaru, lewat komputer Anda.**
+Launchpad cuma menyimpan unduhan untuk versi PHP yang SEDANG aktif di PPA ini --
+versi yang sama persis dengan yang sudah terpasang di server (kalau sudah lebih
+lama) sudah tidak bisa diunduh lagi. Untungnya tidak perlu sama persis: semua
+PHP 8.2.x memakai "PHP API" yang sama, jadi berkas `.so` dari versi terbaru
+tetap kompatibel -- `apt`/`dpkg -i` yang menolaknya (karena mencocokkan nomor
+versi persis), bukan PHP-nya. Jalan ini mengambil `.so`-nya langsung, melewati
+`apt` sama sekali.
 
-```bash
-dpkg -s php$PHPVER-common | grep ^Version
+Di browser komputer Anda, buka halaman ini dan cari baris versi TERBARU untuk
+seri `jammy` (ganti `jammy` kalau beda), klik baris itu, lalu di bagian
+"Builds" klik `amd64`:
+
+```
+https://launchpad.net/~ondrej/+archive/ubuntu/php/+packages?field.name_filter=php8.2&field.series_filter=jammy
 ```
 
-Buka `https://launchpad.net/~ondrej/+archive/ubuntu/php/+packages` di browser
-komputer Anda, filter arsitektur `amd64` dan seri `jammy`, cari
-`php$PHPVER-pgsql` dengan nomor versi yang sama persis, unduh berkas `.deb`-nya.
-Kalau tidak ada nomor yang cocok persis, jangan dipaksakan -- pakai jalan B.
+Cari tautan `php8.2-pgsql_NOMOR-VERSI_amd64.deb` (BUKAN yang berakhiran
+`.ddeb`, itu cuma simbol debug) dan unduh. Pola alamatnya selalu:
+
+```
+https://launchpad.net/~ondrej/+archive/ubuntu/php/+files/php8.2-pgsql_NOMOR-VERSI_amd64.deb
+```
 
 ```powershell
 scp Downloads\php8.2-pgsql_*_amd64.deb USER@IP_SERVER:~/
 ```
 
+Di server, `deploy/pasang-pgsql-ext.sh` mengerjakan sisanya (bongkar `.deb`,
+salin `.so` ke folder ekstensi PHP yang aktif, aktifkan, restart PHP-FPM) --
+TIDAK lewat `dpkg`/`apt`, jadi tidak pernah membuat paket lain "rusak":
+
 ```bash
-sudo apt install -y ~/php8.2-pgsql_*_amd64.deb
-php -m | grep pgsql
+bash deploy/pasang-pgsql-ext.sh ~/php8.2-pgsql_*_amd64.deb
 ```
 
-(`apt install ./berkas.deb`, bukan `dpkg -i`, supaya dependensinya ikut dicari
-dari repositori yang sudah terpasang di server.)
+Baris terakhir keluarannya harus menyebut `pgsql` dan `pdo_pgsql`. Kalau mau
+dibatalkan: hapus `/etc/php/8.2/mods-available/pgsql.ini` dan `pdo_pgsql.ini`,
+lalu restart `php8.2-fpm` -- tidak ada bekas lain.
 
-**B. Pakai MySQL untuk v2** (bagian 2A) -- paket `php$PHPVER-mysql` biasanya
-sudah ada tanpa perlu Launchpad sama sekali, karena website lama memakainya.
+**B. Pakai MySQL untuk v2** (bagian 2A) -- `php$PHPVER-mysql` di server ini
+SUDAH terpasang (dipakai website lama), tanpa perlu Launchpad sama sekali.
 Data lokal tetap bisa dibawa lewat `deploy/pg-ke-mysql.php` (bagian 10A).
 
 Kalau salah satu di atas berhasil dan `php -m | grep pgsql` menampilkan
