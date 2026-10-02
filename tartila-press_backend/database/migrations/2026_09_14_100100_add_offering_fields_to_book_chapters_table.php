@@ -23,8 +23,11 @@ return new class extends Migration
         $existing = DB::table('book_chapters')->pluck('manuscript_id', 'id');
 
         Schema::table('book_chapters', function (Blueprint $table) {
+            // MySQL: kunci asing harus dilepas SEBELUM indeks uniknya (indeks itu
+            // dipakai kunci asing), lalu kolomnya.
+            $table->dropForeign(['manuscript_id']);
             $table->dropUnique(['manuscript_id']);
-            $table->dropConstrainedForeignId('manuscript_id');
+            $table->dropColumn('manuscript_id');
         });
 
         Schema::table('book_chapters', function (Blueprint $table) {
@@ -42,8 +45,11 @@ return new class extends Migration
         $existing = DB::table('book_chapters')->pluck('manuscript_id', 'id');
 
         Schema::table('book_chapters', function (Blueprint $table) {
+            // MySQL: kunci asing harus dilepas SEBELUM indeks uniknya (indeks itu
+            // dipakai kunci asing), lalu kolomnya.
+            $table->dropForeign(['manuscript_id']);
             $table->dropUnique(['manuscript_id']);
-            $table->dropConstrainedForeignId('manuscript_id');
+            $table->dropColumn('manuscript_id');
         });
 
         Schema::table('book_chapters', function (Blueprint $table) {
