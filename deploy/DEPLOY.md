@@ -697,53 +697,28 @@ Laravel, build frontend, dan memuat ulang PHP-FPM (tanpa mengganggu website lain
 
 Dipakai kalau pemasangan v2 sudah terlanjur jalan sebagian dan Anda ingin
 membatalkannya lalu mulai lagi dari langkah 1 -- misalnya setelah mencoba jalur
-database yang berbeda. Perintah di bawah **hanya menyentuh berkas milik v2**
-(nama filenya selalu mengandung `tartila-press-v2`/`tartila-v2`/`tartila_press`,
-tidak pernah nama yang dipakai website lama) dan aman dijalankan berulang atau
-walau sebagian belum pernah dibuat. Folder `/var/www/tartila-press-v2` sendiri
-(kode + riwayat git) TIDAK dihapus, cuma hasil pemasangannya.
+database yang berbeda. Sudah disiapkan skripnya (`deploy/reset-v2.sh`) supaya di
+konsol yang tidak bisa tempel (paste), cukup ketik satu baris pendek:
 
 ```bash
-PHPVER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
-
-# 1) Nginx & PHP-FPM khusus v2
-sudo rm -f /etc/nginx/sites-enabled/tartila-press-v2 /etc/nginx/sites-available/tartila-press-v2
-sudo nginx -t && sudo systemctl reload nginx
-sudo rm -f /etc/php/$PHPVER/fpm/pool.d/tartila-v2.conf
-sudo systemctl reload php$PHPVER-fpm 2>/dev/null || true
-
-# 2) Baris cron v2 (baris lain, termasuk milik website lama, tetap ada)
-crontab -l 2>/dev/null | grep -v 'tartila-press-v2' | crontab -
-
-# 3) Database. PostgreSQL (aman walau belum pernah dibuat):
-sudo -u postgres psql -c "DROP DATABASE IF EXISTS tartila_press;" 2>/dev/null || true
-sudo -u postgres psql -c "DROP USER IF EXISTS tartila;" 2>/dev/null || true
-
-#    Kalau sebelumnya sempat mencoba jalur MySQL, buang juga (aman walau
-#    belum pernah dibuat; TIDAK menyentuh database website lama):
-sudo mysql -e "DROP DATABASE IF EXISTS tartila_press_v2; DROP USER IF EXISTS 'tartila_v2'@'localhost';" 2>/dev/null || true
-
-# 4) Berkas hasil pemasangan (dibuat ulang otomatis di langkah 3 dan 4 nanti)
-cd /var/www/tartila-press-v2
-[ -f tartila-press_backend/.env ] && mv tartila-press_backend/.env ~/tartila-press_backend.env.bak-$(date +%F)
-rm -rf tartila-press_backend/vendor
-rm -f tartila-press_backend/bootstrap/cache/*.php
-rm -rf tartila-press-frontend/node_modules tartila-press-frontend/dist tartila-press-frontend/.env.production.local
+cd /var/www/tartila-press-v2 && git pull && bash deploy/reset-v2.sh
 ```
 
-`.env` lama dipindah (bukan dihapus) ke `~/tartila-press_backend.env.bak-TANGGAL`
-di folder rumah Anda -- masih bisa dilihat kalau perlu, mis. sandi database yang
-lama.
+Skrip ini **hanya menyentuh berkas milik v2** (nama filenya selalu mengandung
+`tartila-press-v2`/`tartila-v2`/`tartila_press`, tidak pernah nama yang dipakai
+website lama) dan aman dijalankan berulang kali atau walau sebagian belum pernah
+dibuat. Yang dikerjakan: membuang berkas Nginx dan pool PHP-FPM v2, baris cron
+v2, database PostgreSQL dan/atau MySQL v2 (kalau pernah dibuat), lalu
+`vendor/`, cache Laravel, `node_modules/`, dan hasil build frontend. Folder
+`/var/www/tartila-press-v2` sendiri (kode + riwayat git) TIDAK dihapus. `.env`
+lama dipindah (bukan dihapus) ke `~/tartila-press_backend.env.bak-...` di folder
+rumah Anda, masih bisa dilihat kalau perlu.
 
-**Opsional, hapus juga unggahan uji coba** (cover/PDF yang sempat diunggah
-selama mencoba). Lihat dulu isinya sebelum menghapus:
+Mau buang juga unggahan uji coba (cover/PDF yang sempat diunggah)? Tambahkan
+`--hapus-unggahan`:
 
 ```bash
-ls tartila-press_backend/storage/app/public tartila-press_backend/storage/app/private
-```
-
-```bash
-rm -rf tartila-press_backend/storage/app/public/* tartila-press_backend/storage/app/private/*
+bash deploy/reset-v2.sh --hapus-unggahan
 ```
 
 Setelah ini, folder v2 kembali seperti baru di-`clone`. Lanjutkan lagi dari
