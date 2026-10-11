@@ -149,6 +149,8 @@ class PackageController extends Controller
             'notes' => ['nullable', 'array'],
             'notes.*' => ['string'],
             'is_active' => ['nullable', 'boolean'],
+            // Eksemplar buku gratis untuk pemesan (biaya cetak 3 + N).
+            'free_copies' => ['nullable', 'integer', 'min:0', 'max:1000'],
         ]);
     }
 }

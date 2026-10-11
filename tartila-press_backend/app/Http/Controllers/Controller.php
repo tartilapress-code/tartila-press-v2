@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\PaginatesResults;
+
 abstract class Controller
 {
+    use PaginatesResults;
+
     /**
      * Every money/price column in this app is decimal(12,2) - this is the
      * largest value that fits without a Postgres numeric field overflow.

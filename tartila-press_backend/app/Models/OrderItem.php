@@ -16,6 +16,8 @@ class OrderItem extends Model
         'quantity',
         'unit_price',
         'subtotal',
+        'discount',
+        'voucher_discount',
     ];
 
     protected function casts(): array
@@ -24,6 +26,8 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
             'subtotal' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'voucher_discount' => 'decimal:2',
         ];
     }
 

@@ -27,6 +27,8 @@ class EditorProfile extends Model
             'fee' => 'decimal:2',
             'languages' => LanguageList::class,
             'is_available' => 'boolean',
+            // Bidang keahlian (id Kategori Keilmuan), diatur admin.
+            'field_category_ids' => 'array',
         ];
     }
 

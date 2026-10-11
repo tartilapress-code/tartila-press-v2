@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Editor;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\BookChapterSetting;
+use App\Models\FieldCategory;
 use App\Models\Manuscript;
 use App\Services\BookChapterCostCalculator;
+use App\Services\ManuscriptPoolService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -16,6 +18,7 @@ class ManuscriptController extends Controller
 {
     public function __construct(
         private readonly BookChapterCostCalculator $costCalculator,
+        private readonly ManuscriptPoolService $pool,
     ) {}
 
     /*
@@ -24,19 +27,36 @@ class ManuscriptController extends Controller
     |--------------------------------------------------------------------------
     */
 
+    // Hanya naskah yang kriteria bidangnya cocok dengan bidang keahlian
+    // editor (naskah "Umum" terbuka untuk semua editor).
     public function pool(Request $request): JsonResponse
     {
-        $this->ensureEligible($request->user());
+        $user = $request->user();
+
+        $this->ensureEligible($user);
+
+        $editorFields = $this->pool->editorFieldIds($user);
+        $fieldCategories = FieldCategory::get(['id', 'name']);
 
         $manuscripts = Manuscript::with('user')
             ->where('open_for_claim', true)
             ->latest()
-            ->get();
+            ->get()
+            ->filter(fn (Manuscript $manuscript) => $this->pool->matches($manuscript, $editorFields))
+            ->map(function (Manuscript $manuscript) use ($fieldCategories) {
+                $manuscript->setAttribute('pool_criteria', $this->pool->describe($manuscript, $fieldCategories));
+
+                return $manuscript;
+            })
+            ->values();
 
         return response()->json([
             'success' => true,
             'message' => 'Daftar naskah terbuka berhasil diambil.',
             'data' => $manuscripts,
+            'meta' => [
+                'my_field_categories' => $fieldCategories->whereIn('id', $editorFields)->pluck('name')->values(),
+            ],
         ]);
     }
 
@@ -61,6 +81,12 @@ class ManuscriptController extends Controller
                 $locked->open_for_claim,
                 422,
                 'Naskah ini sudah tidak tersedia di pool.'
+            );
+
+            abort_unless(
+                $this->pool->canClaim($user, $locked),
+                403,
+                'Naskah ini khusus untuk editor dengan bidang keahlian tertentu.'
             );
 
             $locked->update([

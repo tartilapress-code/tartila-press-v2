@@ -38,7 +38,30 @@ class Manuscript extends Model
         'author_bio_photo',
         'author_bio_name',
         'author_bio_text',
+        'manuscript_template_id',
+        'compiled_book_id',
+        'difficulty',
+        'pool_field_category_ids',
     ];
+
+    /*
+    | Tingkat kesulitan naskah (diisi admin saat menerima naskah penulis).
+    */
+
+    public const DIFFICULTIES = [
+        'mudah' => 'Mudah',
+        'sedang' => 'Sedang',
+        'sulit' => 'Sulit',
+    ];
+
+    /*
+    | Status khusus bab Book Chapter: bab disetujui admin menunggu bab lain,
+    | lalu digabung menjadi satu naskah buku yang dikerjakan editor.
+    */
+
+    public const STATUS_AWAITING_COMPILATION = 'awaiting_compilation';
+
+    public const STATUS_COMPILED = 'compiled';
 
     protected $appends = [
         'editor_admin_fee',
@@ -52,6 +75,7 @@ class Manuscript extends Model
             'editor_requested_fee' => 'decimal:2',
             'editor_deadline' => 'date',
             'open_for_claim' => 'boolean',
+            'pool_field_category_ids' => 'array',
         ];
     }
 
@@ -78,7 +102,8 @@ class Manuscript extends Model
 
     public function latestRevision(): ?ManuscriptRevision
     {
-        return $this->revisions()->latest('revision_number')->first();
+        // reorder: relasi revisions sudah diurutkan naik.
+        return $this->revisions()->reorder('revision_number', 'desc')->first();
     }
 
     public function book(): HasOne
@@ -89,6 +114,35 @@ class Manuscript extends Model
     public function bookChapter(): HasOne
     {
         return $this->hasOne(BookChapter::class);
+    }
+
+    /** Surat permohonan ISBN naskah ini (paket biasa), kalau sudah dibuka. */
+    public function isbnApplication(): HasOne
+    {
+        return $this->hasOne(IsbnApplication::class);
+    }
+
+    /** MOU distribusi buku (paket biasa). */
+    public function mou(): HasOne
+    {
+        return $this->hasOne(Mou::class);
+    }
+
+    /** Buku Book Chapter yang bab-babnya digabung menjadi naskah ini. */
+    public function compiledBook(): BelongsTo
+    {
+        return $this->belongsTo(Book::class, 'compiled_book_id');
+    }
+
+    public function isCompilation(): bool
+    {
+        return $this->compiled_book_id !== null;
+    }
+
+    /** Catatan revisi bab ini dari editor/admin naskah gabungan. */
+    public function chapterRevisionRequests(): HasMany
+    {
+        return $this->hasMany(ChapterRevisionRequest::class)->latest();
     }
 
     public function authorLinks(): HasMany

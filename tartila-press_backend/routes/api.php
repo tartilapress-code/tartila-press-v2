@@ -1,15 +1,34 @@
 <?php
 
+use App\Http\Controllers\Api\V1\About\AboutController;
+use App\Http\Controllers\Api\V1\Admin\AboutController as AdminAboutController;
 use App\Http\Controllers\Api\V1\Admin\ArticleController as AdminArticleController;
+use App\Http\Controllers\Api\V1\Admin\BookChapterCompilationController as AdminBookChapterCompilationController;
 use App\Http\Controllers\Api\V1\Admin\BookChapterProjectController as AdminBookChapterProjectController;
 use App\Http\Controllers\Api\V1\Admin\BookChapterSettingController as AdminBookChapterSettingController;
 use App\Http\Controllers\Api\V1\Admin\BookController as AdminBookController;
+use App\Http\Controllers\Api\V1\Admin\BookEbookController as AdminBookEbookController;
 use App\Http\Controllers\Api\V1\Admin\BookShipmentController;
+use App\Http\Controllers\Api\V1\Admin\CertificateTemplateController as AdminCertificateTemplateController;
+use App\Http\Controllers\Api\V1\Admin\DiscountController as AdminDiscountController;
+use App\Http\Controllers\Api\V1\Admin\EventAttendanceController as AdminEventAttendanceController;
 use App\Http\Controllers\Api\V1\Admin\EventCategoryController as AdminEventCategoryController;
 use App\Http\Controllers\Api\V1\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Api\V1\Admin\FinanceController as AdminFinanceController;
+use App\Http\Controllers\Api\V1\Admin\HkiController as AdminHkiController;
+use App\Http\Controllers\Api\V1\Admin\IsbnApplicationController as AdminIsbnApplicationController;
+use App\Http\Controllers\Api\V1\Admin\IsbnSettingController as AdminIsbnSettingController;
 use App\Http\Controllers\Api\V1\Admin\ManuscriptController as AdminManuscriptController;
+use App\Http\Controllers\Api\V1\Admin\ManuscriptPoolController as AdminManuscriptPoolController;
+use App\Http\Controllers\Api\V1\Admin\ManuscriptTemplateController as AdminManuscriptTemplateController;
+use App\Http\Controllers\Api\V1\Admin\MouController as AdminMouController;
+use App\Http\Controllers\Api\V1\Admin\MouTemplateController as AdminMouTemplateController;
 use App\Http\Controllers\Api\V1\Admin\RoyaltyController as AdminRoyaltyController;
+use App\Http\Controllers\Api\V1\Admin\SocialPostController as AdminSocialPostController;
 use App\Http\Controllers\Api\V1\Admin\UserManagementController;
+use App\Http\Controllers\Api\V1\Admin\VoucherController as AdminVoucherController;
+use App\Http\Controllers\Api\V1\Admin\VoucherGrantController as AdminVoucherGrantController;
+use App\Http\Controllers\Api\V1\Admin\WithdrawalController as AdminWithdrawalController;
 use App\Http\Controllers\Api\V1\Article\ArticleCommentController;
 use App\Http\Controllers\Api\V1\Article\ArticleController;
 use App\Http\Controllers\Api\V1\Article\ArticleLikeController;
@@ -20,15 +39,26 @@ use App\Http\Controllers\Api\V1\Book\BookChapterProjectController;
 use App\Http\Controllers\Api\V1\Book\BookController;
 use App\Http\Controllers\Api\V1\Book\BookReviewController;
 use App\Http\Controllers\Api\V1\Book\FieldCategoryController;
+use App\Http\Controllers\Api\V1\Book\MyPublishedBookController;
+use App\Http\Controllers\Api\V1\Certificate\FontController as CertificateFontController;
+use App\Http\Controllers\Api\V1\Certificate\MyCertificateController;
+use App\Http\Controllers\Api\V1\Certificate\MyHkiController;
+use App\Http\Controllers\Api\V1\Dashboard\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\Editor\BookChapterProjectController as EditorBookChapterProjectController;
 use App\Http\Controllers\Api\V1\Editor\BookChapterSettingController as EditorBookChapterSettingController;
 use App\Http\Controllers\Api\V1\Editor\EditorDirectoryController;
 use App\Http\Controllers\Api\V1\Editor\ManuscriptController as EditorManuscriptController;
 use App\Http\Controllers\Api\V1\Editor\MyEditorProfileController;
+use App\Http\Controllers\Api\V1\Event\AttendanceController as EventAttendanceController;
 use App\Http\Controllers\Api\V1\Event\EventController;
 use App\Http\Controllers\Api\V1\Event\EventRegistrationController;
 use App\Http\Controllers\Api\V1\Event\MyEventController;
+use App\Http\Controllers\Api\V1\Isbn\IsbnApplicationController;
+use App\Http\Controllers\Api\V1\Manuscript\CompilationChapterController;
 use App\Http\Controllers\Api\V1\Manuscript\ManuscriptController as PenulisManuscriptController;
+use App\Http\Controllers\Api\V1\Manuscript\PublicationProgressController;
+use App\Http\Controllers\Api\V1\Mou\MyMouController;
+use App\Http\Controllers\Api\V1\Notification\NotificationController;
 use App\Http\Controllers\Api\V1\Order\OrderController;
 use App\Http\Controllers\Api\V1\Order\OrderMessageController;
 use App\Http\Controllers\Api\V1\Package\CustomPackageItemController;
@@ -38,19 +68,22 @@ use App\Http\Controllers\Api\V1\Profile\ProfileController;
 use App\Http\Controllers\Api\V1\PublicProfile\MyPublicProfileController;
 use App\Http\Controllers\Api\V1\PublicProfile\ProfileExperienceController;
 use App\Http\Controllers\Api\V1\PublicProfile\PublicProfileController;
+use App\Http\Controllers\Api\V1\Reader\AdminBookController as ReaderAdminBookController;
+use App\Http\Controllers\Api\V1\Reader\AdminConfigController as ReaderAdminConfigController;
+use App\Http\Controllers\Api\V1\Reader\AdminOrderController as ReaderAdminOrderController;
+use App\Http\Controllers\Api\V1\Reader\CatalogController as ReaderCatalogController;
+use App\Http\Controllers\Api\V1\Reader\InteractionController as ReaderInteractionController;
+use App\Http\Controllers\Api\V1\Reader\MeController as ReaderMeController;
+use App\Http\Controllers\Api\V1\Reader\ReadingController as ReaderReadingController;
 use App\Http\Controllers\Api\V1\RoleRequest\RoleRequestController;
 use App\Http\Controllers\Api\V1\Royalty\RoyaltyController as UserRoyaltyController;
 use App\Http\Controllers\Api\V1\Upload\DocumentUploadController;
 use App\Http\Controllers\Api\V1\Upload\ImageUploadController;
 use App\Http\Controllers\Api\V1\User\UserSearchController;
+use App\Http\Controllers\Api\V1\Voucher\MyVoucherController;
+use App\Http\Controllers\Api\V1\Wallet\WalletController;
 use App\Http\Controllers\Scholar\BookPageController as ScholarBookPageController;
 use Illuminate\Support\Facades\Route;
-use Modules\Publisher\Http\Controllers\DraftEditing\ContentBlockController;
-use Modules\Publisher\Http\Controllers\DraftEditing\ManuscriptChapterController;
-use Modules\Publisher\Http\Controllers\DraftEditing\ManuscriptController;
-use Modules\Publisher\Http\Controllers\DraftEditing\ManuscriptReferenceController;
-use Modules\Publisher\Http\Controllers\Layout\PageNumberingController;
-use Modules\Publisher\Http\Controllers\Layout\TemplateController;
 
 Route::prefix('v1')->group(function () {
 
@@ -268,6 +301,9 @@ Route::prefix('v1')->group(function () {
 
     });
 
+    // Halaman "Tentang Kami" (juga kontak & sosial media di footer).
+    Route::get('/about', [AboutController::class, 'show'])->middleware('public.sanitize');
+
     /*
     |--------------------------------------------------------------------------
     | Paket Penerbitan (katalog publik)
@@ -303,6 +339,12 @@ Route::prefix('v1')->group(function () {
     Route::get(
         '/books',
         [BookController::class, 'index']
+    )->middleware('public.sanitize');
+
+    // Tumpukan sampul di hero beranda (sebelum rute slug).
+    Route::get(
+        '/books/hero-covers',
+        [BookController::class, 'heroCovers']
     )->middleware('public.sanitize');
 
     Route::get(
@@ -450,12 +492,54 @@ Route::prefix('v1')->group(function () {
             [EventRegistrationController::class, 'store']
         )->middleware('email.verified');
 
+        // Absensi event (formulir + status) -- hanya peserta terkonfirmasi.
+        Route::get(
+            '/events/{event:slug}/attendance',
+            [EventAttendanceController::class, 'show']
+        );
+
+        Route::post(
+            '/events/{event:slug}/attendance',
+            [EventAttendanceController::class, 'store']
+        )->middleware('email.verified');
+
     });
 
     Route::get(
         '/events/{event:slug}',
         [EventController::class, 'show']
     )->middleware('public.sanitize');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sertifikat (otomatis dari templat) + font untuk editor templat
+    |--------------------------------------------------------------------------
+    */
+
+    // Font open source untuk pratinjau editor templat; lewat API supaya
+    // mendapat header CORS.
+    Route::get(
+        '/certificate-fonts/{file}',
+        [CertificateFontController::class, 'show']
+    )->where('file', '[A-Za-z0-9._-]+')->middleware('public.sanitize');
+
+    Route::middleware('auth:sanctum')->group(function () {
+
+        Route::get(
+            '/certificates',
+            [MyCertificateController::class, 'index']
+        );
+
+        Route::get(
+            '/certificates/{certificate}/download',
+            [MyCertificateController::class, 'download']
+        );
+
+        // Sertifikat HKI karya yang ditulis user.
+        Route::get('/hki-certificates', [MyHkiController::class, 'index']);
+        Route::get('/hki-certificates/{hkiRecord}/download', [MyHkiController::class, 'download']);
+
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -508,7 +592,13 @@ Route::prefix('v1')->group(function () {
         Route::post(
             '/',
             [OrderController::class, 'store']
-        )->middleware('email.verified');
+        )->middleware(['email.verified', 'throttle:20,1']);
+
+        // Dibatasi supaya kode voucher tidak bisa ditebak beruntun.
+        Route::post(
+            '/check-voucher',
+            [OrderController::class, 'checkVoucher']
+        )->middleware('throttle:20,1');
 
         Route::get(
             '/mine',
@@ -523,6 +613,12 @@ Route::prefix('v1')->group(function () {
         Route::post(
             '/{order}/payment-proof',
             [OrderController::class, 'uploadPaymentProof']
+        );
+
+        // Invoice pesanan: pembeli pemilik pesanan atau admin.
+        Route::get(
+            '/{order}/invoice',
+            [OrderController::class, 'invoice']
         );
 
         Route::get(
@@ -548,6 +644,120 @@ Route::prefix('v1')->group(function () {
         Route::get(
             '/mine',
             [UserRoyaltyController::class, 'mine']
+        );
+
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Voucher Saya (Penulis / Editor)
+    |--------------------------------------------------------------------------
+    */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dompet Saya
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('auth:sanctum')->prefix('isbn-applications')->group(function () {
+
+        Route::post('/', [IsbnApplicationController::class, 'store'])
+            ->middleware('email.verified');
+        Route::get('/{isbnApplication}', [IsbnApplicationController::class, 'show']);
+        Route::post('/{isbnApplication}/sign', [IsbnApplicationController::class, 'sign']);
+        Route::get('/{isbnApplication}/download', [IsbnApplicationController::class, 'download']);
+
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Tartila Book (situs baca buku) - publik
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('reader')->group(function () {
+        Route::get('/filters', [ReaderCatalogController::class, 'filters'])->middleware('public.sanitize');
+        Route::get('/books', [ReaderCatalogController::class, 'index'])->middleware('public.sanitize');
+        Route::get('/books/{readerBook}', [ReaderCatalogController::class, 'show'])->middleware('public.sanitize');
+        Route::get('/books/{readerBook}/comments', [ReaderCatalogController::class, 'comments'])->middleware('public.sanitize');
+        Route::get('/plans', [ReaderCatalogController::class, 'plans'])->middleware('public.sanitize');
+    });
+
+    // Tartila Book - pembaca (login). Pembatasan baca per buku dicek di controller.
+    Route::middleware('auth:sanctum')->prefix('reader')->group(function () {
+        Route::get('/books/{readerBook}/file', [ReaderReadingController::class, 'file']);
+        Route::post('/books/{readerBook}/reads', [ReaderReadingController::class, 'reads'])->middleware('throttle:240,1');
+        Route::put('/books/{readerBook}/progress', [ReaderReadingController::class, 'progress'])->middleware('throttle:240,1');
+        Route::get('/books/{readerBook}/bookmarks', [ReaderReadingController::class, 'bookmarks']);
+        Route::post('/books/{readerBook}/bookmarks', [ReaderReadingController::class, 'storeBookmark']);
+        Route::delete('/bookmarks/{bookmark}', [ReaderReadingController::class, 'destroyBookmark']);
+
+        Route::post('/books/{readerBook}/like', [ReaderInteractionController::class, 'like']);
+        Route::delete('/books/{readerBook}/like', [ReaderInteractionController::class, 'unlike']);
+        Route::post('/books/{readerBook}/save', [ReaderInteractionController::class, 'save']);
+        Route::delete('/books/{readerBook}/save', [ReaderInteractionController::class, 'unsave']);
+        Route::post('/books/{readerBook}/comments', [ReaderInteractionController::class, 'storeComment'])->middleware('throttle:30,1');
+        Route::delete('/comments/{comment}', [ReaderInteractionController::class, 'destroyComment']);
+
+        Route::get('/me/shelf', [ReaderMeController::class, 'shelf']);
+        Route::get('/me/bookmarks', [ReaderMeController::class, 'bookmarks']);
+        Route::get('/me/access', [ReaderMeController::class, 'access']);
+        Route::get('/me/royalty', [ReaderMeController::class, 'royalty']);
+        Route::get('/orders', [ReaderMeController::class, 'orders']);
+        Route::post('/orders', [ReaderMeController::class, 'storeOrder'])->middleware('throttle:20,1');
+        Route::post('/orders/{order}/proof', [ReaderMeController::class, 'uploadProof']);
+    });
+
+    // MOU distribusi buku (penulis): daftar di Royalti Saya, tanda tangan, PDF.
+    Route::middleware('auth:sanctum')->prefix('mous')->group(function () {
+        Route::get('/', [MyMouController::class, 'index']);
+        Route::get('/{mou}', [MyMouController::class, 'show']);
+        Route::post('/{mou}/sign', [MyMouController::class, 'sign']);
+        Route::get('/{mou}/pdf', [MyMouController::class, 'pdf']);
+        Route::get('/{mou}/addenda/{addendum}', [MyMouController::class, 'addendum']);
+    });
+
+    // Notifikasi di aplikasi (lonceng & tanda merah di menu).
+    Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/summary', [NotificationController::class, 'summary']);
+        Route::post('/read', [NotificationController::class, 'markRead']);
+    });
+
+    // Ringkasan dashboard (semua fitur, per peran).
+    Route::middleware('auth:sanctum')->get('/dashboard/summary', DashboardSummaryController::class);
+
+    // Buku terbit penulis: ebook lengkap, sertifikat HKI & sertifikat penulis.
+    Route::middleware('auth:sanctum')->prefix('my-published-books')->group(function () {
+        Route::get('/', [MyPublishedBookController::class, 'index']);
+        Route::get('/{book}/ebook', [MyPublishedBookController::class, 'ebook']);
+    });
+
+    Route::middleware('auth:sanctum')->prefix('wallet')->group(function () {
+
+        Route::get('/', [WalletController::class, 'show']);
+
+        Route::post('/withdrawals', [WalletController::class, 'withdraw'])
+            ->middleware('email.verified');
+
+    });
+
+    Route::middleware('auth:sanctum')->prefix('vouchers')->group(function () {
+
+        Route::get(
+            '/mine',
+            [MyVoucherController::class, 'index']
+        );
+
+        Route::post(
+            '/mine',
+            [MyVoucherController::class, 'store']
+        )->middleware('email.verified');
+
+        Route::patch(
+            '/mine/{voucher}',
+            [MyVoucherController::class, 'update']
         );
 
     });
@@ -583,6 +793,28 @@ Route::prefix('v1')->group(function () {
         Route::get(
             '/{manuscript}/revisions/{revision}/download',
             [PenulisManuscriptController::class, 'downloadRevision']
+        );
+
+        // Riwayat status proses penerbitan (ISBN, HAKI, buku fisik).
+        Route::get(
+            '/{manuscript}/publication-progress',
+            [PublicationProgressController::class, 'show']
+        );
+
+        Route::post(
+            '/{manuscript}/publication-progress/confirm-delivery',
+            [PublicationProgressController::class, 'confirmDelivery']
+        );
+
+        // Book Chapter: naskah awal per bab dari naskah gabungan.
+        Route::get(
+            '/{manuscript}/compilation-chapters',
+            [CompilationChapterController::class, 'index']
+        );
+
+        Route::post(
+            '/{manuscript}/compilation-chapters/{chapter}/revision-request',
+            [CompilationChapterController::class, 'requestRevision']
         );
 
         Route::post(
@@ -646,6 +878,12 @@ Route::prefix('v1')->group(function () {
         Route::get(
             '/book-chapter-projects/{bookChapterProject}',
             [EditorBookChapterProjectController::class, 'show']
+        );
+
+        // Data poster "Promosikan Projek" untuk sosmed.
+        Route::get(
+            '/book-chapter-projects/{bookChapterProject}/promo',
+            [EditorBookChapterProjectController::class, 'promo']
         );
 
         Route::patch(
@@ -818,6 +1056,12 @@ Route::prefix('v1')->group(function () {
             [AdminManuscriptController::class, 'reviewRevision']
         );
 
+        // Pratinjau auto layout (unduh .docx hasil template, tidak disimpan)
+        Route::get(
+            '/manuscripts/{manuscript}/revisions/{revision}/auto-layout',
+            [AdminManuscriptController::class, 'autoLayoutPreview']
+        );
+
         Route::post(
             '/manuscripts/{manuscript}/assign-editor',
             [AdminManuscriptController::class, 'assignEditor']
@@ -827,6 +1071,16 @@ Route::prefix('v1')->group(function () {
             '/manuscripts/{manuscript}/open-pool',
             [AdminManuscriptController::class, 'openPool']
         );
+
+        // Tingkat kesulitan & kriteria editor pool sebuah naskah.
+        Route::put(
+            '/manuscripts/{manuscript}/pool-settings',
+            [AdminManuscriptController::class, 'updatePoolSettings']
+        );
+
+        // Pengaturan pool naskah: bidang keahlian editor.
+        Route::get('/manuscript-pool', [AdminManuscriptPoolController::class, 'index']);
+        Route::put('/manuscript-pool/editors/{user}', [AdminManuscriptPoolController::class, 'updateEditorFields']);
 
         // Books
         Route::get(
@@ -869,6 +1123,11 @@ Route::prefix('v1')->group(function () {
             [AdminBookController::class, 'uploadChapterPreview']
         );
 
+        // Ebook lengkap (privat, untuk penulis buku).
+        Route::post('/books/{book}/ebook', [AdminBookEbookController::class, 'store']);
+        Route::get('/books/{book}/ebook', [AdminBookEbookController::class, 'download']);
+        Route::delete('/books/{book}/ebook', [AdminBookEbookController::class, 'destroy']);
+
         // Articles
         Route::get(
             '/articles',
@@ -906,6 +1165,80 @@ Route::prefix('v1')->group(function () {
             [AdminEventController::class, 'destroy']
         );
 
+        // Absensi event: pengaturan + kolom formulir, daftar yang sudah
+        // absen, ekspor CSV.
+        Route::get(
+            '/events/{event}/attendance',
+            [AdminEventAttendanceController::class, 'show']
+        );
+
+        Route::put(
+            '/events/{event}/attendance',
+            [AdminEventAttendanceController::class, 'update']
+        );
+
+        Route::get(
+            '/events/{event}/attendances',
+            [AdminEventAttendanceController::class, 'attendances']
+        );
+
+        Route::get(
+            '/events/{event}/attendances/export',
+            [AdminEventAttendanceController::class, 'export']
+        );
+
+        Route::delete(
+            '/events/{event}/attendances/{attendance}',
+            [AdminEventAttendanceController::class, 'destroyAttendance']
+        );
+
+        // Templat sertifikat (rute tetap didaftarkan sebelum {certificateTemplate}).
+        Route::get(
+            '/certificate-templates',
+            [AdminCertificateTemplateController::class, 'index']
+        );
+
+        Route::get(
+            '/certificate-templates/meta',
+            [AdminCertificateTemplateController::class, 'meta']
+        );
+
+        Route::post(
+            '/certificate-templates/upload-image',
+            [AdminCertificateTemplateController::class, 'uploadImage']
+        );
+
+        Route::post(
+            '/certificate-templates/preview',
+            [AdminCertificateTemplateController::class, 'preview']
+        );
+
+        Route::post(
+            '/certificate-templates',
+            [AdminCertificateTemplateController::class, 'store']
+        );
+
+        Route::get(
+            '/certificate-templates/{certificateTemplate}',
+            [AdminCertificateTemplateController::class, 'show']
+        );
+
+        // Gambar templat lewat API (untuk kanvas poster sosmed: tanpa lintas-origin).
+        Route::get(
+            '/certificate-templates/{certificateTemplate}/image',
+            [AdminCertificateTemplateController::class, 'image']
+        );
+
+        Route::patch(
+            '/certificate-templates/{certificateTemplate}',
+            [AdminCertificateTemplateController::class, 'update']
+        );
+
+        Route::delete(
+            '/certificate-templates/{certificateTemplate}',
+            [AdminCertificateTemplateController::class, 'destroy']
+        );
+
         Route::post(
             '/event-categories',
             [AdminEventCategoryController::class, 'store']
@@ -920,6 +1253,147 @@ Route::prefix('v1')->group(function () {
             '/event-categories/{eventCategory}',
             [AdminEventCategoryController::class, 'destroy']
         );
+
+        // Template naskah (tata letak buku otomatis)
+        Route::get('/manuscript-templates/meta', [AdminManuscriptTemplateController::class, 'meta']);
+        Route::get('/manuscript-templates', [AdminManuscriptTemplateController::class, 'index']);
+        Route::post('/manuscript-templates', [AdminManuscriptTemplateController::class, 'store']);
+        Route::get('/manuscript-templates/{manuscriptTemplate}', [AdminManuscriptTemplateController::class, 'show']);
+        Route::patch('/manuscript-templates/{manuscriptTemplate}', [AdminManuscriptTemplateController::class, 'update']);
+        Route::post('/manuscript-templates/{manuscriptTemplate}/duplicate', [AdminManuscriptTemplateController::class, 'duplicate']);
+        Route::post('/manuscript-templates/{manuscriptTemplate}/make-default', [AdminManuscriptTemplateController::class, 'makeDefault']);
+        Route::delete('/manuscript-templates/{manuscriptTemplate}', [AdminManuscriptTemplateController::class, 'destroy']);
+
+        // Konten sosmed (poster + caption buku terbit)
+        Route::get('/social/books', [AdminSocialPostController::class, 'books']);
+        Route::get('/social/books/{book}/cover', [AdminSocialPostController::class, 'cover']);
+
+        // Terbitkan naskah (surat ISBN) + template surat
+        Route::get('/isbn-applications', [AdminIsbnApplicationController::class, 'index']);
+        Route::get('/isbn-applications/{isbnApplication}/download', [AdminIsbnApplicationController::class, 'download']);
+        Route::get('/isbn-applications/{isbnApplication}/dummy', [AdminIsbnApplicationController::class, 'dummy']);
+        Route::get('/isbn-applications/{isbnApplication}/cover', [AdminIsbnApplicationController::class, 'cover']);
+        Route::get('/isbn-applications/{isbnApplication}/process', [AdminIsbnApplicationController::class, 'process']);
+        Route::post('/isbn-applications/{isbnApplication}/process/isbn', [AdminIsbnApplicationController::class, 'updateIsbnProcess']);
+        Route::post('/isbn-applications/{isbnApplication}/process/physical', [AdminIsbnApplicationController::class, 'updatePhysicalProcess']);
+        Route::patch('/isbn-applications/{isbnApplication}/process/settings', [AdminIsbnApplicationController::class, 'updateProcessSettings']);
+        Route::patch('/isbn-applications/{isbnApplication}/form', [AdminIsbnApplicationController::class, 'updateForm']);
+
+        Route::get('/isbn-settings', [AdminIsbnSettingController::class, 'show']);
+        Route::put('/isbn-settings', [AdminIsbnSettingController::class, 'update']);
+        Route::post('/isbn-settings/reset', [AdminIsbnSettingController::class, 'reset']);
+        Route::get('/isbn-settings/preview', [AdminIsbnSettingController::class, 'preview']);
+        Route::get('/isbn-settings/assets/{kind}', [AdminIsbnSettingController::class, 'asset']);
+        Route::post('/isbn-settings/assets/{kind}', [AdminIsbnSettingController::class, 'uploadAsset']);
+        Route::delete('/isbn-settings/assets/{kind}', [AdminIsbnSettingController::class, 'deleteAsset']);
+
+        // Tartila Book (situs baca buku)
+        Route::prefix('reader')->group(function () {
+            Route::get('/books', [ReaderAdminBookController::class, 'index']);
+            Route::get('/books/candidates', [ReaderAdminBookController::class, 'candidates']);
+            Route::post('/books', [ReaderAdminBookController::class, 'store']);
+            Route::get('/books/{readerBook}', [ReaderAdminBookController::class, 'show']);
+            Route::patch('/books/{readerBook}', [ReaderAdminBookController::class, 'update']);
+            Route::delete('/books/{readerBook}', [ReaderAdminBookController::class, 'destroy']);
+
+            Route::get('/terms', [ReaderAdminConfigController::class, 'terms']);
+            Route::post('/terms', [ReaderAdminConfigController::class, 'storeTerm']);
+            Route::put('/terms/{term}', [ReaderAdminConfigController::class, 'updateTerm']);
+            Route::delete('/terms/{term}', [ReaderAdminConfigController::class, 'destroyTerm']);
+
+            Route::get('/plans', [ReaderAdminConfigController::class, 'plans']);
+            Route::post('/plans', [ReaderAdminConfigController::class, 'storePlan']);
+            Route::put('/plans/{plan}', [ReaderAdminConfigController::class, 'updatePlan']);
+            Route::delete('/plans/{plan}', [ReaderAdminConfigController::class, 'destroyPlan']);
+
+            Route::get('/rules', [ReaderAdminConfigController::class, 'rules']);
+            Route::post('/rules', [ReaderAdminConfigController::class, 'storeRule']);
+            Route::delete('/rules/{rule}', [ReaderAdminConfigController::class, 'destroyRule']);
+
+            Route::get('/settings', [ReaderAdminConfigController::class, 'settings']);
+            Route::put('/settings', [ReaderAdminConfigController::class, 'updateSettings']);
+
+            Route::get('/orders', [ReaderAdminOrderController::class, 'index']);
+            Route::get('/orders/{order}/proof', [ReaderAdminOrderController::class, 'proof']);
+            Route::post('/orders/{order}/verify', [ReaderAdminOrderController::class, 'verify']);
+            Route::get('/royalties', [ReaderAdminOrderController::class, 'royalties']);
+        });
+
+        // MOU distribusi buku: template per kategori + MOU per judul
+        Route::get('/mou-templates/{category}', [AdminMouTemplateController::class, 'show']);
+        Route::put('/mou-templates/{category}', [AdminMouTemplateController::class, 'update']);
+        Route::post('/mou-templates/{category}/reset', [AdminMouTemplateController::class, 'reset']);
+        Route::get('/mou-templates/{category}/preview', [AdminMouTemplateController::class, 'preview']);
+        Route::get('/mous', [AdminMouController::class, 'index']);
+        Route::get('/mous/{mou}', [AdminMouController::class, 'show']);
+        Route::put('/mous/{mou}', [AdminMouController::class, 'update']);
+        Route::post('/mous/{mou}/reset-template', [AdminMouController::class, 'resetToTemplate']);
+        Route::get('/mous/{mou}/pdf', [AdminMouController::class, 'sealedPdf']);
+        Route::post('/mous/{mou}/final', [AdminMouController::class, 'uploadFinal']);
+        Route::get('/mous/{mou}/final', [AdminMouController::class, 'finalPdf']);
+        Route::delete('/mous/{mou}/final', [AdminMouController::class, 'deleteFinal']);
+        Route::post('/mous/{mou}/addenda', [AdminMouController::class, 'storeAddendum']);
+        Route::get('/mous/{mou}/addenda/{addendum}', [AdminMouController::class, 'addendum']);
+        Route::delete('/mous/{mou}/addenda/{addendum}', [AdminMouController::class, 'destroyAddendum']);
+
+        // Penarikan saldo dompet
+        // Keuangan
+        Route::get('/finance/summary', [AdminFinanceController::class, 'summary']);
+        Route::get('/finance/transactions', [AdminFinanceController::class, 'transactions']);
+        Route::post('/finance/transactions', [AdminFinanceController::class, 'storeTransaction']);
+        Route::patch('/finance/transactions/{transaction}', [AdminFinanceController::class, 'updateTransaction']);
+        Route::delete('/finance/transactions/{transaction}', [AdminFinanceController::class, 'destroyTransaction']);
+        Route::patch('/finance/accounts/{source}/{id}', [AdminFinanceController::class, 'assignAccount'])
+            ->where(['source' => 'order|reader_order|withdrawal', 'id' => '[0-9]+']);
+        Route::get('/finance/packages', [AdminFinanceController::class, 'packages']);
+        Route::get('/finance/books', [AdminFinanceController::class, 'books']);
+        Route::get('/finance/ebooks', [AdminFinanceController::class, 'ebooks']);
+        Route::get('/finance/events', [AdminFinanceController::class, 'events']);
+        Route::put('/finance/details', [AdminFinanceController::class, 'updateDetail']);
+        Route::get('/finance/settings', [AdminFinanceController::class, 'settings']);
+        Route::put('/finance/settings', [AdminFinanceController::class, 'updateSettings']);
+        Route::patch('/finance/payment-methods/{paymentMethod}/opening-balance', [AdminFinanceController::class, 'updateOpeningBalance']);
+
+        // Tentang Kami
+        Route::get('/about', [AdminAboutController::class, 'show']);
+        Route::put('/about', [AdminAboutController::class, 'updateProfile']);
+        Route::post('/about/legalities', [AdminAboutController::class, 'storeLegality']);
+        Route::put('/about/legalities/order', [AdminAboutController::class, 'orderLegalities']);
+        Route::put('/about/legalities/{legality}', [AdminAboutController::class, 'updateLegality']);
+        Route::delete('/about/legalities/{legality}', [AdminAboutController::class, 'destroyLegality']);
+        Route::post('/about/team', [AdminAboutController::class, 'storeMember']);
+        Route::put('/about/team/order', [AdminAboutController::class, 'orderMembers']);
+        Route::put('/about/team/{member}', [AdminAboutController::class, 'updateMember']);
+        Route::delete('/about/team/{member}', [AdminAboutController::class, 'destroyMember']);
+
+        // HKI
+        Route::get('/hki', [AdminHkiController::class, 'index']);
+        Route::put('/hki/{subjectType}/{subjectId}', [AdminHkiController::class, 'update'])
+            ->where(['subjectType' => 'order|book', 'subjectId' => '[0-9]+']);
+        Route::post('/hki/{subjectType}/{subjectId}/certificate', [AdminHkiController::class, 'uploadCertificate'])
+            ->where(['subjectType' => 'order|book', 'subjectId' => '[0-9]+']);
+        Route::get('/hki/records/{hkiRecord}/certificate', [AdminHkiController::class, 'downloadCertificate']);
+        Route::delete('/hki/records/{hkiRecord}/certificate', [AdminHkiController::class, 'deleteCertificate']);
+
+        Route::get('/withdrawals', [AdminWithdrawalController::class, 'index']);
+        Route::post('/withdrawals/{withdrawal}/pay', [AdminWithdrawalController::class, 'pay']);
+        Route::post('/withdrawals/{withdrawal}/reject', [AdminWithdrawalController::class, 'reject']);
+
+        // Voucher dan diskon
+        Route::get('/discounts', [AdminDiscountController::class, 'index']);
+        Route::post('/discounts/apply', [AdminDiscountController::class, 'apply']);
+        Route::post('/discounts/reset', [AdminDiscountController::class, 'reset']);
+
+        Route::get('/vouchers', [AdminVoucherController::class, 'index']);
+        Route::post('/vouchers', [AdminVoucherController::class, 'store']);
+        Route::post('/vouchers/reset', [AdminVoucherController::class, 'reset']);
+        Route::patch('/vouchers/{voucher}', [AdminVoucherController::class, 'update']);
+
+        Route::get('/voucher-grants', [AdminVoucherGrantController::class, 'index']);
+        Route::get('/voucher-grants/eligible-users', [AdminVoucherGrantController::class, 'eligibleUsers']);
+        Route::post('/voucher-grants', [AdminVoucherGrantController::class, 'store']);
+        Route::patch('/voucher-grants/{voucherGrant}', [AdminVoucherGrantController::class, 'update']);
+        Route::delete('/voucher-grants/{voucherGrant}', [AdminVoucherGrantController::class, 'destroy']);
 
         // Royalti
         Route::get(
@@ -1005,6 +1479,12 @@ Route::prefix('v1')->group(function () {
             [AdminBookChapterProjectController::class, 'show']
         );
 
+        // Data poster promosi Book Chapter (Konten Sosmed).
+        Route::get(
+            '/book-chapter-projects/{bookChapterProject}/promo',
+            [AdminBookChapterProjectController::class, 'promo']
+        );
+
         Route::patch(
             '/book-chapter-projects/{bookChapterProject}',
             [AdminBookChapterProjectController::class, 'update']
@@ -1030,174 +1510,16 @@ Route::prefix('v1')->group(function () {
             [AdminBookChapterProjectController::class, 'destroyChapter']
         );
 
-    });
+        // Gabungkan naskah semua bab menjadi satu naskah buku untuk editor.
+        Route::get(
+            '/book-chapter-projects/{bookChapterProject}/compilation',
+            [AdminBookChapterCompilationController::class, 'show']
+        );
 
-    /*
-    |--------------------------------------------------------------------------
-    | Publisher Engine (Layout & Draft Editing)
-    |--------------------------------------------------------------------------
-    */
-
-    Route::middleware('auth:sanctum')->prefix('publisher')->group(function () {
-
-        /*
-        |------------------------------------------------------------------
-        | Fitur: Layout (rancang template)
-        |------------------------------------------------------------------
-        */
-
-        Route::prefix('layout')->group(function () {
-
-            Route::get(
-                '/templates',
-                [TemplateController::class, 'index']
-            );
-
-            Route::post(
-                '/templates',
-                [TemplateController::class, 'store']
-            );
-
-            Route::get(
-                '/templates/{template}',
-                [TemplateController::class, 'show']
-            );
-
-            Route::patch(
-                '/templates/{template}',
-                [TemplateController::class, 'update']
-            );
-
-            Route::delete(
-                '/templates/{template}',
-                [TemplateController::class, 'destroy']
-            );
-
-            Route::get(
-                '/templates/{template}/page-numbering',
-                [PageNumberingController::class, 'show']
-            );
-
-            Route::put(
-                '/templates/{template}/page-numbering',
-                [PageNumberingController::class, 'update']
-            );
-
-        });
-
-        /*
-        |------------------------------------------------------------------
-        | Fitur: Draft Editing (susun naskah)
-        |------------------------------------------------------------------
-        */
-
-        Route::prefix('draft')->group(function () {
-
-            // Manuscripts
-            Route::get(
-                '/manuscripts',
-                [ManuscriptController::class, 'index']
-            );
-
-            Route::post(
-                '/manuscripts',
-                [ManuscriptController::class, 'store']
-            );
-
-            Route::get(
-                '/manuscripts/{manuscript}',
-                [ManuscriptController::class, 'show']
-            );
-
-            Route::patch(
-                '/manuscripts/{manuscript}',
-                [ManuscriptController::class, 'update']
-            );
-
-            Route::delete(
-                '/manuscripts/{manuscript}',
-                [ManuscriptController::class, 'destroy']
-            );
-
-            Route::post(
-                '/manuscripts/{manuscript}/publish',
-                [ManuscriptController::class, 'publish']
-            );
-
-            // Chapters
-            Route::get(
-                '/manuscripts/{manuscript}/chapters',
-                [ManuscriptChapterController::class, 'index']
-            );
-
-            Route::post(
-                '/manuscripts/{manuscript}/chapters',
-                [ManuscriptChapterController::class, 'store']
-            );
-
-            Route::put(
-                '/manuscripts/{manuscript}/chapters/reorder',
-                [ManuscriptChapterController::class, 'reorder']
-            );
-
-            Route::patch(
-                '/manuscripts/{manuscript}/chapters/{chapter}',
-                [ManuscriptChapterController::class, 'update']
-            );
-
-            Route::delete(
-                '/manuscripts/{manuscript}/chapters/{chapter}',
-                [ManuscriptChapterController::class, 'destroy']
-            );
-
-            // Content Blocks
-            Route::get(
-                '/chapters/{chapter}/blocks',
-                [ContentBlockController::class, 'index']
-            );
-
-            Route::post(
-                '/chapters/{chapter}/blocks',
-                [ContentBlockController::class, 'store']
-            );
-
-            Route::put(
-                '/chapters/{chapter}/blocks/reorder',
-                [ContentBlockController::class, 'reorder']
-            );
-
-            Route::patch(
-                '/chapters/{chapter}/blocks/{block}',
-                [ContentBlockController::class, 'update']
-            );
-
-            Route::delete(
-                '/chapters/{chapter}/blocks/{block}',
-                [ContentBlockController::class, 'destroy']
-            );
-
-            // References
-            Route::get(
-                '/manuscripts/{manuscript}/references',
-                [ManuscriptReferenceController::class, 'index']
-            );
-
-            Route::post(
-                '/manuscripts/{manuscript}/references',
-                [ManuscriptReferenceController::class, 'store']
-            );
-
-            Route::patch(
-                '/manuscripts/{manuscript}/references/{reference}',
-                [ManuscriptReferenceController::class, 'update']
-            );
-
-            Route::delete(
-                '/manuscripts/{manuscript}/references/{reference}',
-                [ManuscriptReferenceController::class, 'destroy']
-            );
-
-        });
+        Route::post(
+            '/book-chapter-projects/{bookChapterProject}/compilation',
+            [AdminBookChapterCompilationController::class, 'store']
+        );
 
     });
 

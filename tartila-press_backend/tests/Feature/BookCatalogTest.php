@@ -19,6 +19,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\MouFixture;
 use Tests\TestCase;
 
 class BookCatalogTest extends TestCase
@@ -75,13 +76,18 @@ class BookCatalogTest extends TestCase
             'total' => $package->price,
         ]);
 
-        return Manuscript::create([
+        $manuscript = Manuscript::create([
             'order_id' => $order->id,
             'user_id' => $penulis->id,
             'title' => $title,
             'authors' => [$penulis->name],
             'status' => 'completed',
         ]);
+
+        // Syarat terbit: semua penulis sudah menandatangani MOU.
+        MouFixture::signedFor($manuscript);
+
+        return $manuscript;
     }
 
     private function pdf(string $name = 'preview.pdf'): UploadedFile

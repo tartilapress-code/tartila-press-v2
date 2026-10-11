@@ -13,6 +13,8 @@ use App\Models\FieldCategory;
 use App\Models\User;
 use App\Services\BookChapterCostGuard;
 use App\Services\BookChapterProjectService;
+use App\Services\MouService;
+use App\Support\BookChapterPromo;
 use App\Support\Languages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,8 +35,8 @@ class BookChapterProjectController extends Controller
         'facilities.*' => ['string', 'max:255'],
         'services' => ['nullable', 'array'],
         'services.*' => ['string', 'max:255'],
-        'front_cover' => ['nullable', 'string', 'max:500'],
-        'back_cover' => ['nullable', 'string', 'max:500'],
+        'front_cover' => ['nullable', 'string', 'max:500', 'http_url'],
+        'back_cover' => ['nullable', 'string', 'max:500', 'http_url'],
         'estimated_publish_date' => ['nullable', 'date'],
         'submission_deadline' => ['nullable', 'date'],
         'owner_editor_id' => ['nullable', 'integer'],
@@ -59,21 +61,27 @@ class BookChapterProjectController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $projects = Book::with(['category', 'fieldCategory', 'ownerEditor', 'chapters.manuscript.user', 'packageItems'])
+        // Per halaman: ?search= (judul/editor pemilik).
+        $query = Book::with(['category', 'fieldCategory', 'ownerEditor', 'chapters.manuscript.user', 'packageItems'])
             ->where('is_chapter_offering', true)
             ->latest()
-            ->get();
+            ->orderByDesc('id');
+
+        if ($request->filled('search')) {
+            $term = '%'.mb_strtolower((string) $request->query('search')).'%';
+
+            $query->where(fn ($q) => $q->whereRaw('LOWER(title) LIKE ?', [$term])
+                ->orWhereHas('ownerEditor', fn ($editor) => $editor->whereRaw('LOWER(name) LIKE ?', [$term])));
+        }
+
+        $projects = $query->paginate($this->perPage($request, 20));
 
         $settings = BookChapterSetting::current();
-        $projects->each(fn (Book $project) => $this->service->withCostSummary($project, $settings));
+        $projects->getCollection()->each(fn (Book $project) => $this->service->withCostSummary($project, $settings));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar proyek Book Chapter berhasil diambil.',
-            'data' => $projects,
-        ]);
+        return $this->pageResponse($projects, 'Daftar proyek Book Chapter berhasil diambil.');
     }
 
     /*
@@ -81,6 +89,18 @@ class BookChapterProjectController extends Controller
     | Show
     |--------------------------------------------------------------------------
     */
+
+    /** Data poster promosi sosmed (selalu data terbaru). */
+    public function promo(Book $bookChapterProject): JsonResponse
+    {
+        abort_unless($bookChapterProject->is_chapter_offering, 404, 'Proyek Book Chapter tidak ditemukan.');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data promosi proyek berhasil diambil.',
+            'data' => BookChapterPromo::present($bookChapterProject),
+        ]);
+    }
 
     public function show(Book $bookChapterProject): JsonResponse
     {
@@ -155,6 +175,10 @@ class BookChapterProjectController extends Controller
         // Perubahan harga/diskon/HKI/ISBN/fasilitas tidak boleh membuat sisa
         // biaya 1 buku di bawah minimal (admin pun terikat).
         $this->costGuard->assertProjectChangeAllowed($bookChapterProject, $validated, BookChapterSetting::current());
+
+        if (! empty($validated['is_active'])) {
+            app(MouService::class)->assertCanPublishChapterBook($bookChapterProject);
+        }
 
         DB::transaction(function () use ($bookChapterProject, $validated) {
             $bookChapterProject->update(collect($validated)->except('package_item_ids')->toArray());
@@ -326,6 +350,14 @@ class BookChapterProjectController extends Controller
             'Kolom price tidak valid atau melebihi batas maksimal.'
         );
 
+        $frontCover = $this->blankToNull($row, 'front_cover');
+
+        abort_if(
+            $frontCover !== null && (! filter_var($frontCover, FILTER_VALIDATE_URL) || ! preg_match('#^https?://#i', $frontCover)),
+            422,
+            'Kolom front_cover harus berupa tautan http/https.'
+        );
+
         // Kolom `languages` (opsional): kode bahasa dipisah ";" atau "|", mis. id;en.
         $languages = Languages::parseDelimited($row['languages'] ?? null);
 
@@ -357,7 +389,7 @@ class BookChapterProjectController extends Controller
                 'languages' => $languages['languages'],
                 'estimated_publish_date' => $this->blankToNull($row, 'estimated_publish_date'),
                 'submission_deadline' => $this->blankToNull($row, 'submission_deadline'),
-                'front_cover' => $this->blankToNull($row, 'front_cover'),
+                'front_cover' => $frontCover,
             ],
             creatorId: $creatorId,
             isEditorCreated: false,

@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Book;
+use App\Models\BookChapter;
 use App\Models\BookExternalSale;
 use App\Models\Manuscript;
+use App\Models\ManuscriptAuthor;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
@@ -71,6 +73,7 @@ class BookRoyaltyTest extends TestCase
             'authors_text' => $author->name,
             'price' => 100000,
             'discount' => 0,
+            'is_active' => true,
             'created_by' => $author->id,
         ], $overrides));
     }
@@ -98,43 +101,39 @@ class BookRoyaltyTest extends TestCase
     |--------------------------------------------------------------------------
     */
 
-    public function test_admin_can_set_royalty_percentage_via_book_update_endpoint(): void
+    public function test_manual_royalty_percentage_is_no_longer_accepted_from_the_book_form(): void
     {
         $admin = $this->makeUser(['admin']);
-        $author = $this->makeUser(['penulis']);
-        $book = $this->makeBookWithAuthor($author);
+        $book = $this->makeBookWithAuthor($this->makeUser(['penulis']));
 
         Sanctum::actingAs($admin);
 
-        $response = $this->patchJson("/api/v1/admin/books/{$book->id}", [
-            'royalty_percentage' => 15,
-        ]);
+        $this->patchJson("/api/v1/admin/books/{$book->id}", ['royalty_percentage' => 15])->assertStatus(200);
 
-        $response->assertStatus(200);
-        $this->assertSame('15.00', $book->fresh()->royalty_percentage);
+        $this->assertNull($book->fresh()->royalty_percentage);
     }
 
-    public function test_admin_royalty_index_only_shows_books_with_royalty_percentage_set(): void
+    public function test_admin_royalty_index_lists_published_books_with_a_linked_author_only(): void
     {
         $admin = $this->makeUser(['admin']);
-        $withRoyalty = $this->makeBookWithAuthor($this->makeUser(['penulis']), ['royalty_percentage' => 10]);
-        $withoutRoyalty = $this->makeBookWithAuthor($this->makeUser(['penulis']));
+        $published = $this->makeBookWithAuthor($this->makeUser(['penulis']));
+        $draft = $this->makeBookWithAuthor($this->makeUser(['penulis']), ['is_active' => false]);
+        $noAuthor = Book::create(['title' => 'Tanpa Penulis Akun', 'price' => 1000, 'discount' => 0, 'is_active' => true, 'created_by' => $admin->id]);
 
         Sanctum::actingAs($admin);
 
-        $response = $this->getJson('/api/v1/admin/royalties');
+        $ids = collect($this->getJson('/api/v1/admin/royalties')->json('data'))->pluck('id');
 
-        $response->assertStatus(200);
-        $ids = collect($response->json('data'))->pluck('id');
-        $this->assertTrue($ids->contains($withRoyalty->id));
-        $this->assertFalse($ids->contains($withoutRoyalty->id));
+        $this->assertTrue($ids->contains($published->id));
+        $this->assertFalse($ids->contains($draft->id));
+        $this->assertFalse($ids->contains($noAuthor->id));
     }
 
     public function test_admin_royalty_index_shows_total_and_completed_order_counts_separately(): void
     {
         $admin = $this->makeUser(['admin']);
         $author = $this->makeUser(['penulis']);
-        $book = $this->makeBookWithAuthor($author, ['royalty_percentage' => 10, 'price' => 100000]);
+        $book = $this->makeBookWithAuthor($author, ['price' => 100000]);
 
         $pendingOrderId = $this->placeBookOrder($this->makeUser(), $book);
         $completedOrderId = $this->placeBookOrder($this->makeUser(), $book);
@@ -150,7 +149,7 @@ class BookRoyaltyTest extends TestCase
         $this->assertSame(2, $row['total_orders_count']);
         $this->assertSame(1, $row['completed_orders_count']);
         $this->assertSame(1, $row['completed_quantity']);
-        $this->assertEquals(10000, $row['system_royalty_amount']);
+        $this->assertEquals(25000, $row['system_royalty_amount']);
 
         $this->assertNotNull($pendingOrderId);
     }
@@ -159,7 +158,7 @@ class BookRoyaltyTest extends TestCase
     {
         $admin = $this->makeUser(['admin']);
         $author = $this->makeUser(['penulis']);
-        $book = $this->makeBookWithAuthor($author, ['royalty_percentage' => 10, 'price' => 100000]);
+        $book = $this->makeBookWithAuthor($author, ['price' => 100000]);
 
         $orderId = $this->placeBookOrder($this->makeUser(), $book);
 
@@ -174,7 +173,7 @@ class BookRoyaltyTest extends TestCase
         $response = $this->getJson('/api/v1/admin/royalties');
         $row = collect($response->json('data'))->firstWhere('id', $book->id);
 
-        $this->assertEquals(10000, $row['system_royalty_amount']);
+        $this->assertEquals(25000, $row['system_royalty_amount']);
     }
 
     /*
@@ -236,7 +235,7 @@ class BookRoyaltyTest extends TestCase
     public function test_royalty_amount_calculated_from_original_price_for_external_sales(): void
     {
         $admin = $this->makeUser(['admin']);
-        $book = $this->makeBookWithAuthor($this->makeUser(['penulis']), ['royalty_percentage' => 10]);
+        $book = $this->makeBookWithAuthor($this->makeUser(['penulis']), []);
 
         Sanctum::actingAs($admin);
         $this->postJson("/api/v1/admin/books/{$book->id}/external-sales", [
@@ -250,8 +249,8 @@ class BookRoyaltyTest extends TestCase
         $response = $this->getJson('/api/v1/admin/royalties');
         $row = collect($response->json('data'))->firstWhere('id', $book->id);
 
-        // 100000 (harga asli, BUKAN harga setelah diskon 50000) * 10% * 4 = 40000
-        $this->assertEquals(40000, $row['external_royalty_amount']);
+        // 100000 (harga asli, BUKAN harga setelah diskon 50000) * 25% * 4 = 100000
+        $this->assertEquals(100000, $row['external_royalty_amount']);
         $this->assertSame(4, $row['external_quantity']);
     }
 
@@ -265,7 +264,7 @@ class BookRoyaltyTest extends TestCase
     {
         $admin = $this->makeUser(['admin']);
         $author = $this->makeUser(['penulis']);
-        $book = $this->makeBookWithAuthor($author, ['royalty_percentage' => 10, 'price' => 100000]);
+        $book = $this->makeBookWithAuthor($author, ['price' => 100000]);
 
         $this->placeBookOrder($this->makeUser(), $book);
         $completedOrderId = $this->placeBookOrder($this->makeUser(), $book);
@@ -280,7 +279,7 @@ class BookRoyaltyTest extends TestCase
 
         $row = collect($response->json('data'))->firstWhere('id', $book->id);
         $this->assertSame(1, $row['quantity_sold']);
-        $this->assertEquals(10000, $row['royalty_amount']);
+        $this->assertEquals(25000, $row['royalty_amount']);
         $this->assertArrayNotHasKey('total_orders_count', $row);
         $this->assertArrayNotHasKey('completed_orders_count', $row);
     }
@@ -289,7 +288,7 @@ class BookRoyaltyTest extends TestCase
     {
         $admin = $this->makeUser(['admin']);
         $author = $this->makeUser(['penulis']);
-        $book = $this->makeBookWithAuthor($author, ['royalty_percentage' => 10]);
+        $book = $this->makeBookWithAuthor($author, []);
 
         Sanctum::actingAs($admin);
         $this->postJson("/api/v1/admin/books/{$book->id}/external-sales", [
@@ -307,7 +306,7 @@ class BookRoyaltyTest extends TestCase
 
         $this->assertSame('Shopee', $sale['marketplace_name']);
         $this->assertEquals(2, $sale['quantity_sold']);
-        $this->assertEquals(20000, $sale['royalty_amount']);
+        $this->assertEquals(50000, $sale['royalty_amount']);
         $this->assertArrayNotHasKey('discount_percentage', $sale);
         $this->assertArrayNotHasKey('discounted_price', $sale);
     }
@@ -316,13 +315,156 @@ class BookRoyaltyTest extends TestCase
     {
         $author = $this->makeUser(['penulis']);
         $otherAuthor = $this->makeUser(['penulis']);
-        $this->makeBookWithAuthor($otherAuthor, ['royalty_percentage' => 10]);
+        $this->makeBookWithAuthor($otherAuthor, []);
 
         Sanctum::actingAs($author);
         $response = $this->getJson('/api/v1/royalties/mine');
 
         $response->assertStatus(200);
         $this->assertCount(0, $response->json('data'));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Aturan royalti per jenis paket
+    |--------------------------------------------------------------------------
+    */
+
+    private function makeCompilation(array $authors, ?User $ownerEditor = null): Book
+    {
+        $book = Book::create([
+            'title' => 'Kompilasi '.uniqid(),
+            'authors_text' => 'Beberapa Penulis',
+            'price' => 100000,
+            'discount' => 0,
+            'is_active' => true,
+            'is_chapter_compilation' => true,
+            'is_editor_created' => $ownerEditor !== null,
+            'owner_editor_id' => $ownerEditor?->id,
+            'created_by' => ($ownerEditor ?? $authors[0])->id,
+        ]);
+
+        foreach ($authors as $number => $author) {
+            $manuscript = $this->makeBookWithAuthor($author)->manuscript;
+
+            BookChapter::create([
+                'book_id' => $book->id,
+                'manuscript_id' => $manuscript->id,
+                'chapter_number' => $number + 1,
+                'title' => 'Bab '.($number + 1),
+            ]);
+        }
+
+        return $book;
+    }
+
+    private function mineRow(User $user, Book $book): ?array
+    {
+        Sanctum::actingAs($user);
+
+        return collect($this->getJson('/api/v1/royalties/mine')->assertStatus(200)->json('data'))
+            ->firstWhere('id', $book->id);
+    }
+
+    public function test_regular_package_author_gets_25_percent(): void
+    {
+        $author = $this->makeUser(['penulis']);
+        $book = $this->makeBookWithAuthor($author);
+
+        $row = $this->mineRow($author, $book);
+
+        $this->assertEquals(25, $row['royalty_percentage']);
+        $this->assertSame('author', $row['role']);
+        $this->assertSame('regular', $row['package']);
+        $this->assertSame(1, $row['authors_count']);
+    }
+
+    public function test_regular_package_royalty_is_split_between_co_authors(): void
+    {
+        $author = $this->makeUser(['penulis']);
+        $coAuthor = $this->makeUser(['penulis']);
+        $book = $this->makeBookWithAuthor($author);
+        ManuscriptAuthor::create(['manuscript_id' => $book->manuscript_id, 'user_id' => $author->id, 'position' => 1]);
+        ManuscriptAuthor::create(['manuscript_id' => $book->manuscript_id, 'user_id' => $coAuthor->id, 'position' => 2]);
+
+        $this->assertEquals(12.5, $this->mineRow($author, $book)['royalty_percentage']);
+        $this->assertEquals(12.5, $this->mineRow($coAuthor, $book)['royalty_percentage']);
+    }
+
+    public function test_chapter_book_by_admin_gives_each_author_25_percent_divided_by_author_count(): void
+    {
+        $authors = [$this->makeUser(['penulis']), $this->makeUser(['penulis']), $this->makeUser(['penulis']), $this->makeUser(['penulis'])];
+        $book = $this->makeCompilation($authors);
+
+        $row = $this->mineRow($authors[0], $book);
+
+        $this->assertEquals(6.25, $row['royalty_percentage']);
+        $this->assertSame('chapter_admin', $row['package']);
+        $this->assertSame(4, $row['authors_count']);
+        $this->assertSame(1, $row['chapters_count']);
+        $this->assertSame(4, $row['total_chapters']);
+    }
+
+    public function test_chapter_royalty_follows_the_number_of_chapters_each_author_wrote(): void
+    {
+        // 10 bab: penulis A menulis 1, B 2, C 3, D 4.
+        [$a, $b, $c, $d] = [$this->makeUser(['penulis']), $this->makeUser(['penulis']), $this->makeUser(['penulis']), $this->makeUser(['penulis'])];
+        $book = $this->makeCompilation([$a, $b, $b, $c, $c, $c, $d, $d, $d, $d]);
+
+        $this->assertEquals(2.5, $this->mineRow($a, $book)['royalty_percentage']);
+        $this->assertEquals(5, $this->mineRow($b, $book)['royalty_percentage']);
+        $this->assertEquals(7.5, $this->mineRow($c, $book)['royalty_percentage']);
+        $row = $this->mineRow($d, $book);
+        $this->assertEquals(10, $row['royalty_percentage']);
+        $this->assertSame(4, $row['chapters_count']);
+        $this->assertSame(10, $row['total_chapters']);
+    }
+
+    public function test_chapter_book_by_editor_gives_the_editor_5_percent_on_top_of_the_author_share(): void
+    {
+        $authors = [$this->makeUser(['penulis']), $this->makeUser(['penulis'])];
+        $editor = $this->makeUser(['editor']);
+        $book = $this->makeCompilation($authors, $editor);
+
+        $authorRow = $this->mineRow($authors[1], $book);
+        $editorRow = $this->mineRow($editor, $book);
+
+        $this->assertEquals(12.5, $authorRow['royalty_percentage']);
+        $this->assertSame('chapter_editor', $authorRow['package']);
+        $this->assertEquals(5, $editorRow['royalty_percentage']);
+        $this->assertSame('editor', $editorRow['role']);
+    }
+
+    public function test_editor_earns_from_sales_and_admin_sees_the_whole_split(): void
+    {
+        $admin = $this->makeUser(['admin']);
+        $author = $this->makeUser(['penulis']);
+        $editor = $this->makeUser(['editor']);
+        $book = $this->makeCompilation([$author], $editor);
+
+        $orderId = $this->placeBookOrder($this->makeUser(), $book);
+        Sanctum::actingAs($admin);
+        $this->patchJson("/api/v1/admin/orders/{$orderId}/status", ['status' => 'completed'])->assertStatus(200);
+
+        $this->assertEquals(5000, $this->mineRow($editor, $book)['royalty_amount']);
+        $this->assertEquals(25000, $this->mineRow($author, $book)['royalty_amount']);
+
+        Sanctum::actingAs($admin);
+        $row = collect($this->getJson('/api/v1/admin/royalties')->json('data'))->firstWhere('id', $book->id);
+
+        $this->assertEquals(30, $row['royalty_percentage']);
+        $this->assertEquals(30000, $row['total_royalty_amount']);
+        $this->assertSame(['author', 'editor'], array_column($row['shares'], 'role'));
+        $this->assertEquals([25000, 5000], array_column($row['shares'], 'royalty_amount'));
+    }
+
+    public function test_unpublished_books_and_other_users_books_are_not_listed_in_mine(): void
+    {
+        $author = $this->makeUser(['penulis']);
+        $draft = $this->makeBookWithAuthor($author, ['is_active' => false]);
+
+        $this->assertNull($this->mineRow($author, $draft));
+        $this->assertNull($this->mineRow($this->makeUser(['penulis']), $this->makeBookWithAuthor($author)));
     }
 
     /*

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\LanguageList;
+use App\Models\Reader\ReaderBook;
 use App\Support\AuthorNames;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -27,6 +29,13 @@ class Book extends Model
         static::creating(function (Book $book) {
             if (! $book->slug) {
                 $book->slug = static::generateUniqueSlug($book->title);
+            }
+        });
+
+        // Sampul terbaru tampil paling depan di hero beranda.
+        static::saving(function (Book $book) {
+            if ($book->isDirty('front_cover')) {
+                $book->front_cover_updated_at = filled($book->front_cover) ? now() : null;
             }
         });
     }
@@ -83,8 +92,13 @@ class Book extends Model
         'editor_name',
     ];
 
+    // Ebook lengkap hanya untuk penulis buku (unduh lewat endpoint khusus).
     protected $hidden = [
         'royalty_percentage',
+        'ebook_file',
+        'ebook_name',
+        'ebook_uploaded_at',
+        'ebook_pages',
     ];
 
     protected function casts(): array
@@ -107,7 +121,22 @@ class Book extends Model
             'includes_isbn_print' => 'boolean',
             'includes_isbn_electronic' => 'boolean',
             'is_active' => 'boolean',
+            'ebook_uploaded_at' => 'datetime',
+            'front_cover_updated_at' => 'datetime',
         ];
+    }
+
+    public function hasEbook(): bool
+    {
+        return filled($this->ebook_file);
+    }
+
+    /** Ebook PDF dengan jumlah halaman yang diketahui: bisa dibaca di Tartila Book. */
+    public function hasReadableEbook(): bool
+    {
+        return $this->hasEbook()
+            && strtolower(pathinfo($this->ebook_file, PATHINFO_EXTENSION)) === 'pdf'
+            && (int) $this->ebook_pages > 0;
     }
 
     protected function finalPrice(): Attribute
@@ -317,6 +346,24 @@ class Book extends Model
     public function ownerEditor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_editor_id');
+    }
+
+    /** Entri buku ini di Tartila Book (situs baca), bila ada. */
+    public function readerBook(): HasOne
+    {
+        return $this->hasOne(ReaderBook::class);
+    }
+
+    /** MOU distribusi buku proyek Book Chapter (paket biasa: lewat naskahnya). */
+    public function chapterMou(): HasOne
+    {
+        return $this->hasOne(Mou::class, 'book_id');
+    }
+
+    /** Naskah gabungan semua bab (proyek Book Chapter) yang dikerjakan editor. */
+    public function compilation(): HasOne
+    {
+        return $this->hasOne(Manuscript::class, 'compiled_book_id');
     }
 
     public function chapters(): HasMany

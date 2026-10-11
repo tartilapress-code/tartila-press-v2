@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Cache metrik font tFPDF (dibuat otomatis saat sertifikat pertama dibuat)
+/resources/fonts/unifont/*.mtx.php
+/resources/fonts/unifont/*.cw.dat
+/resources/fonts/unifont/*.cw127.php

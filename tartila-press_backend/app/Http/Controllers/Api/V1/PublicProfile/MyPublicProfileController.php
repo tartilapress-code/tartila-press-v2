@@ -69,6 +69,7 @@ class MyPublicProfileController extends Controller
                 'nullable',
                 'string',
                 'max:500',
+                'http_url',
             ],
 
             'is_published' => [

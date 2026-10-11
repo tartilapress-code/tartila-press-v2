@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\DocxFixture;
 use Tests\TestCase;
 
 class BookChapterProjectTest extends TestCase
@@ -433,11 +434,18 @@ class BookChapterProjectTest extends TestCase
         $this->patchJson("/api/v1/admin/orders/{$order['id']}/status", ['status' => 'confirmed']);
 
         Sanctum::actingAs($penulis);
+
+        // Bab Book Chapter digabung menjadi satu buku: wajib Word (.docx).
+        $this->postJson('/api/v1/manuscripts', [
+            'order_id' => $order['id'],
+            'file' => UploadedFile::fake()->create('naskah.pdf', 100, 'application/pdf'),
+        ])->assertStatus(422);
+
         $response = $this->postJson('/api/v1/manuscripts', [
             'order_id' => $order['id'],
             'title' => 'Bab Pertama',
             'authors' => [$penulis->name],
-            'file' => UploadedFile::fake()->create('naskah.pdf', 100, 'application/pdf'),
+            'file' => DocxFixture::upload(),
         ]);
 
         $response->assertStatus(201);
@@ -452,7 +460,7 @@ class BookChapterProjectTest extends TestCase
         $this->assertSame([$penulis->name], $book->authors);
     }
 
-    public function test_admin_approving_first_revision_auto_assigns_project_owner_editor_when_present(): void
+    public function test_approved_chapter_waits_for_compilation_instead_of_going_to_the_owner_editor(): void
     {
         $editor = $this->makeEditor();
         Sanctum::actingAs($editor);
@@ -476,7 +484,7 @@ class BookChapterProjectTest extends TestCase
             'order_id' => $order['id'],
             'title' => 'Bab Pertama',
             'authors' => [$penulis->name],
-            'file' => UploadedFile::fake()->create('naskah.pdf', 100, 'application/pdf'),
+            'file' => DocxFixture::upload(),
         ])->json('data');
 
         $revisionId = $manuscript['revisions'][0]['id'];
@@ -487,15 +495,15 @@ class BookChapterProjectTest extends TestCase
             ['decision' => 'approve']
         )->assertStatus(200);
 
+        // Editor pemilik proyek baru menerima naskah gabungan semua bab.
         $this->assertDatabaseHas('manuscripts', [
             'id' => $manuscript['id'],
-            'status' => 'in_editing',
-            'editor_id' => $editor->id,
-            'editor_fee' => 0,
+            'status' => 'awaiting_compilation',
+            'editor_id' => null,
         ]);
     }
 
-    public function test_admin_approving_first_revision_falls_back_to_pending_editor_assignment_when_no_owner_editor(): void
+    public function test_approved_chapter_without_owner_editor_also_waits_for_compilation(): void
     {
         $admin = $this->makeUser(['admin']);
         Sanctum::actingAs($admin);
@@ -518,7 +526,7 @@ class BookChapterProjectTest extends TestCase
             'order_id' => $order['id'],
             'title' => 'Bab Pertama',
             'authors' => [$penulis->name],
-            'file' => UploadedFile::fake()->create('naskah.pdf', 100, 'application/pdf'),
+            'file' => DocxFixture::upload(),
         ])->json('data');
 
         $revisionId = $manuscript['revisions'][0]['id'];
@@ -531,7 +539,7 @@ class BookChapterProjectTest extends TestCase
 
         $this->assertDatabaseHas('manuscripts', [
             'id' => $manuscript['id'],
-            'status' => 'pending_editor_assignment',
+            'status' => 'awaiting_compilation',
         ]);
     }
 
@@ -698,7 +706,7 @@ class BookChapterProjectTest extends TestCase
         $response->assertJsonPath('data.min_chapters', 3);
 
         $this->assertDatabaseHas('book_chapter_settings', [
-            'id' => 1,
+            'id' => BookChapterSetting::sole()->id,
             'min_chapters' => 3,
         ]);
     }

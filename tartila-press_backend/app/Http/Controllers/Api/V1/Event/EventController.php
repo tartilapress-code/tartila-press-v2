@@ -5,16 +5,30 @@ namespace App\Http\Controllers\Api\V1\Event;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
+    /**
+     * Kolom yang hanya untuk peserta terdaftar / admin: tidak ikut ke
+     * respons publik.
+     */
+    private const PRIVATE_COLUMNS = [
+        'meet_link',
+        'certificate_url',
+        'attendance_enabled',
+        'attendance_opens_at',
+        'attendance_closes_at',
+        'certificate_template_id',
+    ];
+
     /*
     |--------------------------------------------------------------------------
     | Index - Daftar event publik yang aktif
     |--------------------------------------------------------------------------
     */
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $events = Event::active()
             ->with('category')
@@ -22,14 +36,12 @@ class EventController extends Controller
                 'registrations as confirmed_registrations_count' => fn ($query) => $query->where('status', 'confirmed'),
             ])
             ->latest('starts_at')
-            ->get()
-            ->makeHidden(['meet_link', 'certificate_url']);
+            ->orderByDesc('id')
+            ->paginate($this->perPage($request, 10));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar event berhasil diambil.',
-            'data' => $events,
-        ]);
+        $events->getCollection()->makeHidden(self::PRIVATE_COLUMNS);
+
+        return $this->pageResponse($events, 'Daftar event berhasil diambil.');
     }
 
     /*
@@ -46,7 +58,7 @@ class EventController extends Controller
         $event->loadCount([
             'registrations as confirmed_registrations_count' => fn ($query) => $query->where('status', 'confirmed'),
         ]);
-        $event->makeHidden(['meet_link', 'certificate_url']);
+        $event->makeHidden(self::PRIVATE_COLUMNS);
 
         return response()->json([
             'success' => true,

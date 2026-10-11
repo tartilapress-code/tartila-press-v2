@@ -13,15 +13,15 @@ class EventController extends Controller
         'title' => ['required', 'string', 'max:255'],
         'description' => ['nullable', 'string'],
         'event_category_id' => ['nullable', 'integer', 'exists:event_categories,id'],
-        'banner' => ['nullable', 'string', 'max:500'],
+        'banner' => ['nullable', 'string', 'max:500', 'http_url'],
         'starts_at' => ['required', 'date'],
         'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
         'registration_deadline' => ['nullable', 'date'],
         'requires_document' => ['sometimes', 'boolean'],
         'requires_meet_link' => ['sometimes', 'boolean'],
-        'meet_link' => ['nullable', 'string', 'max:500'],
-        'youtube_url' => ['nullable', 'string', 'max:500'],
-        'certificate_url' => ['nullable', 'string', 'max:500'],
+        'meet_link' => ['nullable', 'string', 'max:500', 'http_url'],
+        'youtube_url' => ['nullable', 'string', 'max:500', 'http_url'],
+        'certificate_url' => ['nullable', 'string', 'max:500', 'http_url'],
         'fee' => ['sometimes', 'numeric', 'min:0', 'max:99999999.99'],
         'is_active' => ['sometimes', 'boolean'],
     ];
@@ -32,20 +32,23 @@ class EventController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        // Per halaman: ?search= judul.
         $events = Event::with(['category', 'creator'])
             ->withCount([
                 'registrations as confirmed_registrations_count' => fn ($query) => $query->where('status', 'confirmed'),
+                'attendances as attendances_count',
             ])
+            ->when($request->filled('search'), fn ($query) => $query->whereRaw(
+                'LOWER(title) LIKE ?',
+                ['%'.mb_strtolower((string) $request->query('search')).'%']
+            ))
             ->latest('starts_at')
-            ->get();
+            ->orderByDesc('id')
+            ->paginate($this->perPage($request, 20));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar event berhasil diambil.',
-            'data' => $events,
-        ]);
+        return $this->pageResponse($events, 'Daftar event berhasil diambil.');
     }
 
     /*

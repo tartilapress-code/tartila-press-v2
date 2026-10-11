@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\V1\Book;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class BookChapterProjectController extends Controller
 {
@@ -18,17 +20,46 @@ class BookChapterProjectController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $projects = Book::with(['category', 'fieldCategory', 'ownerEditor', 'chapters', 'packageItems'])
-            ->where('is_chapter_offering', true)
-            ->whereHas('chapters', function ($query) {
-                $query->whereNull('manuscript_id')->whereNull('order_id');
-            })
-            ->where(function ($query) {
-                $query->whereNull('submission_deadline')
-                    ->orWhere('submission_deadline', '>=', now());
-            })
-            ->latest()
-            ->get();
+        // Pencarian, kategori, dan urutan dikerjakan di server supaya daftar
+        // bisa per halaman: ?search=&category=<nama>&sort=newest|deadline|price|slots.
+        $query = $this->openProjects()
+            ->with(['category', 'fieldCategory', 'ownerEditor', 'chapters', 'packageItems']);
+
+        if ($request->filled('search')) {
+            $term = '%'.mb_strtolower((string) $request->query('search')).'%';
+
+            $query->where(fn (Builder $q) => $q->whereRaw('LOWER(title) LIKE ?', [$term])
+                ->orWhereHas('ownerEditor', fn (Builder $editor) => $editor->whereRaw('LOWER(name) LIKE ?', [$term])));
+        }
+
+        if ($request->filled('category')) {
+            $name = (string) $request->query('category');
+
+            $query->where(fn (Builder $q) => $q->whereHas('category', fn (Builder $c) => $c->where('name', $name))
+                ->orWhereHas('fieldCategory', fn (Builder $c) => $c->where('name', $name)));
+        }
+
+        $open = fn ($chapters) => $chapters->whereNull('manuscript_id')->whereNull('order_id');
+
+        match ($request->query('sort')) {
+            // Tenggat terdekat dulu; tanpa tenggat paling akhir.
+            'deadline' => $query->orderByRaw('CASE WHEN submission_deadline IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('submission_deadline'),
+            // Harga slot terbuka termurah (setelah diskon).
+            'price' => $query->orderBy(
+                DB::table('book_chapters')
+                    ->selectRaw('MIN(COALESCE(book_chapters.price, books.price) * (100 - COALESCE(book_chapters.discount, books.discount, 0)) / 100)')
+                    ->whereColumn('book_chapters.book_id', 'books.id')
+                    ->whereNull('book_chapters.manuscript_id')
+                    ->whereNull('book_chapters.order_id')
+            ),
+            // Slot terbuka terbanyak.
+            'slots' => $query->withCount(['chapters as open_slots_count' => $open])->orderByDesc('open_slots_count'),
+            default => $query->latest(),
+        };
+
+        $page = $query->orderByDesc('id')->paginate($this->perPage($request, 12));
+        $projects = $page->getCollection();
 
         $this->presentIncludedPackage($projects);
 
@@ -36,11 +67,38 @@ class BookChapterProjectController extends Controller
             $this->hideGuestRestrictedFields($projects);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar proyek Book Chapter berhasil diambil.',
-            'data' => $projects,
+        return $this->pageResponse($page, 'Daftar proyek Book Chapter berhasil diambil.', meta: [
+            'categories' => $this->categoryOptions(),
         ]);
+    }
+
+    /** Proyek yang masih menerima naskah: ada slot terbuka dan tenggat belum lewat. */
+    private function openProjects(): Builder
+    {
+        return Book::query()
+            ->where('is_chapter_offering', true)
+            ->whereHas('chapters', fn ($query) => $query->whereNull('manuscript_id')->whereNull('order_id'))
+            ->where(fn ($query) => $query->whereNull('submission_deadline')
+                ->orWhere('submission_deadline', '>=', now()));
+    }
+
+    /**
+     * Nama kategori buku & bidang keilmuan dari SEMUA proyek terbuka (untuk
+     * pilihan filter), bukan hanya halaman yang sedang tampil.
+     *
+     * @return list<string>
+     */
+    private function categoryOptions(): array
+    {
+        return $this->openProjects()
+            ->with(['category:id,name', 'fieldCategory:id,name'])
+            ->get(['id', 'book_category_id', 'field_category_id'])
+            ->flatMap(fn (Book $book) => [$book->category?->name, $book->fieldCategory?->name])
+            ->filter()
+            ->unique()
+            ->sort(fn ($a, $b) => strcasecmp($a, $b))
+            ->values()
+            ->all();
     }
 
     /*

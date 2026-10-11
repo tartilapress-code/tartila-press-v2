@@ -18,33 +18,42 @@ class PublicProfileController extends Controller
     public function index(Request $request)
     {
         $role = $request->query('role');
+        // Nama tampil = nama pena, atau nama akun bila kosong.
+        $displayName = "LOWER(COALESCE(NULLIF(public_profiles.pen_name, ''), users.name))";
 
-        $profiles = PublicProfile::with('user.roles')
-            ->where('is_published', true)
+        $query = PublicProfile::with('user.roles')
+            ->join('users', 'users.id', '=', 'public_profiles.user_id')
+            ->select('public_profiles.*')
+            ->where('public_profiles.is_published', true)
             ->when($role, function ($query) use ($role) {
                 $query->whereHas('user.roles', function ($query) use ($role) {
                     $query->where('name', $role);
                 });
-            })
-            ->get()
-            ->map(function (PublicProfile $profile) {
-                return [
-                    'slug' => $profile->slug,
-                    'name' => $profile->pen_name ?: $profile->user->name,
-                    'bio' => $profile->bio,
-                    'profile_photo' => $profile->profile_photo,
-                    'roles' => $profile->user->roles
-                        ->pluck('display_name')
-                        ->values(),
-                ];
-            })
-            ->values();
+            });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar profil publik berhasil diambil.',
-            'data' => $profiles,
-        ]);
+        if ($request->filled('search')) {
+            $query->whereRaw("{$displayName} LIKE ?", ['%'.mb_strtolower((string) $request->query('search')).'%']);
+        }
+
+        match ($request->query('sort')) {
+            'az' => $query->orderByRaw("{$displayName} ASC"),
+            'za' => $query->orderByRaw("{$displayName} DESC"),
+            default => $query->orderBy('public_profiles.id'),
+        };
+
+        return $this->pageResponse(
+            $query->paginate($this->perPage($request, 12)),
+            'Daftar profil publik berhasil diambil.',
+            fn (PublicProfile $profile) => [
+                'slug' => $profile->slug,
+                'name' => $profile->pen_name ?: $profile->user->name,
+                'bio' => $profile->bio,
+                'profile_photo' => $profile->profile_photo,
+                'roles' => $profile->user->roles
+                    ->pluck('display_name')
+                    ->values(),
+            ],
+        );
     }
 
     public function show(string $slug)

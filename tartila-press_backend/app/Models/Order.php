@@ -12,19 +12,34 @@ use Illuminate\Support\Str;
 
 class Order extends Model
 {
+    /** Batas waktu pembayaran (unggah bukti transfer) sejak pesanan dibuat. */
+    public const PAYMENT_WINDOW_HOURS = 24;
+
     protected $fillable = [
         'order_number',
+        'invoice_number',
+        'payment_due_at',
         'user_id',
         'status',
         'subtotal',
         'discount_total',
         'editor_id',
         'editor_fee',
+        'voucher_id',
+        'voucher_code',
+        'voucher_discount',
+        'voucher_fee',
         'total',
         'notes',
         'payment_proof_file',
         'payment_proof_uploaded_at',
         'payment_verification_note',
+        'payment_method_id',
+    ];
+
+    // Fee pembuat voucher hanya relevan untuk pembuatnya, bukan untuk pembeli.
+    protected $hidden = [
+        'voucher_fee',
     ];
 
     protected $appends = [
@@ -37,9 +52,44 @@ class Order extends Model
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'editor_fee' => 'decimal:2',
+            'voucher_discount' => 'decimal:2',
+            'voucher_fee' => 'decimal:2',
             'total' => 'decimal:2',
             'payment_proof_uploaded_at' => 'datetime',
+            'payment_due_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Pesanan baru menunggu pembayaran: batas 1×24 jam.
+        static::creating(function (Order $order) {
+            if (($order->status ?? 'pending') === 'pending' && ! $order->payment_due_at) {
+                $order->payment_due_at = now()->addHours(self::PAYMENT_WINDOW_HOURS);
+            }
+        });
+
+        // Nomor invoice butuh id, jadi diisi setelah tersimpan.
+        static::created(function (Order $order) {
+            if (! $order->invoice_number) {
+                $order->forceFill(['invoice_number' => self::invoiceNumberFor($order)])->saveQuietly();
+            }
+        });
+    }
+
+    /** INV-YYYYMMDD-000ID, mis. INV-20261007-00091. */
+    public static function invoiceNumberFor(Order $order): string
+    {
+        return sprintf('INV-%s-%05d', ($order->created_at ?? now())->format('Ymd'), $order->id);
+    }
+
+    /** Masih menunggu bukti transfer dan batas bayarnya sudah lewat. */
+    public function isPaymentOverdue(): bool
+    {
+        return $this->status === 'pending'
+            && ! $this->payment_proof_file
+            && $this->payment_due_at !== null
+            && $this->payment_due_at->isPast();
     }
 
     protected function paymentProofUrl(): Attribute
@@ -56,9 +106,20 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
+    }
+
     public function editor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'editor_id');
+    }
+
+    /** Rekening yang menerima pembayaran pesanan ini. */
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
     }
 
     public function items(): HasMany

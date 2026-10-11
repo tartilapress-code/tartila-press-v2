@@ -63,12 +63,50 @@ class BookController extends Controller
             default => $query->latest(),
         };
 
-        $books = $query->get()->append(['author_profiles', 'editor_profile']);
+        // Urutan stabil antarhalaman (judul/harga/waktu bisa sama).
+        $query->orderByDesc('id');
+
+        // Per halaman (bawaan 24; beranda cukup ?per_page=4).
+        $books = $query->paginate($this->perPage($request, 24));
+        $books->getCollection()->append(['author_profiles', 'editor_profile']);
+
+        return $this->pageResponse($books, 'Daftar buku berhasil diambil.');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Hero Covers - Sampul terbaru untuk tumpukan buku di hero beranda
+    |--------------------------------------------------------------------------
+    | Buku aktif dengan sampul depan berupa tautan gambar, terbaru diunggah
+    | lebih dulu (yang paling depan di tumpukan), beserta penulis dan
+    | kategorinya untuk keterangan buku terbitan terbaru.
+    */
+
+    public function heroCovers(): JsonResponse
+    {
+        $covers = Book::query()
+            ->where('is_active', true)
+            ->where(fn ($query) => $query->where('front_cover', 'like', 'http://%')
+                ->orWhere('front_cover', 'like', 'https://%'))
+            ->orderByDesc('front_cover_updated_at')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->with('category:id,name')
+            ->get(['id', 'title', 'slug', 'front_cover', 'authors', 'authors_text', 'book_category_id'])
+            ->map(fn (Book $book) => [
+                'id' => $book->id,
+                'title' => $book->title,
+                'slug' => $book->slug,
+                'front_cover' => $book->front_cover,
+                // Untuk keterangan "Terbitan Terbaru" di bawah tumpukan.
+                'authors' => $book->authors_text ?: (implode(', ', array_filter((array) $book->authors)) ?: null),
+                'category' => $book->category?->name,
+            ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Daftar buku berhasil diambil.',
-            'data' => $books,
+            'message' => 'Sampul terbaru berhasil diambil.',
+            'data' => $covers,
         ]);
     }
 

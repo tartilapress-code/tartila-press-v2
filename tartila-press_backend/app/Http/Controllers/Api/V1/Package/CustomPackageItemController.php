@@ -124,6 +124,8 @@ class CustomPackageItemController extends Controller
             'book_chapter_cost' => ['nullable', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
             'description' => ['nullable', 'string'],
             'is_active' => ['nullable', 'boolean'],
+            // Eksemplar buku gratis dari item ini (biaya cetak 3 + N).
+            'free_copies' => ['nullable', 'integer', 'min:0', 'max:1000'],
         ]);
 
         // Diskon dikosongkan = tanpa diskon (kolomnya NOT NULL).

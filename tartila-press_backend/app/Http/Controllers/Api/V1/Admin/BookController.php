@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\BookChapter;
 use App\Models\Manuscript;
+use App\Services\MouService;
 use App\Support\Languages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,18 +17,17 @@ class BookController extends Controller
 {
     private const BOOK_FIELD_RULES = [
         'isbn' => ['nullable', 'string', 'max:255'],
-        'front_cover' => ['nullable', 'string', 'max:500'],
-        'back_cover' => ['nullable', 'string', 'max:500'],
+        'front_cover' => ['nullable', 'string', 'max:500', 'http_url'],
+        'back_cover' => ['nullable', 'string', 'max:500', 'http_url'],
         'cover_layout_designer' => ['nullable', 'string', 'max:255'],
         'description' => ['nullable', 'string'],
         'book_category_id' => ['nullable', 'integer', 'exists:book_categories,id'],
         'field_category_id' => ['nullable', 'integer', 'exists:field_categories,id'],
         'price' => ['required', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
         'discount' => ['nullable', 'integer', 'min:0', 'max:100'],
-        'royalty_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
         'citation_publisher' => ['nullable', 'string', 'max:255'],
         'citation_publication_date' => ['nullable', 'date'],
-        'google_scholar_url' => ['nullable', 'url:http,https', 'max:500'],
+        'google_scholar_url' => ['nullable', 'http_url', 'max:500'],
         'is_active' => ['nullable', 'boolean'],
     ];
 
@@ -37,18 +37,32 @@ class BookController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $books = Book::with(['category', 'fieldCategory', 'chapters', 'manuscript.editor', 'ownerEditor'])
+        // Per halaman: ?search= (judul/penulis), ?active=1|0.
+        $query = Book::with(['category', 'fieldCategory', 'chapters', 'manuscript.editor', 'ownerEditor'])
             ->latest()
-            ->get()
-            ->makeVisible('royalty_percentage');
+            ->orderByDesc('id');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar buku berhasil diambil.',
-            'data' => $books,
-        ]);
+        if ($request->filled('search')) {
+            $term = '%'.mb_strtolower((string) $request->query('search')).'%';
+
+            $query->where(fn ($q) => $q->whereRaw('LOWER(title) LIKE ?', [$term])
+                ->orWhereRaw('LOWER(authors_text) LIKE ?', [$term]));
+        }
+
+        if (in_array($request->query('active'), ['0', '1'], true)) {
+            $query->where('is_active', $request->query('active') === '1');
+        }
+
+        $books = $query->paginate($this->perPage($request, 20));
+
+        // Ebook lengkap (berkasnya sendiri tetap tersembunyi).
+        $books->getCollection()->each(fn (Book $book) => $book->makeVisible(['ebook_name', 'ebook_uploaded_at', 'ebook_pages'])
+            ->setAttribute('has_ebook', $book->hasEbook())
+            ->setAttribute('in_tartila_book', $book->hasReadableEbook()));
+
+        return $this->pageResponse($books, 'Daftar buku berhasil diambil.');
     }
 
     /*
@@ -57,7 +71,7 @@ class BookController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function storeFromManuscript(Request $request, Manuscript $manuscript): JsonResponse
+    public function storeFromManuscript(Request $request, Manuscript $manuscript, MouService $mous): JsonResponse
     {
         abort_unless(
             $manuscript->status === 'completed',
@@ -69,6 +83,12 @@ class BookController extends Controller
             $manuscript->book()->exists() || $manuscript->bookChapter()->exists(),
             422,
             'Naskah ini sudah pernah diterbitkan.'
+        );
+
+        abort_unless(
+            $mous->isBindingForManuscript($manuscript),
+            422,
+            'Semua penulis harus menandatangani MOU distribusi buku sebelum buku diterbitkan.'
         );
 
         $validated = $request->validate([
@@ -144,6 +164,10 @@ class BookController extends Controller
             $validated['authors_text'] = implode(', ', $validated['authors']);
         }
 
+        if (! empty($validated['is_active'])) {
+            app(MouService::class)->assertCanPublishChapterBook($book);
+        }
+
         $book->update($validated);
 
         return response()->json([
@@ -162,6 +186,8 @@ class BookController extends Controller
     public function destroy(Book $book): JsonResponse
     {
         $book->delete();
+
+        Storage::disk('local')->deleteDirectory('ebooks/'.$book->id);
 
         return response()->json([
             'success' => true,

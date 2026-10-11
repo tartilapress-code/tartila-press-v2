@@ -15,6 +15,7 @@ class CustomPackageItem extends Model
         'book_chapter_cost',
         'description',
         'is_active',
+        'free_copies',
     ];
 
     protected $appends = [

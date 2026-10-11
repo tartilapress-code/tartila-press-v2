@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Upload;
 
 use App\Http\Controllers\Controller;
+use App\Support\ResponsiveImages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,7 @@ class DocumentUploadController extends Controller
     | dokumen non-gambar (PDF/DOC) selain jpg/png.
     */
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ResponsiveImages $images): JsonResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
@@ -30,6 +31,11 @@ class DocumentUploadController extends Controller
 
         $folder = $validated['folder'] ?? 'misc';
         $path = $validated['file']->store("uploads/{$folder}/{$request->user()->id}", 'public');
+
+        // Spanduk event tampil di kartu daftar event: buat versi kecilnya.
+        if ($folder === 'event-banners') {
+            $images->generate($path);
+        }
 
         return response()->json([
             'success' => true,

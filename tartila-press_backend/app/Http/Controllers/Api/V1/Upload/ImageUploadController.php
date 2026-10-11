@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Upload;
 
 use App\Http\Controllers\Controller;
+use App\Support\ResponsiveImages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -10,7 +11,7 @@ use Illuminate\Validation\Rule;
 
 class ImageUploadController extends Controller
 {
-    private const FOLDERS = ['covers', 'profiles', 'bio-photos', 'packages', 'articles'];
+    private const FOLDERS = ['covers', 'profiles', 'bio-photos', 'packages', 'articles', 'about'];
 
     /*
     |--------------------------------------------------------------------------
@@ -21,7 +22,7 @@ class ImageUploadController extends Controller
     | ditaruh ke field yang sama seperti kalau user menempel URL manual.
     */
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ResponsiveImages $images): JsonResponse
     {
         $validated = $request->validate([
             'file' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
@@ -30,6 +31,9 @@ class ImageUploadController extends Controller
 
         $folder = $validated['folder'] ?? 'misc';
         $path = $validated['file']->store("uploads/{$folder}/{$request->user()->id}", 'public');
+
+        // Versi kecil (WebP 400/900 px) untuk kartu & daftar; berkas asli tetap.
+        $images->generate($path);
 
         return response()->json([
             'success' => true,

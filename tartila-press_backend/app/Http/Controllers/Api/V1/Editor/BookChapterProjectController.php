@@ -10,6 +10,7 @@ use App\Models\BookChapterSetting;
 use App\Services\BookChapterCostGuard;
 use App\Services\BookChapterLimitValidator;
 use App\Services\BookChapterProjectService;
+use App\Support\BookChapterPromo;
 use App\Support\Languages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,8 +31,8 @@ class BookChapterProjectController extends Controller
         'facilities.*' => ['string', 'max:255'],
         'services' => ['nullable', 'array'],
         'services.*' => ['string', 'max:255'],
-        'front_cover' => ['nullable', 'string', 'max:500'],
-        'back_cover' => ['nullable', 'string', 'max:500'],
+        'front_cover' => ['nullable', 'string', 'max:500', 'http_url'],
+        'back_cover' => ['nullable', 'string', 'max:500', 'http_url'],
         'estimated_publish_date' => ['nullable', 'date'],
         'submission_deadline' => ['nullable', 'date'],
     ];
@@ -82,6 +83,18 @@ class BookChapterProjectController extends Controller
     | Show
     |--------------------------------------------------------------------------
     */
+
+    /** Data poster "Promosikan Projek" (selalu data terbaru, dengan nama editor). */
+    public function promo(Request $request, Book $bookChapterProject): JsonResponse
+    {
+        $this->ensureOwner($request, $bookChapterProject);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data promosi proyek berhasil diambil.',
+            'data' => BookChapterPromo::present($bookChapterProject),
+        ]);
+    }
 
     public function show(Request $request, Book $bookChapterProject): JsonResponse
     {

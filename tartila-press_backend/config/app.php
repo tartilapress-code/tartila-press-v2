@@ -143,4 +143,16 @@ return [
 
     'require_verified_email' => env('REQUIRE_VERIFIED_EMAIL', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email kantor untuk pemberitahuan pesanan masuk
+    |--------------------------------------------------------------------------
+    | Kosong = memakai email kontak di halaman Tentang Kami (diatur admin).
+    */
+
+    'order_notification_email' => env('ORDER_NOTIFICATION_EMAIL'),
+
+    // Hanya untuk tes: error di kode notifikasi dilempar, bukan sekadar dicatat.
+    'notifications_strict' => (bool) env('NOTIFICATIONS_STRICT', false),
+
 ];

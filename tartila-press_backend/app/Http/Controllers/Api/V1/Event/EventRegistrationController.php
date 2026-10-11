@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Event;
 
+use App\Http\Controllers\Api\V1\Order\OrderController;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\EventRegistration;
@@ -30,6 +31,9 @@ class EventRegistrationController extends Controller
                 'string',
                 'max:500',
             ],
+            'payment_method_id' => (float) $event->fee > 0 ? OrderController::paymentMethodRules() : ['nullable'],
+        ], [
+            'payment_method_id.required' => 'Pilih rekening tujuan pembayaran.',
         ]);
 
         abort_if(
@@ -40,10 +44,13 @@ class EventRegistrationController extends Controller
 
         $user = $request->user();
 
+        // Pendaftaran yang dibatalkan (mis. tidak dibayar 1×24 jam) boleh diulang.
+        $existing = EventRegistration::where('event_id', $event->id)
+            ->where('user_id', $user->id)
+            ->first();
+
         abort_if(
-            EventRegistration::where('event_id', $event->id)
-                ->where('user_id', $user->id)
-                ->exists(),
+            $existing && $existing->status !== 'cancelled',
             422,
             'Anda sudah terdaftar di event ini.'
         );
@@ -51,12 +58,10 @@ class EventRegistrationController extends Controller
         $documentUrl = $validated['document_url'] ?? null;
 
         if ((float) $event->fee <= 0) {
-            $registration = EventRegistration::create([
-                'event_id' => $event->id,
-                'user_id' => $user->id,
-                'document_url' => $documentUrl,
-                'status' => 'confirmed',
-            ]);
+            $registration = EventRegistration::updateOrCreate(
+                ['event_id' => $event->id, 'user_id' => $user->id],
+                ['order_id' => null, 'document_url' => $documentUrl, 'status' => 'confirmed'],
+            );
 
             return response()->json([
                 'success' => true,
@@ -65,7 +70,9 @@ class EventRegistrationController extends Controller
             ], 201);
         }
 
-        $registration = DB::transaction(function () use ($event, $user, $documentUrl) {
+        $paymentMethodId = $validated['payment_method_id'] ?? null;
+
+        $registration = DB::transaction(function () use ($event, $user, $documentUrl, $paymentMethodId) {
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'user_id' => $user->id,
@@ -74,6 +81,7 @@ class EventRegistrationController extends Controller
                 'discount_total' => 0,
                 'editor_fee' => 0,
                 'total' => $event->fee,
+                'payment_method_id' => $paymentMethodId,
             ]);
 
             $order->logStatusHistory('order_placed');
@@ -87,18 +95,15 @@ class EventRegistrationController extends Controller
                 'subtotal' => $event->fee,
             ]);
 
-            return EventRegistration::create([
-                'event_id' => $event->id,
-                'user_id' => $user->id,
-                'order_id' => $order->id,
-                'document_url' => $documentUrl,
-                'status' => 'pending',
-            ]);
+            return EventRegistration::updateOrCreate(
+                ['event_id' => $event->id, 'user_id' => $user->id],
+                ['order_id' => $order->id, 'document_url' => $documentUrl, 'status' => 'pending'],
+            );
         });
 
         return response()->json([
             'success' => true,
-            'message' => 'Pendaftaran dibuat. Silakan selesaikan pembayaran di halaman Pesanan.',
+            'message' => 'Pendaftaran dibuat. Selesaikan pembayaran dalam 1×24 jam.',
             'data' => $registration->load('order'),
         ], 201);
     }

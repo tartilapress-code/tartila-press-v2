@@ -16,17 +16,23 @@ class UserManagementController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $users = User::with('roles')
-            ->orderBy('name')
-            ->get();
+        // Per halaman: ?search= (nama/email), ?role=<nama peran>.
+        $query = User::with('roles')->orderBy('name')->orderBy('id');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar user berhasil diambil.',
-            'data' => $users,
-        ]);
+        if ($request->filled('search')) {
+            $term = '%'.mb_strtolower((string) $request->query('search')).'%';
+
+            $query->where(fn ($q) => $q->whereRaw('LOWER(name) LIKE ?', [$term])
+                ->orWhereRaw('LOWER(email) LIKE ?', [$term]));
+        }
+
+        if ($request->filled('role')) {
+            $query->whereHas('roles', fn ($role) => $role->where('name', $request->query('role')));
+        }
+
+        return $this->pageResponse($query->paginate($this->perPage($request, 20)), 'Daftar user berhasil diambil.');
     }
 
     /*

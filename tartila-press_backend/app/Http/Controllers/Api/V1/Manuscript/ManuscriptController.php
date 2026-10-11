@@ -9,15 +9,23 @@ use App\Models\Manuscript;
 use App\Models\ManuscriptRevision;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\BookChapterCompilationService;
+use App\Services\MouService;
+use App\Services\PublicationProcessService;
+use App\Support\ManuscriptTemplates\DocxPackage;
+use App\Support\SignatureImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
 
 class ManuscriptController extends Controller
 {
+    public function __construct(private readonly BookChapterCompilationService $compilation) {}
+
     private const MANUSCRIPT_UPLOAD_RULES = [
         'file',
         'mimes:pdf,doc,docx,odt',
@@ -40,10 +48,12 @@ class ManuscriptController extends Controller
             'author_user_ids' => ['nullable', 'array', 'max:10'],
             'author_user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
             'file' => self::MANUSCRIPT_UPLOAD_RULES,
-            'author_bio_photo' => ['nullable', 'string', 'max:500'],
+            'author_bio_photo' => ['nullable', 'string', 'max:500', 'http_url'],
             'author_bio_name' => ['nullable', 'string', 'max:255'],
             'author_bio_text' => ['nullable', 'string', 'max:5000'],
         ]);
+
+        $this->ensureUsableDocx($request);
 
         $order = Order::where('id', $validated['order_id'])
             ->where('user_id', $user->id)
@@ -72,6 +82,9 @@ class ManuscriptController extends Controller
         $chapter = $order->bookChapterSlot()->whereNull('manuscript_id')->with('book')->first();
 
         if ($chapter) {
+            // Bab Book Chapter digabung menjadi satu buku → wajib Word.
+            $this->ensureDocx($request);
+
             $title = $chapter->book->title.' — '.$chapter->title;
             $authorUserIds = [$user->id];
         } else {
@@ -139,15 +152,39 @@ class ManuscriptController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function mine(Request $request): JsonResponse
+    public function mine(Request $request, PublicationProcessService $publication): JsonResponse
     {
         $manuscripts = Manuscript::whereHas(
             'authorLinks',
             fn ($query) => $query->where('user_id', $request->user()->id)
         )
-            ->with(['revisions', 'editor'])
+            ->with([
+                'revisions',
+                'editor',
+                'bookChapter',
+                'authorLinks',
+                'isbnApplication:id,manuscript_id,applicant_id,type,status,signed_at',
+            ])
             ->latest()
-            ->get();
+            ->get()
+            ->each(function (Manuscript $manuscript) use ($request, $publication) {
+                // Ringkasan proses penerbitan (setelah naskah selesai).
+                $progress = in_array($manuscript->status, ['completed', Manuscript::STATUS_COMPILED], true)
+                    ? $publication->progressForManuscript($manuscript)
+                    : null;
+                $manuscript->setAttribute('publication', $progress
+                    ? ['current' => $progress['current'], 'completed' => $progress['completed']]
+                    : null);
+
+                // Tombol "Ajukan ISBN" di daftar: hanya penulis pertama, naskah
+                // selesai (bukan slot Book Chapter), dan surat belum dibuka.
+                $manuscript->setAttribute('can_request_isbn', $manuscript->status === 'completed'
+                    && $manuscript->bookChapter === null
+                    && $manuscript->compiled_book_id === null
+                    && $manuscript->isbnApplication === null
+                    && $manuscript->authorLinks->first()?->user_id === $request->user()->id);
+                $manuscript->makeHidden(['bookChapter', 'authorLinks']);
+            });
 
         return response()->json([
             'success' => true,
@@ -162,11 +199,31 @@ class ManuscriptController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function show(Request $request, Manuscript $manuscript): JsonResponse
+    public function show(Request $request, Manuscript $manuscript, MouService $mous): JsonResponse
     {
         $this->ensureCanView($request, $manuscript);
 
-        $manuscript->load(['revisions.uploader', 'editor', 'user', 'book', 'bookChapter.book', 'authorLinks.user']);
+        // MOU distribusi buku (naskah selesai / naskah gabungan di review akhir).
+        $chapterBook = $manuscript->bookChapter()->with('book')->first()?->book;
+        $mou = match (true) {
+            $manuscript->isCompilation() => $mous->forCompilation($manuscript),
+            $chapterBook !== null => $mous->forBook($chapterBook),
+            default => $mous->forManuscript($manuscript),
+        };
+        // Relasi "mou" (model mentah) jangan menimpa data tampilan ini.
+        $manuscript->unsetRelation('mou')->setAttribute('mou', $mou ? $mous->present($mou, $request->user()) : null);
+
+        $manuscript->load([
+            'revisions.uploader',
+            'editor',
+            'user',
+            'book',
+            'bookChapter.book',
+            'authorLinks.user',
+            'isbnApplication:id,manuscript_id,applicant_id,type,status,signed_at',
+            'compiledBook:id,title',
+            'chapterRevisionRequests.requester:id,name',
+        ]);
         $manuscript->append('co_authors');
 
         // Hanya untuk admin: saat approve, admin wajib mengisi fee bila penulis
@@ -211,12 +268,18 @@ class ManuscriptController extends Controller
 
         abort_unless($isCoAuthor || $isEditor, 403, 'Anda tidak berwenang mengunggah revisi untuk naskah ini.');
 
+        $this->ensureUsableDocx($request);
+
         if ($isCoAuthor) {
             abort_unless(
                 in_array($manuscript->status, ['submitted', 'revision_requested'], true),
                 422,
                 'Naskah tidak sedang menunggu revisi dari Anda.'
             );
+
+            if ($this->compilation->chapterOf($manuscript)) {
+                $this->ensureDocx($request);
+            }
 
             $role = 'penulis';
             $nextStatus = 'submitted';
@@ -256,7 +319,7 @@ class ManuscriptController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function finalReview(Request $request, Manuscript $manuscript): JsonResponse
+    public function finalReview(Request $request, Manuscript $manuscript, MouService $mous): JsonResponse
     {
         $user = $request->user();
 
@@ -270,16 +333,39 @@ class ManuscriptController extends Controller
             'Naskah tidak sedang menunggu review akhir Anda.'
         );
 
+        // Book Chapter: MOU distribusi buku disetujui saat menyetujui naskah akhir.
+        $mou = $manuscript->isCompilation() && $request->input('decision') === 'approve'
+            ? $mous->forCompilation($manuscript)
+            : null;
+        $signsMou = $mou !== null && $mous->blockedReason($mou, $user, 'final_review') === null;
+
         $validated = $request->validate([
             'decision' => ['required', Rule::in(['approve', 'revise'])],
             'note' => ['nullable', 'string', 'max:2000'],
+            'mou_agreed' => [$signsMou ? 'accepted' : 'nullable'],
+            'signature' => [$signsMou ? 'required' : 'nullable', 'string', 'max:700000'],
+        ], [
+            'mou_agreed.accepted' => 'Centang pernyataan bahwa Anda sudah membaca dan menyepakati isi MOU distribusi buku.',
+            'signature.required' => 'Tanda tangani MOU distribusi buku untuk menyetujui naskah akhir.',
         ]);
+
+        if ($signsMou) {
+            $mous->sign($mou, $user, SignatureImage::decode($validated['signature']), 'final_review');
+        } elseif ($mou && $validated['decision'] === 'approve' && ($reason = $mous->blockedReason($mou, $user, 'final_review'))
+            && ! $mou->signatories->firstWhere('user_id', $user->id)?->signed_at) {
+            abort(422, $reason);
+        }
 
         if ($validated['decision'] === 'approve') {
             $coAuthorLink->update(['approved_at' => now()]);
 
             if ($manuscript->authorLinks()->whereNull('approved_at')->doesntExist()) {
                 $manuscript->update(['status' => 'completed']);
+
+                // Naskah gabungan Book Chapter selesai → semua babnya selesai.
+                if ($manuscript->isCompilation()) {
+                    $this->compilation->compilationCompleted($manuscript);
+                }
             }
         } else {
             $manuscript->authorLinks()->update(['approved_at' => null]);
@@ -309,7 +395,7 @@ class ManuscriptController extends Controller
         Request $request,
         Manuscript $manuscript,
         ManuscriptRevision $revision
-    ): StreamedResponse {
+    ): Response {
         $this->ensureCanView($request, $manuscript);
 
         abort_unless($revision->manuscript_id === $manuscript->id, 404);
@@ -319,6 +405,18 @@ class ManuscriptController extends Controller
             404,
             'File tidak ditemukan.'
         );
+
+        // Word: salinan tanpa template jarak jauh, tautan UNC/file:// dan
+        // makro, supaya admin/editor aman membukanya. Berkas asli tetap utuh.
+        if (strtolower(pathinfo((string) $revision->original_filename, PATHINFO_EXTENSION)) === 'docx') {
+            try {
+                $safe = DocxPackage::sanitizedCopy(Storage::disk('local')->path($revision->file_path));
+            } catch (RuntimeException) {
+                abort(422, 'Berkas Word ini rusak atau berisi bagian yang tidak aman sehingga tidak bisa diunduh. Minta pengunggah mengirim ulang naskahnya.');
+            }
+
+            return response()->download($safe, $revision->original_filename)->deleteFileAfterSend();
+        }
 
         return Storage::disk('local')->download(
             $revision->file_path,
@@ -340,8 +438,14 @@ class ManuscriptController extends Controller
         $isEditor = $manuscript->editor_id === $user->id;
         $isAdmin = $user->roles()->where('name', 'admin')->exists();
 
+        // Editor naskah gabungan Book Chapter boleh membuka naskah tiap bab.
+        $isCompilationEditor = ! $isCoAuthor && ! $isEditor && ! $isAdmin
+            && Manuscript::where('editor_id', $user->id)
+                ->where('compiled_book_id', $this->compilation->chapterOf($manuscript)?->book_id ?? 0)
+                ->exists();
+
         abort_unless(
-            $isCoAuthor || $isEditor || $isAdmin,
+            $isCoAuthor || $isEditor || $isAdmin || $isCompilationEditor,
             403,
             'Anda tidak berwenang mengakses naskah ini.'
         );
@@ -374,6 +478,31 @@ class ManuscriptController extends Controller
             'authors' => $filledAuthors->values()->all(),
             'authors_text' => $filledAuthors->implode(', '),
         ]);
+    }
+
+    /** .docx yang diunggah harus berkas Word utuh yang bisa diperiksa keamanannya. */
+    private function ensureUsableDocx(Request $request): void
+    {
+        $file = $request->file('file');
+
+        if (! $file || strtolower((string) $file->getClientOriginalExtension()) !== 'docx') {
+            return;
+        }
+
+        try {
+            DocxPackage::assertUsable((string) $file->getRealPath());
+        } catch (RuntimeException $exception) {
+            abort(422, $exception->getMessage().' Simpan ulang naskah dari Microsoft Word sebagai .docx lalu unggah lagi.');
+        }
+    }
+
+    private function ensureDocx(Request $request): void
+    {
+        abort_unless(
+            strtolower((string) $request->file('file')?->getClientOriginalExtension()) === 'docx',
+            422,
+            'Naskah bab Book Chapter harus berformat Word (.docx) karena semua bab digabung menjadi satu buku.'
+        );
     }
 
     private function storeRevision(

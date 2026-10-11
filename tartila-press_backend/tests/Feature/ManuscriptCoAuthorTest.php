@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\Support\DocxFixture;
 use Tests\TestCase;
 
 class ManuscriptCoAuthorTest extends TestCase
@@ -264,7 +265,7 @@ class ManuscriptCoAuthorTest extends TestCase
             'order_id' => $order->id,
             'title' => 'Judul Yang Seharusnya Diabaikan',
             'author_user_ids' => [$intruder->id],
-            'file' => $this->manuscriptFile(),
+            'file' => DocxFixture::upload(),
         ]);
 
         $response->assertStatus(201);

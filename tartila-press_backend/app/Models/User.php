@@ -36,6 +36,12 @@ class User extends Authenticatable implements CanResetPasswordContract, MustVeri
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Token login tidak punya foreign key (polimorfik), jadi dibuang manual.
+        static::deleting(fn (User $user) => $user->tokens()->delete());
+    }
+
     public function personalProfile(): HasOne
     {
         return $this->hasOne(PersonalProfile::class);

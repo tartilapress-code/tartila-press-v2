@@ -8,16 +8,27 @@ use App\Models\BookChapter;
 use App\Models\BookShipment;
 use App\Models\CustomPackageItem;
 use App\Models\EditorProfile;
+use App\Models\Event;
 use App\Models\Order;
 use App\Models\Package;
+use App\Models\PaymentMethod;
 use App\Models\User;
+use App\Services\OrderStatusService;
+use App\Services\VoucherService;
+use App\Support\InvoicePresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
+    public function __construct(
+        private readonly VoucherService $vouchers,
+        private readonly OrderStatusService $orderStatus,
+    ) {}
+
     /*
     |--------------------------------------------------------------------------
     | Store - User mengambil paket (admin atau custom)
@@ -27,6 +38,189 @@ class OrderController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            ...$this->selectionRules(),
+
+            'voucher_code' => [
+                'nullable',
+                'string',
+                'max:40',
+            ],
+
+            'editor_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            'notes' => [
+                'nullable',
+                'string',
+                'max:2000',
+            ],
+
+            // Rekening tujuan transfer yang dipilih pembeli (tampil di invoice).
+            'payment_method_id' => self::paymentMethodRules(),
+
+            'recipient_name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'recipient_phone' => [
+                'nullable',
+                'string',
+                'max:20',
+            ],
+
+            'recipient_address' => [
+                'nullable',
+                'string',
+            ],
+        ], [
+            'payment_method_id.required' => 'Pilih rekening tujuan pembayaran.',
+            'payment_method_id.exists' => 'Rekening yang dipilih tidak tersedia.',
+        ]);
+
+        $editorFee = 0;
+
+        if (! empty($validated['editor_id'])) {
+            $editorProfile = EditorProfile::where(
+                'user_id',
+                $validated['editor_id']
+            )
+                ->where('is_available', true)
+                ->first();
+
+            abort_unless(
+                $editorProfile,
+                422,
+                'Editor yang dipilih tidak tersedia.'
+            );
+
+            $editorFee = $editorProfile->fee;
+        }
+
+        $order = DB::transaction(function () use ($request, $validated, $editorFee) {
+
+            $user = $request->user();
+            [$items, $subtotal, $discountTotal, $reservedChapter] = $this->buildItems($validated);
+
+            // Voucher: potongan dihitung per item (setelah diskon produk) dan
+            // disimpan di baris pesanan supaya royalti/fee bisa dihitung ulang.
+            $voucher = null;
+            $voucherQuote = ['lines' => [], 'discount' => 0.0, 'fee' => 0.0];
+
+            if (! empty($validated['voucher_code'])) {
+                $voucher = $this->vouchers->findUsable($validated['voucher_code'], lock: true);
+                $voucherQuote = $this->vouchers->quote($voucher, $items);
+
+                abort_if(
+                    $voucherQuote['discount'] <= 0,
+                    422,
+                    'Voucher ini tidak berlaku untuk item di pesanan Anda.'
+                );
+            }
+
+            $order = Order::create([
+                'order_number' => Order::generateOrderNumber(),
+                'user_id' => $user->id,
+                'status' => 'pending',
+                'subtotal' => $subtotal,
+                'discount_total' => $discountTotal,
+                'voucher_id' => $voucher?->id,
+                'voucher_code' => $voucher?->code,
+                'voucher_discount' => $voucherQuote['discount'],
+                'voucher_fee' => $voucherQuote['fee'],
+                'editor_id' => $validated['editor_id'] ?? null,
+                'editor_fee' => $editorFee,
+                'total' => $subtotal - $discountTotal - $voucherQuote['discount'] + $editorFee,
+                'notes' => $validated['notes'] ?? null,
+                'payment_method_id' => $validated['payment_method_id'] ?? null,
+            ]);
+
+            $order->logStatusHistory('order_placed');
+
+            foreach ($items as $index => $item) {
+                $order->items()->create(
+                    Arr::except($item, ['target_type', 'target_id']) + [
+                        'voucher_discount' => $voucherQuote['lines'][$index] ?? 0,
+                    ]
+                );
+            }
+
+            $reservedChapter?->update(['order_id' => $order->id]);
+
+            if ($validated['type'] === 'book') {
+                $this->createBookShipment($user, $order, $validated);
+            }
+
+            return $order->load(['items', 'editor', 'bookShipment', 'paymentMethod']);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pesanan berhasil dibuat. Selesaikan pembayaran dalam 1×24 jam.',
+            'data' => $order,
+        ], 201);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check voucher - Pratinjau potongan voucher untuk pilihan produk di
+    | halaman pembayaran (tidak membuat pesanan)
+    |--------------------------------------------------------------------------
+    */
+
+    public function checkVoucher(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            ...$this->selectionRules(),
+
+            'voucher_code' => [
+                'required',
+                'string',
+                'max:40',
+            ],
+        ]);
+
+        $voucher = $this->vouchers->findUsable($validated['voucher_code']);
+
+        // Item dibangun di dalam transaksi yang selalu dibatalkan: slot bab
+        // dikunci/diperiksa seperti saat memesan, tapi tidak ada yang disimpan.
+        DB::beginTransaction();
+
+        try {
+            $items = $this->buildItems($validated)[0];
+        } finally {
+            DB::rollBack();
+        }
+
+        $quote = $this->vouchers->quote($voucher, $items);
+
+        abort_if(
+            $quote['discount'] <= 0,
+            422,
+            'Voucher ini tidak berlaku untuk item di pesanan Anda.'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Voucher berlaku.',
+            'data' => [
+                'code' => $voucher->code,
+                'name' => $voucher->name,
+                'discount_percent' => $voucher->discount_percent,
+                'voucher_discount' => $quote['discount'],
+            ],
+        ]);
+    }
+
+    /**
+     * Aturan validasi pilihan produk (dipakai store dan checkVoucher).
+     */
+    private function selectionRules(): array
+    {
+        return [
             'type' => [
                 'required',
                 Rule::in(['package', 'custom', 'book_chapter', 'book']),
@@ -59,103 +253,30 @@ class OrderController extends Controller
             'book_ids.*' => [
                 'integer',
             ],
+        ];
+    }
 
-            'editor_id' => [
-                'nullable',
-                'integer',
-            ],
-
-            'notes' => [
-                'nullable',
-                'string',
-                'max:2000',
-            ],
-
-            'recipient_name' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'recipient_phone' => [
-                'nullable',
-                'string',
-                'max:20',
-            ],
-
-            'recipient_address' => [
-                'nullable',
-                'string',
-            ],
-        ]);
-
-        $editorFee = 0;
-
-        if (! empty($validated['editor_id'])) {
-            $editorProfile = EditorProfile::where(
-                'user_id',
-                $validated['editor_id']
-            )
-                ->where('is_available', true)
-                ->first();
-
-            abort_unless(
-                $editorProfile,
-                422,
-                'Editor yang dipilih tidak tersedia.'
-            );
-
-            $editorFee = $editorProfile->fee;
+    /**
+     * Bangun baris pesanan dari pilihan produk.
+     *
+     * @return array{0: list<array<string, mixed>>, 1: float, 2: float, 3: BookChapter|null}
+     */
+    private function buildItems(array $validated): array
+    {
+        if ($validated['type'] === 'book_chapter') {
+            return $this->buildBookChapterItems($validated['book_chapter_id']);
         }
 
-        $order = DB::transaction(function () use ($request, $validated, $editorFee) {
+        if ($validated['type'] === 'book') {
+            return [...$this->buildBookItems($validated['book_ids']), null];
+        }
 
-            $user = $request->user();
-            $reservedChapter = null;
-
-            if ($validated['type'] === 'book_chapter') {
-                [$items, $subtotal, $discountTotal, $reservedChapter] =
-                    $this->buildBookChapterItems($validated['book_chapter_id']);
-            } elseif ($validated['type'] === 'book') {
-                [$items, $subtotal, $discountTotal] = $this->buildBookItems($validated['book_ids']);
-            } else {
-                [$items, $subtotal, $discountTotal] = $validated['type'] === 'package'
-                    ? $this->buildPackageItems($validated['package_id'])
-                    : $this->buildCustomItems($validated['custom_item_ids']);
-            }
-
-            $order = Order::create([
-                'order_number' => Order::generateOrderNumber(),
-                'user_id' => $user->id,
-                'status' => 'pending',
-                'subtotal' => $subtotal,
-                'discount_total' => $discountTotal,
-                'editor_id' => $validated['editor_id'] ?? null,
-                'editor_fee' => $editorFee,
-                'total' => $subtotal - $discountTotal + $editorFee,
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            $order->logStatusHistory('order_placed');
-
-            foreach ($items as $item) {
-                $order->items()->create($item);
-            }
-
-            $reservedChapter?->update(['order_id' => $order->id]);
-
-            if ($validated['type'] === 'book') {
-                $this->createBookShipment($user, $order, $validated);
-            }
-
-            return $order->load(['items', 'editor', 'bookShipment']);
-        });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Pesanan berhasil dibuat.',
-            'data' => $order,
-        ], 201);
+        return [
+            ...($validated['type'] === 'package'
+                ? $this->buildPackageItems($validated['package_id'])
+                : $this->buildCustomItems($validated['custom_item_ids'])),
+            null,
+        ];
     }
 
     /*
@@ -168,7 +289,7 @@ class OrderController extends Controller
     {
         $orders = $request->user()
             ->orders()
-            ->with(['items', 'editor', 'manuscript', 'bookShipment', 'eventRegistration', 'statusHistories'])
+            ->with(['items', 'editor', 'manuscript', 'bookShipment', 'eventRegistration', 'statusHistories', 'paymentMethod'])
             ->latest()
             ->get();
 
@@ -185,17 +306,50 @@ class OrderController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function index(): JsonResponse
-    {
-        $orders = Order::with(['user', 'items', 'editor', 'bookShipment', 'eventRegistration'])
-            ->latest()
-            ->get();
+    // Kategori tab pesanan admin -> jenis item pesanan (semua item satu jenis).
+    private const ADMIN_CATEGORIES = [
+        'book' => [Book::class],
+        'package' => [Package::class, CustomPackageItem::class],
+        'book_chapter' => [BookChapter::class],
+        'event' => [Event::class],
+    ];
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar pesanan berhasil diambil.',
-            'data' => $orders,
-        ]);
+    public function index(Request $request): JsonResponse
+    {
+        // Per halaman: ?category=book|package|book_chapter|event, ?status=,
+        // ?sort=time_desc|time_asc|status_asc|status_desc. meta.counts = jumlah per tab.
+        $category = array_key_exists((string) $request->query('category'), self::ADMIN_CATEGORIES)
+            ? (string) $request->query('category')
+            : 'book';
+        $inCategory = fn (string $key) => fn ($query) => $query->whereHas(
+            'items',
+            fn ($item) => $item->whereIn('itemable_type', self::ADMIN_CATEGORIES[$key])
+        );
+
+        $query = Order::with(['user', 'items', 'editor', 'bookShipment', 'eventRegistration', 'paymentMethod'])
+            ->where($inCategory($category))
+            ->when(
+                in_array($request->query('status'), ['pending', 'confirmed', 'completed', 'cancelled'], true),
+                fn ($q) => $q->where('status', $request->query('status'))
+            );
+
+        $statusRank = "CASE status WHEN 'pending' THEN 0 WHEN 'confirmed' THEN 1 WHEN 'completed' THEN 2 WHEN 'cancelled' THEN 3 ELSE 4 END";
+
+        match ($request->query('sort')) {
+            'time_asc' => $query->oldest()->orderBy('id'),
+            'status_asc' => $query->orderByRaw("{$statusRank} ASC")->latest(),
+            'status_desc' => $query->orderByRaw("{$statusRank} DESC")->latest(),
+            default => $query->latest()->orderByDesc('id'),
+        };
+
+        $counts = collect(self::ADMIN_CATEGORIES)
+            ->map(fn ($types, string $key) => Order::where($inCategory($key))->count());
+
+        return $this->pageResponse(
+            $query->paginate($this->perPage($request, 20)),
+            'Daftar pesanan berhasil diambil.',
+            meta: ['counts' => $counts]
+        );
     }
 
     /*
@@ -213,60 +367,13 @@ class OrderController extends Controller
             ],
         ]);
 
-        $this->applyStatusChange($order, $validated['status']);
+        $this->orderStatus->apply($order, $validated['status']);
 
         return response()->json([
             'success' => true,
             'message' => 'Status pesanan berhasil diperbarui.',
             'data' => $order->fresh(['items', 'editor', 'bookShipment', 'eventRegistration']),
         ]);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Terapkan efek samping perubahan status (dipakai updateStatus &
-    | verifyPayment supaya sinkronisasi book_chapter/book_shipment tidak
-    | terduplikasi di 2 tempat)
-    |--------------------------------------------------------------------------
-    */
-
-    private function applyStatusChange(Order $order, string $status): void
-    {
-        $order->update(['status' => $status]);
-
-        if ($status === 'cancelled') {
-            BookChapter::where('order_id', $order->id)
-                ->whereNull('manuscript_id')
-                ->update(['order_id' => null]);
-
-            $order->bookShipment?->update(['status' => 'cancelled']);
-
-            $order->eventRegistration?->update(['status' => 'cancelled']);
-
-            $order->logStatusHistory('order_cancelled', $order->payment_verification_note);
-        }
-
-        if ($status === 'confirmed') {
-            $order->logStatusHistory('payment_confirmed');
-        }
-
-        if ($status === 'confirmed' && $order->bookShipment?->status === 'pending') {
-            $order->bookShipment->update(['status' => 'confirmed']);
-        }
-
-        if ($status === 'confirmed' && $order->eventRegistration?->status === 'pending') {
-            $order->eventRegistration->update(['status' => 'confirmed']);
-        }
-
-        if ($status === 'completed' && ! $order->bookShipment) {
-            $order->logStatusHistory('order_completed');
-        }
-
-        if ($status === 'completed'
-            && $order->bookShipment
-            && $order->bookShipment->status !== 'delivered') {
-            $order->bookShipment->markDelivered('admin');
-        }
     }
 
     /*
@@ -284,6 +391,14 @@ class OrderController extends Controller
             422,
             'Bukti transfer hanya bisa diunggah untuk pesanan yang masih menunggu verifikasi.'
         );
+
+        // Lewat 1×24 jam tanpa bukti transfer: pesanan dibatalkan (penjadwal
+        // biasanya sudah melakukannya; di sini untuk sela waktu sebelum itu).
+        if ($order->isPaymentOverdue()) {
+            $this->orderStatus->apply($order, 'cancelled', OrderStatusService::AUTO_CANCEL_NOTE);
+
+            abort(422, 'Batas waktu pembayaran 1×24 jam sudah lewat, pesanan dibatalkan. Silakan buat pesanan baru.');
+        }
 
         $validated = $request->validate([
             'file' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
@@ -316,15 +431,25 @@ class OrderController extends Controller
         $validated = $request->validate([
             'decision' => ['required', Rule::in(['approve', 'reject'])],
             'note' => ['nullable', 'string', 'max:2000'],
+            // Rekening yang menerima transfer (untuk saldo per rekening).
+            'payment_method_id' => ['nullable', 'integer', Rule::exists('payment_methods', 'id')],
         ]);
 
         abort_unless($order->payment_proof_file, 422, 'Pesanan ini belum mengunggah bukti transfer.');
 
         abort_unless($order->status === 'pending', 422, 'Pesanan ini sudah diverifikasi sebelumnya.');
 
-        $order->update(['payment_verification_note' => $validated['note'] ?? null]);
+        // Rekening penerima: pilihan admin, lalu rekening pilihan pembeli di
+        // invoice, lalu satu-satunya rekening aktif. Pilihan pembeli tetap
+        // tersimpan bila ditolak (riwayat invoice).
+        $order->update([
+            'payment_verification_note' => $validated['note'] ?? null,
+            'payment_method_id' => $validated['decision'] === 'approve'
+                ? ($validated['payment_method_id'] ?? $order->payment_method_id ?? $this->onlyActiveAccount())
+                : $order->payment_method_id,
+        ]);
 
-        $this->applyStatusChange(
+        $this->orderStatus->apply(
             $order,
             $validated['decision'] === 'approve' ? 'confirmed' : 'cancelled'
         );
@@ -336,6 +461,52 @@ class OrderController extends Controller
                 : 'Bukti transfer ditolak. Pesanan dibatalkan.',
             'data' => $order->fresh(['items', 'editor', 'bookShipment', 'eventRegistration']),
         ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Invoice - Ringkasan tagihan pesanan (pembeli pemilik pesanan atau admin)
+    |--------------------------------------------------------------------------
+    */
+
+    public function invoice(Request $request, Order $order): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $order->user_id === $user->id || $user->roles()->where('name', 'admin')->exists(),
+            403,
+            'Anda tidak berwenang melihat invoice ini.'
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice berhasil diambil.',
+            'data' => InvoicePresenter::present($order),
+        ]);
+    }
+
+    /**
+     * Rekening tujuan transfer: wajib dipilih bila ada rekening aktif, dan
+     * hanya boleh rekening yang aktif.
+     *
+     * @return list<mixed>
+     */
+    public static function paymentMethodRules(): array
+    {
+        return [
+            PaymentMethod::where('is_active', true)->exists() ? 'required' : 'nullable',
+            'integer',
+            Rule::exists('payment_methods', 'id')->where('is_active', true),
+        ];
+    }
+
+    /** Kalau hanya ada satu rekening aktif, itulah penerima transfernya. */
+    private function onlyActiveAccount(): ?int
+    {
+        $ids = PaymentMethod::where('is_active', true)->limit(2)->pluck('id');
+
+        return $ids->count() === 1 ? (int) $ids->first() : null;
     }
 
     /*
@@ -392,6 +563,9 @@ class OrderController extends Controller
             'quantity' => 1,
             'unit_price' => $package->price,
             'subtotal' => $package->price,
+            'discount' => $discountTotal,
+            'target_type' => 'package',
+            'target_id' => $package->id,
         ]];
 
         return [$items, (float) $package->price, $discountTotal];
@@ -425,6 +599,9 @@ class OrderController extends Controller
                 'quantity' => 1,
                 'unit_price' => $item->price,
                 'subtotal' => $item->price,
+                'discount' => $item->discountAmount(),
+                'target_type' => 'custom_item',
+                'target_id' => $item->id,
             ];
         })->all();
 
@@ -469,6 +646,9 @@ class OrderController extends Controller
                 'quantity' => 1,
                 'unit_price' => $unitPrice,
                 'subtotal' => $unitPrice,
+                'discount' => round($unitPrice * $book->discount / 100, 2),
+                'target_type' => 'book',
+                'target_id' => $book->id,
             ];
         })->all();
 
@@ -547,6 +727,9 @@ class OrderController extends Controller
             'quantity' => 1,
             'unit_price' => $price,
             'subtotal' => $price,
+            'discount' => $discountTotal,
+            'target_type' => 'book',
+            'target_id' => $chapter->book_id,
         ]];
 
         return [$items, $price, $discountTotal, $chapter];

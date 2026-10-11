@@ -11,6 +11,12 @@ class PaymentMethod extends Model
         'account_number',
         'account_holder_name',
         'is_active',
+        'opening_balance',
+    ];
+
+    // Saldo rekening hanya untuk halaman Keuangan admin, bukan untuk pembeli.
+    protected $hidden = [
+        'opening_balance',
     ];
 
     protected function casts(): array

@@ -21,6 +21,7 @@ class Package extends Model
         'notes',
         'is_active',
         'created_by',
+        'free_copies',
     ];
 
     protected $appends = [
