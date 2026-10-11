@@ -11,5 +11,12 @@
     "notIncluded": "Not included",
     "genericError": "Something went wrong. Please try again.",
     "showPassword": "Show password",
-    "hidePassword": "Hide password"
+    "hidePassword": "Hide password",
+    "pagination": {
+        "aria": "Pagination",
+        "previous": "Previous",
+        "next": "Next",
+        "page": "Page {{page}}",
+        "summary": "{{from}}–{{to}} of {{total}}"
+    }
 }

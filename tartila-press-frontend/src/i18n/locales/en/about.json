@@ -1,0 +1,30 @@
+{
+    "page": {
+        "badge": "About Us",
+        "heroBefore": "Get to Know ",
+        "heroText": "A publisher that guides authors from manuscript to published book, with a professional, transparent and trustworthy process.",
+        "scriptTop": "Organising Knowledge,",
+        "scriptBottom": "Strengthening Civilisation"
+    },
+    "profile": "Profile",
+    "vision": "Vision",
+    "mission": "Mission",
+    "legality": "Legal Documents",
+    "legalityText": "Official documents behind our publishing activities.",
+    "team": "Our Team",
+    "teamText": "The people behind every book we publish.",
+    "expertise": "Expertise",
+    "contact": "Contact",
+    "social": "Social Media",
+    "address": "Address",
+    "openMap": "Open in Google Maps",
+    "mapTitle": "Map of {{name}}",
+    "previous": "Previous",
+    "next": "Next",
+    "viewPhoto": "View photo of {{name}}",
+    "close": "Close",
+    "empty": "Profile information is not available yet.",
+    "ctaTitle": "Ready to publish your book with us?",
+    "ctaText": "See our publishing packages or consult your needs first.",
+    "ctaAction": "See Packages"
+}

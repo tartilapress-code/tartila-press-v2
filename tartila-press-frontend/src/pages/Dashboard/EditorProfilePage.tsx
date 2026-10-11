@@ -4,6 +4,7 @@ import Input from '@/components/Input/Input';
 import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Button from '@/components/Button/Button';
 import * as editorApi from '@/data/editor/editorApi';
+import * as bookApi from '@/data/book/bookApi';
 import { ApiError } from '@/lib/http';
 import {
     toContentLanguages,
@@ -23,17 +24,33 @@ export default function EditorProfilePage() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
+    // Bidang keahlian (diatur admin) — menentukan naskah pool yang terlihat.
+    const [fields, setFields] = useState<string[]>([]);
 
     useEffect(() => {
-        editorApi
-            .getMyProfile()
-            .then((response) => {
+        Promise.all([
+            editorApi.getMyProfile(),
+            bookApi.listFieldCategories().catch(() => ({ data: [] })),
+        ])
+            .then(([response, categoryResponse]) => {
                 const profile = response.data;
                 if (profile) {
                     setFee(profile.fee?.toString() ?? '0');
                     setBio(profile.bio ?? '');
                     setLanguages(toContentLanguages(profile.languages));
                     setIsAvailable(Boolean(profile.is_available));
+
+                    const ids: number[] = profile.field_category_ids ?? [];
+                    setFields(
+                        (
+                            categoryResponse.data as {
+                                id: number;
+                                name: string;
+                            }[]
+                        )
+                            .filter((category) => ids.includes(category.id))
+                            .map((category) => category.name)
+                    );
                 }
             })
             .finally(() => setIsLoading(false));
@@ -90,7 +107,9 @@ export default function EditorProfilePage() {
                 />
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-oxford-navy-900">Bio</label>
+                    <label className="text-sm font-medium text-oxford-navy-900">
+                        Bio
+                    </label>
                     <textarea
                         className={textareaClass}
                         rows={4}
@@ -105,6 +124,17 @@ export default function EditorProfilePage() {
                     value={languages}
                     onChange={setLanguages}
                 />
+
+                <div className="flex flex-col gap-1 rounded-lg bg-forest-moss-50 p-3 text-sm ring-1 ring-forest-moss-100">
+                    <span className="font-medium text-oxford-navy-900">
+                        Bidang keahlian (diatur admin)
+                    </span>
+                    <span className="text-oxford-navy-900/75">
+                        {fields.length > 0
+                            ? fields.join(', ')
+                            : 'Belum diatur — Anda bisa mengambil naskah pool yang terbuka untuk umum.'}
+                    </span>
+                </div>
 
                 <label className="flex flex-row items-center gap-2 text-oxford-navy-900">
                     <input

@@ -6,6 +6,7 @@ import Input from '@/components/Input/Input';
 import Button from '@/components/Button/Button';
 import BookChapterCostPanel from '@/components/bookChapter/BookChapterCostPanel';
 import PackageOptionsField from '@/components/bookChapter/PackageOptionsField';
+import PromoteProjectButton from '@/components/bookChapter/PromoteProjectButton';
 import * as editorApi from '@/data/editor/editorApi';
 import type { ChapterInput } from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
@@ -244,7 +245,9 @@ export default function MyBookChapterProjectsPage() {
                 />
 
                 <div className="flex flex-col gap-3">
-                    <h6 className="text-oxford-navy-900 font-semibold">Daftar Bab</h6>
+                    <h6 className="text-oxford-navy-900 font-semibold">
+                        Daftar Bab
+                    </h6>
                     {chapters.map((row, index) => (
                         <div
                             key={index}
@@ -416,12 +419,24 @@ export default function MyBookChapterProjectsPage() {
                                                 </p>
                                             )}
                                     </div>
-                                    <Link
-                                        to={`/dashboard/proyek-bab-buku-saya/${project.id}`}
-                                        className="inline-flex items-center font-semibold text-sm rounded-lg px-4 py-3 h-fit shrink-0 text-oxford-navy-700 border border-oxford-navy-200 hover:bg-forest-moss-50"
-                                    >
-                                        Kelola
-                                    </Link>
+                                    <div className="flex flex-col items-end gap-2 shrink-0">
+                                        <Link
+                                            to={`/dashboard/proyek-bab-buku-saya/${project.id}`}
+                                            className="inline-flex items-center font-semibold text-sm rounded-lg px-4 py-3 h-fit text-oxford-navy-700 border border-oxford-navy-200 hover:bg-forest-moss-50"
+                                        >
+                                            Kelola
+                                        </Link>
+                                        <PromoteProjectButton
+                                            label="Promosikan Projek"
+                                            withEditor
+                                            load={() =>
+                                                editorApi.myBookChapterProjectPromo(
+                                                    project.id
+                                                )
+                                            }
+                                            className="items-end text-right"
+                                        />
+                                    </div>
                                 </div>
                             );
                         })}

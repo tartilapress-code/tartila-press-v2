@@ -3,7 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Button from '@/components/Button/Button';
 import * as bookChapterProjectApi from '@/data/bookChapterProject/bookChapterProjectApi';
 import * as orderApi from '@/data/order/orderApi';
+import VoucherField from '@/components/voucher/VoucherField';
+import { useVoucher } from '@/components/voucher/useVoucher';
 import { ApiError } from '@/lib/http';
+import PaymentMethodPicker from '@/components/order/PaymentMethodPicker';
+import { usePaymentMethodChoice } from '@/hooks/usePaymentMethodChoice';
 
 type ChapterSlot = {
     id: number;
@@ -31,6 +35,7 @@ export default function BuyBookChapterSlotPage() {
         chapterId: string;
     }>();
     const navigate = useNavigate();
+    const paymentChoice = usePaymentMethodChoice();
 
     const [project, setProject] = useState<ProjectDetail | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -47,6 +52,10 @@ export default function BuyBookChapterSlotPage() {
 
     const chapter = project?.chapters.find((c) => String(c.id) === chapterId);
 
+    const voucher = useVoucher(
+        chapter ? { type: 'book_chapter', book_chapter_id: chapter.id } : null
+    );
+
     async function handleSubmit() {
         if (!chapter) return;
 
@@ -54,11 +63,13 @@ export default function BuyBookChapterSlotPage() {
         setErrorMessage('');
 
         try {
-            await orderApi.create({
+            const response = await orderApi.create({
+                payment_method_id: paymentChoice.selectedId ?? undefined,
                 type: 'book_chapter',
                 book_chapter_id: chapter.id,
+                voucher_code: voucher.code,
             });
-            navigate('/dashboard/pesanan');
+            navigate(`/dashboard/pesanan/${response.data.id}/invoice`);
         } catch (error) {
             setErrorMessage(
                 error instanceof ApiError
@@ -75,7 +86,9 @@ export default function BuyBookChapterSlotPage() {
     }
 
     if (!project || !chapter) {
-        return <p className="text-oxford-navy-900">Slot bab tidak ditemukan.</p>;
+        return (
+            <p className="text-oxford-navy-900">Slot bab tidak ditemukan.</p>
+        );
     }
 
     return (
@@ -93,9 +106,27 @@ export default function BuyBookChapterSlotPage() {
                 </p>
             ) : (
                 <>
-                    <div className="border-t border-forest-moss-200 pt-4">
+                    <VoucherField voucher={voucher} />
+                    <PaymentMethodPicker choice={paymentChoice} />
+
+                    <div className="flex flex-col gap-1 border-t border-forest-moss-200 pt-4">
+                        {voucher.quote && (
+                            <p className="text-forest-moss-700 text-sm">
+                                Voucher ({voucher.quote.code}): −
+                                {rupiahFormatter.format(
+                                    voucher.quote.voucher_discount
+                                )}
+                            </p>
+                        )}
                         <p className="text-oxford-navy-900 text-lg font-semibold">
-                            Total: {rupiahFormatter.format(chapter.final_price)}
+                            Total:{' '}
+                            {rupiahFormatter.format(
+                                Math.max(
+                                    0,
+                                    chapter.final_price -
+                                        (voucher.quote?.voucher_discount ?? 0)
+                                )
+                            )}
                         </p>
                     </div>
 
@@ -107,9 +138,11 @@ export default function BuyBookChapterSlotPage() {
                         variant="primary"
                         className="self-start"
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || paymentChoice.isMissing}
                     >
-                        {isSubmitting ? 'Memproses...' : 'Konfirmasi Beli Slot Ini'}
+                        {isSubmitting
+                            ? 'Memproses...'
+                            : 'Konfirmasi Beli Slot Ini'}
                     </Button>
                 </>
             )}

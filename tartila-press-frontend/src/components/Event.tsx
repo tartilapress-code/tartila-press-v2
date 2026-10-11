@@ -12,8 +12,8 @@ export default function Event(): React.ReactNode {
 
     useEffect(() => {
         eventApi
-            .list()
-            .then((response) => setEvents(response.data.slice(0, 4)))
+            .list({ per_page: 4 })
+            .then((response) => setEvents(response.data))
             .catch(() => setEvents([]))
             .finally(() => setIsLoading(false));
     }, []);

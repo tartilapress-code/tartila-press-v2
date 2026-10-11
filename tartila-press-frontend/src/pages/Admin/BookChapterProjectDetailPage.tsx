@@ -7,6 +7,7 @@ import ImageInput from '@/components/Input/ImageInput';
 import Select from '@/components/Select/Select';
 import Button from '@/components/Button/Button';
 import BookChapterCostPanel from '@/components/bookChapter/BookChapterCostPanel';
+import CompilationPanel from '@/components/bookChapter/CompilationPanel';
 import ChapterRowEditor, {
     type ChapterPatch,
     type EditableChapter,
@@ -223,7 +224,9 @@ export default function BookChapterProjectDetailPage() {
     }
 
     if (!project) {
-        return <p className="text-oxford-navy-900/70">Proyek tidak ditemukan.</p>;
+        return (
+            <p className="text-oxford-navy-900/70">Proyek tidak ditemukan.</p>
+        );
     }
 
     // Item yang sudah tercentang tapi kini nonaktif tetap tampil supaya bisa
@@ -418,7 +421,9 @@ export default function BookChapterProjectDetailPage() {
             </div>
 
             <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Daftar Bab</h5>
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                    Daftar Bab
+                </h5>
 
                 <div className="flex flex-col gap-3">
                     {project.chapters.map((chapter) => (
@@ -450,6 +455,8 @@ export default function BookChapterProjectDetailPage() {
                     )}
                 </div>
             </div>
+
+            <CompilationPanel projectId={project.id} />
         </div>
     );
 }

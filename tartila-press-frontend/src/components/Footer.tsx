@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import socialMedia from '../data/footer-social-media.json';
-import contacts from '../data/footer-kontak.json';
+import { useAboutPage } from '@/hooks/useAboutPage';
+import { SOCIAL_META, contactItems, socialItems } from '@/lib/siteContact';
 import Copyrights from './Copyrights';
 import Logo from './Logo';
 
@@ -18,6 +18,12 @@ function ColumnTitle({ children }: { children: React.ReactNode }) {
 
 export default function Footer() {
     const { t } = useTranslation();
+    // Kontak & sosial media dari halaman Tentang Kami (diatur admin).
+    const { about } = useAboutPage();
+    const { profile } = about;
+
+    const contacts = contactItems(profile);
+    const socialMedia = socialItems(profile);
 
     return (
         <footer
@@ -39,14 +45,31 @@ export default function Footer() {
                         <ul className="flex flex-col gap-2.5">
                             {contacts.map((kontak) => (
                                 <li
-                                    key={kontak.id}
-                                    className="flex flex-row items-center gap-3 text-[15px] text-oxford-navy-900/80"
+                                    key={kontak.key}
+                                    className="flex flex-row items-start gap-3 text-[15px] text-oxford-navy-900/80"
                                 >
                                     <i
                                         aria-hidden
-                                        className={`${kontak.icon} text-oxford-navy-700`}
+                                        className={`${kontak.icon} text-xl leading-none text-oxford-navy-700`}
                                     ></i>
-                                    <span>{kontak.label}</span>
+                                    {kontak.href ? (
+                                        <a
+                                            href={kontak.href}
+                                            target={
+                                                kontak.href.startsWith('http')
+                                                    ? '_blank'
+                                                    : undefined
+                                            }
+                                            rel="noreferrer"
+                                            className="break-all transition-colors hover:text-oxford-navy-700 hover:underline"
+                                        >
+                                            {kontak.label}
+                                        </a>
+                                    ) : (
+                                        <span className="whitespace-pre-line">
+                                            {kontak.label}
+                                        </span>
+                                    )}
                                 </li>
                             ))}
                         </ul>
@@ -56,19 +79,19 @@ export default function Footer() {
                         <ColumnTitle>{t('footer.socialMedia')}</ColumnTitle>
 
                         <ul className="flex flex-col gap-2.5">
-                            {socialMedia.map((media) => (
-                                <li key={media.id}>
+                            {socialMedia.map(({ platform, url }) => (
+                                <li key={platform}>
                                     <a
-                                        href={media.link}
+                                        href={url}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="inline-flex flex-row items-center gap-3 text-[15px] text-oxford-navy-900/80 transition-colors hover:text-oxford-navy-700 hover:underline"
                                     >
                                         <i
                                             aria-hidden
-                                            className={`text-xl text-oxford-navy-700 ${media.icon}`}
+                                            className={`text-xl text-oxford-navy-700 ${SOCIAL_META[platform].icon}`}
                                         ></i>
-                                        {media.name}
+                                        {SOCIAL_META[platform].label}
                                     </a>
                                 </li>
                             ))}

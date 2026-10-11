@@ -15,9 +15,11 @@ import PersonCard, {
 import type { PeopleRole } from '@/components/people/roles';
 import { SearchField, SelectField } from '@/components/ui/FilterControls';
 import ListHero from '@/components/ui/ListHero';
+import Pagination from '@/components/ui/Pagination';
 import QuoteCard from '@/components/ui/QuoteCard';
 import SectionTitle from '@/components/ui/SectionTitle';
 import SideNavCard, { type SideNavItem } from '@/components/ui/SideNavCard';
+import type { PageMeta } from '@/lib/pagination';
 
 type SortMode = 'default' | 'az' | 'za';
 
@@ -40,40 +42,53 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [query, setQuery] = useState<string>('');
     const [sort, setSort] = useState<SortMode>('default');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
     const searchRef = useRef<HTMLInputElement>(null);
+    const listRef = useRef<HTMLElement>(null);
 
+    // Pencarian nama, urutan & halaman dikerjakan server.
     useEffect(() => {
         let cancelled = false;
 
-        publicProfileApi
-            .listByRole(role)
-            .then((response) => {
-                if (!cancelled) setPeople(response.data);
-            })
-            .catch(() => {
-                if (!cancelled) setPeople([]);
-            })
-            .finally(() => {
-                if (!cancelled) setIsLoading(false);
-            });
+        const timeout = setTimeout(() => {
+            setIsLoading(true);
+
+            publicProfileApi
+                .listByRole(role, { search: query.trim(), sort, page })
+                .then((response) => {
+                    if (cancelled) return;
+                    setPeople(response.data);
+                    setMeta(response.meta ?? null);
+                })
+                .catch(() => {
+                    if (cancelled) return;
+                    setPeople([]);
+                    setMeta(null);
+                })
+                .finally(() => {
+                    if (!cancelled) setIsLoading(false);
+                });
+        }, 300);
 
         return () => {
             cancelled = true;
+            clearTimeout(timeout);
         };
-    }, [role]);
+    }, [role, query, sort, page]);
 
-    const needle = query.trim().toLocaleLowerCase('id');
-    const matched = people.filter((person) =>
-        person.name.toLocaleLowerCase('id').includes(needle)
-    );
-    const visible =
-        sort === 'default'
-            ? matched
-            : [...matched].sort((a, b) =>
-                  sort === 'az'
-                      ? a.name.localeCompare(b.name, 'id')
-                      : b.name.localeCompare(a.name, 'id')
-              );
+    const hasQuery = query.trim() !== '';
+    const total = meta?.total ?? people.length;
+
+    function changeQuery(value: string) {
+        setQuery(value);
+        setPage(1);
+    }
+
+    function changePage(next: number) {
+        setPage(next);
+        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     const navItems: SideNavItem[] = [
         {
@@ -131,16 +146,17 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                 </aside>
 
                 <section
+                    ref={listRef}
                     aria-labelledby="people-directory-title"
                     className="flex flex-col gap-6 rounded-2xl border border-forest-moss-100 bg-white p-4 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-6"
                 >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <SectionTitle id="people-directory-title">
                             {t(`people.${role}.directoryTitle`)}
-                            {!isLoading && people.length > 0 && (
+                            {!isLoading && total > 0 && (
                                 <span className="font-sans text-sm font-normal text-oxford-navy-900/50">
                                     {t(`people.${role}.count`, {
-                                        count: visible.length,
+                                        count: total,
                                     })}
                                 </span>
                             )}
@@ -150,7 +166,7 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                             <SearchField
                                 inputRef={searchRef}
                                 value={query}
-                                onChange={setQuery}
+                                onChange={changeQuery}
                                 placeholder={t(
                                     `people.${role}.searchPlaceholder`
                                 )}
@@ -159,7 +175,10 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                             />
                             <SelectField
                                 value={sort}
-                                onChange={(value) => setSort(value as SortMode)}
+                                onChange={(value) => {
+                                    setSort(value as SortMode);
+                                    setPage(1);
+                                }}
                                 options={sortOptions}
                                 ariaLabel={t('people.sort.aria')}
                                 icon={<RiArrowUpDownLine />}
@@ -176,11 +195,11 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                                 )
                             )}
                         </div>
-                    ) : people.length === 0 ? (
+                    ) : people.length === 0 && !hasQuery ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
                             {t(`people.${role}.emptyText`)}
                         </p>
-                    ) : visible.length === 0 ? (
+                    ) : people.length === 0 ? (
                         <div className="flex flex-col items-center gap-3 rounded-xl bg-forest-moss-50 px-6 py-14 text-center">
                             <p className="text-sm text-oxford-navy-900/70">
                                 {t(`people.${role}.noMatch`, {
@@ -189,7 +208,7 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                             </p>
                             <button
                                 type="button"
-                                onClick={() => setQuery('')}
+                                onClick={() => changeQuery('')}
                                 className="inline-flex items-center gap-2 rounded-lg border border-oxford-navy-700 px-4 py-2 text-sm font-semibold text-oxford-navy-700 transition-colors hover:cursor-pointer hover:bg-oxford-navy-700 hover:text-white"
                             >
                                 <RiRestartLine aria-hidden className="size-4" />
@@ -197,15 +216,18 @@ export default function PeopleDirectoryPage({ role }: { role: PeopleRole }) {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            {visible.map((person) => (
-                                <PersonCard
-                                    key={person.slug}
-                                    person={person}
-                                    role={role}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                {people.map((person) => (
+                                    <PersonCard
+                                        key={person.slug}
+                                        person={person}
+                                        role={role}
+                                    />
+                                ))}
+                            </div>
+                            <Pagination meta={meta} onPageChange={changePage} />
+                        </>
                     )}
                 </section>
             </div>

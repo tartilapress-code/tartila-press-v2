@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RiBookOpenLine, RiRestartLine, RiSearchLine } from '@remixicon/react';
 import * as bookApi from '@/data/book/bookApi';
 import type { BookCategoryItem, BookSummary } from '@/data/book/bookApi';
-import { CornerBlob } from '@/components/book/catalog/CatalogArt';
 import CatalogBookCard, {
     CatalogBookCardSkeleton,
 } from '@/components/book/catalog/CatalogBookCard';
@@ -14,7 +13,9 @@ import CatalogFilterBar, {
 import CatalogHero from '@/components/book/catalog/CatalogHero';
 import CartFab from '@/components/cart/CartFab';
 import FloatingContact from '@/components/FloatingContact';
+import Pagination from '@/components/ui/Pagination';
 import { CATALOG_SEARCH_PARAM } from '@/lib/catalogSearch';
+import type { PageMeta } from '@/lib/pagination';
 
 const defaultFilters: CatalogFilters = {
     search: '',
@@ -52,6 +53,20 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
         ...defaultFilters,
         search: initialSearch,
     });
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
+    const listRef = useRef<HTMLElement>(null);
+
+    // Filter berubah -> kembali ke halaman pertama.
+    function changeFilters(next: CatalogFilters) {
+        setFilters(next);
+        setPage(1);
+    }
+
+    function changePage(next: number) {
+        setPage(next);
+        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     const hasActiveFilters =
         filters.search !== '' ||
@@ -86,12 +101,17 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                     book_category_id: filters.bookCategoryId || undefined,
                     field_category_id: filters.fieldCategoryId || undefined,
                     sort: filters.sort as bookApi.BookListParams['sort'],
+                    page,
                 })
                 .then((response) => {
-                    if (!cancelled) setBooks(response.data);
+                    if (cancelled) return;
+                    setBooks(response.data);
+                    setMeta(response.meta ?? null);
                 })
                 .catch(() => {
-                    if (!cancelled) setBooks([]);
+                    if (cancelled) return;
+                    setBooks([]);
+                    setMeta(null);
                 })
                 .finally(() => {
                     if (!cancelled) setIsLoading(false);
@@ -102,7 +122,7 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [filters]);
+    }, [filters, page]);
 
     return (
         <>
@@ -117,10 +137,7 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                     <CatalogFilterBar
                         filters={filters}
                         onChange={(patch) =>
-                            setFilters((previous) => ({
-                                ...previous,
-                                ...patch,
-                            }))
+                            changeFilters({ ...filters, ...patch })
                         }
                         bookCategories={toOptions(bookCategories)}
                         fieldCategories={toOptions(fieldCategories)}
@@ -128,12 +145,11 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                     />
 
                     <section
+                        ref={listRef}
                         aria-label={t('books.catalog.listAria')}
                         aria-busy={isLoading}
                         className="relative mt-8 xl:grid xl:grid-cols-[9rem_minmax(0,1fr)] xl:gap-8"
                     >
-                        <CornerBlob className="pointer-events-none absolute -left-24 top-[26rem] hidden h-[260px] w-auto xl:block" />
-
                         <aside className="relative hidden xl:block">
                             <div className="sticky top-28 flex flex-col gap-4 pt-16">
                                 <RiBookOpenLine
@@ -176,7 +192,7 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                                         <button
                                             type="button"
                                             onClick={() =>
-                                                setFilters(defaultFilters)
+                                                changeFilters(defaultFilters)
                                             }
                                             className="mt-1 inline-flex items-center gap-2 rounded-lg border border-oxford-navy-700 px-4 py-2.5 text-sm font-semibold text-oxford-navy-700 transition-colors hover:cursor-pointer hover:bg-oxford-navy-700 hover:text-white"
                                         >
@@ -189,14 +205,21 @@ function BookCatalog({ initialSearch }: { initialSearch: string }) {
                                     )}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
-                                    {books.map((book) => (
-                                        <CatalogBookCard
-                                            key={book.id}
-                                            book={book}
-                                        />
-                                    ))}
-                                </div>
+                                <>
+                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+                                        {books.map((book) => (
+                                            <CatalogBookCard
+                                                key={book.id}
+                                                book={book}
+                                            />
+                                        ))}
+                                    </div>
+                                    <Pagination
+                                        meta={meta}
+                                        onPageChange={changePage}
+                                        className="mt-10"
+                                    />
+                                </>
                             )}
                         </div>
                     </section>

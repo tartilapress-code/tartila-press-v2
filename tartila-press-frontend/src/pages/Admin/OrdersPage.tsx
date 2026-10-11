@@ -1,12 +1,18 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Select from '@/components/Select/Select';
 import Button from '@/components/Button/Button';
+import AccountSelect from '@/components/finance/AccountSelect';
 import OrderMessages from '@/components/order/OrderMessages';
+import Pagination from '@/components/ui/Pagination';
 import * as adminApi from '@/data/admin/adminApi';
 import type { BookShipmentPayload } from '@/data/admin/adminApi';
-import { getOrderCategory, type OrderCategory } from '@/lib/orderCategory';
+import type { OrderCategory } from '@/lib/orderCategory';
+import type { PageMeta } from '@/lib/pagination';
 import { SHIPPING_STAGES, SHIPPING_STAGE_LABELS } from '@/lib/shippingStatus';
 import { ApiError } from '@/lib/http';
+import { UnreadDot } from '@/components/notification/UnreadBadge';
+import { useUnreadSubjects } from '@/context/useNotifications';
 
 type OrderItem = {
     id: number;
@@ -28,6 +34,8 @@ type OrderRecord = {
     id: number;
     order_number: string;
     status: string;
+    voucher_code?: string | null;
+    voucher_discount?: string;
     total: string;
     created_at: string;
     user: { id: number; name: string; email: string };
@@ -35,6 +43,14 @@ type OrderRecord = {
     items: OrderItem[];
     book_shipment: BookShipment | null;
     payment_proof_url: string | null;
+    invoice_number: string | null;
+    payment_due_at: string | null;
+    // Rekening yang dipilih pembeli di invoice.
+    payment_method: {
+        id: number;
+        bank_name: string;
+        account_number: string;
+    } | null;
 };
 
 const statusOptions = [
@@ -43,14 +59,6 @@ const statusOptions = [
     { value: 'completed', label: 'Selesai' },
     { value: 'cancelled', label: 'Dibatalkan' },
 ];
-
-// Urutan makna status (bukan alfabetis) - dipakai untuk sort by status.
-const STATUS_RANK: Record<string, number> = {
-    pending: 0,
-    confirmed: 1,
-    completed: 2,
-    cancelled: 3,
-};
 
 const categoryTabs: { value: OrderCategory; label: string }[] = [
     { value: 'book', label: 'Pesanan Buku Fisik' },
@@ -70,6 +78,13 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
+});
+
+// Batas bayar invoice dalam WIB.
+const dueFormatter = new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Asia/Jakarta',
 });
 
 const dateFormatter = new Intl.DateTimeFormat('id-ID', {
@@ -122,7 +137,9 @@ function ShipmentDetail({
                     {shipment.recipient_name}
                 </p>
                 <p>
-                    <span className="text-oxford-navy-900/55">No. WhatsApp:</span>{' '}
+                    <span className="text-oxford-navy-900/55">
+                        No. WhatsApp:
+                    </span>{' '}
                     {shipment.recipient_phone}
                 </p>
                 <p>
@@ -168,13 +185,17 @@ function ShipmentDetail({
 
 function PaymentVerificationActions({
     orderId,
+    defaultAccountId,
     onDone,
 }: {
     orderId: number;
+    // Rekening pilihan pembeli: terpilih otomatis sebagai penerima.
+    defaultAccountId: number | null;
     onDone: () => void;
 }) {
     const [showRejectNote, setShowRejectNote] = useState<boolean>(false);
     const [note, setNote] = useState<string>('');
+    const [accountId, setAccountId] = useState<number | null>(defaultAccountId);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
 
@@ -186,6 +207,8 @@ function PaymentVerificationActions({
             await adminApi.verifyPayment(orderId, {
                 decision,
                 note: decision === 'reject' ? note || undefined : undefined,
+                payment_method_id:
+                    decision === 'approve' ? accountId : undefined,
             });
             onDone();
         } catch (err) {
@@ -230,6 +253,11 @@ function PaymentVerificationActions({
 
     return (
         <div className="flex flex-col gap-1 mt-1">
+            <AccountSelect
+                label="Masuk ke rekening"
+                value={accountId}
+                onChange={setAccountId}
+            />
             <div className="flex flex-row gap-2">
                 <button
                     onClick={() => handleDecision('approve')}
@@ -252,68 +280,44 @@ function PaymentVerificationActions({
 }
 
 export default function OrdersPage() {
-    const [orders, setOrders] = useState<OrderRecord[]>([]);
+    const unreadOrders = useUnreadSubjects('order');
+    const [visibleOrders, setVisibleOrders] = useState<OrderRecord[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [activeCategory, setActiveCategory] = useState<OrderCategory>('book');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [sort, setSort] = useState<string>('time_desc');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
+    const [counts, setCounts] = useState<
+        Partial<Record<OrderCategory, number>>
+    >({});
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
-    function loadOrders() {
+    // Kategori, status, urutan & halaman dikerjakan server.
+    const loadOrders = useCallback(() => {
         adminApi
-            .listOrders()
-            .then((response) => setOrders(response.data))
+            .listOrders({
+                category: activeCategory,
+                status: statusFilter,
+                sort,
+                page,
+            })
+            .then((response) => {
+                setVisibleOrders(response.data);
+                setMeta(response.meta ?? null);
+                setCounts(response.meta?.counts ?? {});
+            })
             .finally(() => setIsLoading(false));
-    }
+    }, [activeCategory, statusFilter, sort, page]);
 
     useEffect(() => {
         loadOrders();
-    }, []);
+    }, [loadOrders]);
 
     async function handleStatusChange(orderId: number, status: string) {
         await adminApi.updateOrderStatus(orderId, status);
         loadOrders();
     }
-
-    const grouped = useMemo(() => {
-        const groups: Record<OrderCategory, OrderRecord[]> = {
-            book: [],
-            package: [],
-            book_chapter: [],
-            event: [],
-        };
-
-        orders.forEach((order) => {
-            const category = getOrderCategory(order.items[0]?.itemable_type);
-            if (category) {
-                groups[category].push(order);
-            }
-        });
-
-        return groups;
-    }, [orders]);
-
-    const visibleOrders = useMemo(() => {
-        const filtered = statusFilter
-            ? grouped[activeCategory].filter(
-                  (order) => order.status === statusFilter
-              )
-            : grouped[activeCategory];
-
-        return [...filtered].sort((a, b) => {
-            if (sort === 'time_desc') {
-                return b.created_at.localeCompare(a.created_at);
-            }
-            if (sort === 'time_asc') {
-                return a.created_at.localeCompare(b.created_at);
-            }
-
-            const rankA = STATUS_RANK[a.status] ?? 99;
-            const rankB = STATUS_RANK[b.status] ?? 99;
-
-            return sort === 'status_asc' ? rankA - rankB : rankB - rankA;
-        });
-    }, [grouped, activeCategory, statusFilter, sort]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -326,9 +330,12 @@ export default function OrdersPage() {
                                 ? 'primary'
                                 : 'outline2'
                         }
-                        onClick={() => setActiveCategory(tab.value)}
+                        onClick={() => {
+                            setActiveCategory(tab.value);
+                            setPage(1);
+                        }}
                     >
-                        {tab.label} ({grouped[tab.value].length})
+                        {tab.label} ({counts[tab.value] ?? 0})
                     </Button>
                 ))}
             </div>
@@ -353,9 +360,10 @@ export default function OrdersPage() {
                                     ...statusOptions,
                                 ]}
                                 value={statusFilter}
-                                onChange={(e) =>
-                                    setStatusFilter(e.target.value)
-                                }
+                                onChange={(e) => {
+                                    setStatusFilter(e.target.value);
+                                    setPage(1);
+                                }}
                             />
                         </div>
                         <div className="w-64">
@@ -364,7 +372,10 @@ export default function OrdersPage() {
                                 label="Urutkan"
                                 option_data={sortOptions}
                                 value={sort}
-                                onChange={(e) => setSort(e.target.value)}
+                                onChange={(e) => {
+                                    setSort(e.target.value);
+                                    setPage(1);
+                                }}
                             />
                         </div>
                     </div>
@@ -396,9 +407,7 @@ export default function OrdersPage() {
                                     <th className="p-2 font-medium">
                                         Bukti Pembayaran
                                     </th>
-                                    <th className="p-2 font-medium">
-                                        Detail
-                                    </th>
+                                    <th className="p-2 font-medium">Detail</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -406,7 +415,12 @@ export default function OrdersPage() {
                                     <Fragment key={order.id}>
                                         <tr className="border-b border-forest-moss-100 align-top">
                                             <td className="p-2 text-oxford-navy-900 font-semibold whitespace-nowrap">
-                                                {order.order_number}
+                                                <span className="flex items-center gap-2">
+                                                    {unreadOrders.has(
+                                                        order.id
+                                                    ) && <UnreadDot />}
+                                                    {order.order_number}
+                                                </span>
                                             </td>
                                             <td className="p-2 text-oxford-navy-900/80">
                                                 {order.items
@@ -429,6 +443,12 @@ export default function OrdersPage() {
                                                 {rupiahFormatter.format(
                                                     Number(order.total)
                                                 )}
+                                                {order.voucher_code && (
+                                                    <div className="text-oxford-navy-900/55 text-xs font-normal">
+                                                        Voucher{' '}
+                                                        {order.voucher_code}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="p-2 text-oxford-navy-900/70 whitespace-nowrap">
                                                 {dateFormatter.format(
@@ -438,9 +458,7 @@ export default function OrdersPage() {
                                             <td className="p-2 w-52 min-w-[11rem]">
                                                 <Select
                                                     name={`status-${order.id}`}
-                                                    option_data={
-                                                        statusOptions
-                                                    }
+                                                    option_data={statusOptions}
                                                     value={order.status}
                                                     onChange={(e) =>
                                                         handleStatusChange(
@@ -469,6 +487,12 @@ export default function OrdersPage() {
                                                                 orderId={
                                                                     order.id
                                                                 }
+                                                                defaultAccountId={
+                                                                    order
+                                                                        .payment_method
+                                                                        ?.id ??
+                                                                    null
+                                                                }
                                                                 onDone={
                                                                     loadOrders
                                                                 }
@@ -478,8 +502,31 @@ export default function OrdersPage() {
                                                 ) : (
                                                     <span className="text-oxford-navy-900/45 text-xs">
                                                         Belum upload
+                                                        {order.status ===
+                                                            'pending' &&
+                                                            order.payment_due_at &&
+                                                            ` · batas ${dueFormatter.format(new Date(order.payment_due_at))} WIB`}
                                                     </span>
                                                 )}
+                                                {order.payment_method && (
+                                                    <p className="mt-1 text-oxford-navy-900/65 text-xs">
+                                                        Ke{' '}
+                                                        {
+                                                            order.payment_method
+                                                                .bank_name
+                                                        }{' '}
+                                                        {
+                                                            order.payment_method
+                                                                .account_number
+                                                        }
+                                                    </p>
+                                                )}
+                                                <Link
+                                                    to={`/dashboard/pesanan/${order.id}/invoice`}
+                                                    className="mt-1 block text-forest-moss-700 text-xs underline"
+                                                >
+                                                    Invoice
+                                                </Link>
                                             </td>
                                             <td className="p-2 whitespace-nowrap">
                                                 <button
@@ -511,10 +558,7 @@ export default function OrdersPage() {
                                         </tr>
                                         {expandedId === order.id && (
                                             <tr className="border-b border-forest-moss-100">
-                                                <td
-                                                    colSpan={8}
-                                                    className="p-2"
-                                                >
+                                                <td colSpan={8} className="p-2">
                                                     <div className="flex flex-col gap-4">
                                                         {order.book_shipment && (
                                                             <ShipmentDetail
@@ -543,8 +587,9 @@ export default function OrdersPage() {
                         </table>
                     </div>
                 )}
+
+                <Pagination meta={meta} onPageChange={setPage} />
             </div>
         </div>
     );
 }
-

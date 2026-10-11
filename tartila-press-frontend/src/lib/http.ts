@@ -75,6 +75,12 @@ export const http = {
             body: data ? JSON.stringify(data) : undefined,
         }),
 
+    put: (path: string, data?: unknown) =>
+        request(path, {
+            method: 'PUT',
+            body: data ? JSON.stringify(data) : undefined,
+        }),
+
     patch: (path: string, data?: unknown) =>
         request(path, {
             method: 'PATCH',
@@ -126,5 +132,41 @@ export const http = {
         }
 
         return response.blob();
+    },
+
+    /**
+     * Like `downloadBlob`, but also returns the file name the server chose
+     * (Content-Disposition), and can POST a body (for generated PDFs).
+     */
+    fetchFile: async (
+        path: string,
+        options: { method?: 'GET' | 'POST'; data?: unknown } = {}
+    ): Promise<{ blob: Blob; filename: string | null }> => {
+        const token = getToken();
+        const hasBody = options.data !== undefined;
+
+        const response = await fetch(`${BASE_URL}${path}`, {
+            method: options.method ?? 'GET',
+            headers: {
+                Accept: 'application/json',
+                ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: hasBody ? JSON.stringify(options.data) : undefined,
+        });
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            throw new ApiError(
+                body?.message ?? 'Gagal mengunduh file.',
+                response.status,
+                body?.errors
+            );
+        }
+
+        const disposition = response.headers.get('Content-Disposition') ?? '';
+        const match = /filename="?([^";]+)"?/i.exec(disposition);
+
+        return { blob: await response.blob(), filename: match?.[1] ?? null };
     },
 };

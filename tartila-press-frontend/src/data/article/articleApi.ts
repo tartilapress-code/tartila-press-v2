@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { queryString, type PageParams } from '@/lib/pagination';
 
 export type ArticleFieldCategory = { id: number; name: string };
 
@@ -46,7 +47,15 @@ export type CreateArticlePayload = {
     body: string;
 };
 
-export const list = () => http.get('/articles');
+// Per halaman (bawaan 12). highlight=1: meta.highlights = terbaru & terpopuler.
+export const list = (
+    params: Partial<{
+        search: string;
+        category: string;
+        highlight: 1;
+    }> &
+        PageParams = {}
+) => http.get(`/articles${queryString(params)}`);
 
 export const get = (slug: string) => http.get(`/articles/${slug}`);
 

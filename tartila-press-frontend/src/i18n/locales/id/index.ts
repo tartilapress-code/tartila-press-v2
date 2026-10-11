@@ -1,3 +1,4 @@
+import about from './about.json';
 import articles from './articles.json';
 import auth from './auth.json';
 import bookChapter from './bookChapter.json';
@@ -17,6 +18,7 @@ import services from './services.json';
 // Bahasa Indonesia adalah bahasa sumber: bentuk berkas ini menjadi acuan
 // (dan tipe kunci `t('...')`) bagi bahasa lain.
 const id = {
+    about,
     articles,
     auth,
     bookChapter,

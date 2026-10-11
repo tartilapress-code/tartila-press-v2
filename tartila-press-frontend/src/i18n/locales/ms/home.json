@@ -4,7 +4,12 @@
         "headlineLead": "Terbitkan Buku Berkualiti Bersama",
         "subheadline": "Membantu penulis menerbitkan karya secara profesional dengan sistem yang moden, telus, dan boleh dipercayai.",
         "viewPackages": "Lihat Pakej",
-        "photoAlt": "Rak buku di perpustakaan"
+        "photoAlt": "Rak buku di perpustakaan",
+        "coversLabel": "Buku terbaru terbitan {{name}}",
+        "coverLink": "Lihat buku {{title}}",
+        "latestLabel": "Terbitan Terkini",
+        "latestBy": "oleh {{authors}}",
+        "latestView": "Lihat buku"
     },
     "sections": {
         "services": {

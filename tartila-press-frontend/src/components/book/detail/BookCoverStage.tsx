@@ -283,6 +283,7 @@ export default function BookCoverStage({
                         title={title}
                         alt={t('books.detail.coverStage.coverAlt', { title })}
                         className="w-full"
+                        sizes="(min-width: 1024px) 420px, 80vw"
                     />
 
                     {discount > 0 && (

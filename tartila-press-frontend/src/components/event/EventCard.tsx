@@ -9,6 +9,7 @@ import {
 import type { Event } from '@/data/event/eventApi';
 import { useFormat } from '@/i18n/useFormat';
 import { EVENT_DATE, EVENT_TIME } from '@/lib/eventTime';
+import ResponsiveImg from '@/components/ui/ResponsiveImg';
 
 /**
  * Kartu event (tema terang): spanduk dengan kategori, jadwal, judul serif,
@@ -33,8 +34,9 @@ export default function EventCard({ event }: { event: Event }) {
         >
             <div className="relative h-44 w-full shrink-0 overflow-hidden bg-forest-moss-50 lg:h-auto lg:min-h-full lg:w-64">
                 {event.banner ? (
-                    <img
+                    <ResponsiveImg
                         src={event.banner}
+                        sizes="(min-width: 1024px) 256px, 100vw"
                         alt=""
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />

@@ -72,7 +72,9 @@ function CoAuthorPicker({
 
     return (
         <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-oxford-navy-900">Penulis Lain (opsional)</label>
+            <label className="text-sm font-medium text-oxford-navy-900">
+                Penulis Lain (opsional)
+            </label>
             <p className="text-oxford-navy-900/65 text-xs">
                 Cari akun yang sudah terdaftar untuk ditambahkan sebagai
                 penulis. Anda bisa mengurutkan siapa penulis pertama, kedua,
@@ -283,11 +285,13 @@ export default function ManuscriptSubmitPage() {
                         <label className="text-oxford-navy-900/70 text-sm">
                             Judul Buku
                         </label>
-                        <p className="text-oxford-navy-900">{bookChapterTitle}</p>
+                        <p className="text-oxford-navy-900">
+                            {bookChapterTitle}
+                        </p>
                     </div>
                     <p className="text-oxford-navy-900/65 text-sm">
-                        Penulis: Anda sendiri (naskah Book Chapter tidak
-                        dapat ditambah penulis lain).
+                        Penulis: Anda sendiri (naskah Book Chapter tidak dapat
+                        ditambah penulis lain).
                     </p>
                 </>
             ) : (
@@ -308,14 +312,23 @@ export default function ManuscriptSubmitPage() {
 
             <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-oxford-navy-900">
-                    File Naskah (pdf/doc/docx/odt, maks 20MB)
+                    {isBookChapter
+                        ? 'File Naskah Bab (Word .docx, maks 20MB)'
+                        : 'File Naskah (pdf/doc/docx/odt, maks 20MB)'}
                 </label>
                 <input
                     type="file"
-                    accept=".pdf,.doc,.docx,.odt"
+                    accept={isBookChapter ? '.docx' : '.pdf,.doc,.docx,.odt'}
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                     className="text-oxford-navy-900 text-sm"
                 />
+                {isBookChapter && (
+                    <small className="text-oxford-navy-900/65">
+                        Naskah semua bab akan digabung menjadi satu buku sesuai
+                        urutan bab, lalu diedit bersama oleh editor. Karena itu
+                        naskah bab wajib berformat Word (.docx).
+                    </small>
+                )}
             </div>
 
             <hr className="border-forest-moss-200" />
@@ -327,6 +340,8 @@ export default function ManuscriptSubmitPage() {
                     Opsional — kalau dikosongkan, otomatis diambil dari Profil
                     Publik Anda
                     {defaultBio?.name ? ` (${defaultBio.name})` : ''}.
+                    {coAuthors.length > 0 &&
+                        ' Biodata penulis lain diambil dari Profil Publik masing-masing; tiap penulis mendapat satu halaman.'}
                 </p>
             </div>
 

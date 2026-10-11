@@ -7,7 +7,11 @@ import ShippingAddressFields, {
 import { useCart } from '@/context/useCart';
 import * as bookApi from '@/data/book/bookApi';
 import * as orderApi from '@/data/order/orderApi';
+import VoucherField from '@/components/voucher/VoucherField';
+import { useVoucher } from '@/components/voucher/useVoucher';
 import { ApiError } from '@/lib/http';
+import PaymentMethodPicker from '@/components/order/PaymentMethodPicker';
+import { usePaymentMethodChoice } from '@/hooks/usePaymentMethodChoice';
 
 type CartBook = {
     id: number;
@@ -26,6 +30,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 
 export default function CartPage() {
     const navigate = useNavigate();
+    const paymentChoice = usePaymentMethodChoice();
     const { bookIds, removeFromCart, clearCart } = useCart();
 
     const [books, setBooks] = useState<CartBook[]>([]);
@@ -45,7 +50,10 @@ export default function CartPage() {
             .then(() =>
                 bookIds.length === 0
                     ? { data: [] as CartBook[] }
-                    : bookApi.list({ ids: bookIds.join(',') })
+                    : bookApi.list({
+                          ids: bookIds.join(','),
+                          per_page: Math.min(100, bookIds.length),
+                      })
             )
             .then((response) => {
                 if (!cancelled) {
@@ -63,7 +71,17 @@ export default function CartPage() {
         };
     }, [bookIds]);
 
-    const total = books.reduce((sum, book) => sum + book.final_price, 0);
+    const voucher = useVoucher(
+        books.length > 0
+            ? { type: 'book', book_ids: books.map((book) => book.id) }
+            : null
+    );
+
+    const total = Math.max(
+        0,
+        books.reduce((sum, book) => sum + book.final_price, 0) -
+            (voucher.quote?.voucher_discount ?? 0)
+    );
 
     async function handleCheckout() {
         if (books.length === 0) {
@@ -74,15 +92,17 @@ export default function CartPage() {
         setErrorMessage('');
 
         try {
-            await orderApi.create({
+            const response = await orderApi.create({
+                payment_method_id: paymentChoice.selectedId ?? undefined,
                 type: 'book',
                 book_ids: books.map((book) => book.id),
+                voucher_code: voucher.code,
                 recipient_name: shipping.recipient_name || undefined,
                 recipient_phone: shipping.recipient_phone || undefined,
                 recipient_address: shipping.recipient_address || undefined,
             });
             clearCart();
-            navigate('/dashboard/pesanan');
+            navigate(`/dashboard/pesanan/${response.data.id}/invoice`);
         } catch (error) {
             setErrorMessage(
                 error instanceof ApiError
@@ -108,7 +128,9 @@ export default function CartPage() {
                         Keranjang Anda masih kosong.
                     </p>
                     <Link to="/buku" className="self-start">
-                        <Button variant="outline2">Jelajahi Katalog Buku</Button>
+                        <Button variant="outline2">
+                            Jelajahi Katalog Buku
+                        </Button>
                     </Link>
                 </div>
             ) : (
@@ -148,7 +170,18 @@ export default function CartPage() {
                         ))}
                     </div>
 
-                    <div className="border-t border-forest-moss-200 pt-4">
+                    <VoucherField voucher={voucher} />
+                    <PaymentMethodPicker choice={paymentChoice} />
+
+                    <div className="flex flex-col gap-1 border-t border-forest-moss-200 pt-4">
+                        {voucher.quote && (
+                            <p className="text-forest-moss-700 text-sm">
+                                Voucher ({voucher.quote.code}): −
+                                {rupiahFormatter.format(
+                                    voucher.quote.voucher_discount
+                                )}
+                            </p>
+                        )}
                         <p className="text-oxford-navy-900 text-lg font-semibold">
                             Total: {rupiahFormatter.format(total)}
                         </p>
@@ -167,7 +200,7 @@ export default function CartPage() {
                         variant="primary"
                         className="self-start"
                         onClick={handleCheckout}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || paymentChoice.isMissing}
                     >
                         {isSubmitting
                             ? 'Memproses...'

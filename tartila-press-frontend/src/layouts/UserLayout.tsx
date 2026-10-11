@@ -1,9 +1,10 @@
-import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/context/useAuth';
 import { hasAnyRole } from '@/context/AuthContext';
 import DashboardShell from './DashboardShell';
-import { linkClass } from './navLinkClass';
 import UserDashboardNavLinks from './UserDashboardNavLinks';
+import AdminDashboardNav from './AdminDashboardNav';
+import EditorDashboardNav from './EditorDashboardNav';
+import WriterDashboardNav from './WriterDashboardNav';
 
 export default function UserLayout() {
     const { user } = useAuth();
@@ -12,16 +13,21 @@ export default function UserLayout() {
     const isEditor = hasAnyRole(user, ['editor']);
     const isAdmin = hasAnyRole(user, ['admin']);
 
+    // Admin / editor / penulis: menu fokus ke panelnya; Profil dan menu lain
+    // dilipat. Prioritas: admin, editor, lalu penulis.
     return (
         <DashboardShell backTo="/" backLabel="Kembali ke Beranda">
-            <UserDashboardNavLinks
-                isPenulisOrEditor={isPenulisOrEditor}
-                isEditor={isEditor}
-            />
-            {isAdmin && (
-                <NavLink to="/admin" className={linkClass}>
-                    Panel Admin
-                </NavLink>
+            {isAdmin ? (
+                <AdminDashboardNav />
+            ) : isEditor ? (
+                <EditorDashboardNav />
+            ) : hasAnyRole(user, ['penulis']) ? (
+                <WriterDashboardNav />
+            ) : (
+                <UserDashboardNavLinks
+                    isPenulisOrEditor={isPenulisOrEditor}
+                    isEditor={isEditor}
+                />
             )}
         </DashboardShell>
     );

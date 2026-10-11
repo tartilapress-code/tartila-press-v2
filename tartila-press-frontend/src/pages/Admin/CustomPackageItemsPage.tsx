@@ -16,6 +16,7 @@ type ItemRecord = {
     book_chapter_cost: string | null;
     description: string | null;
     is_active: boolean;
+    free_copies: number;
 };
 
 type ItemForm = {
@@ -25,6 +26,7 @@ type ItemForm = {
     discount: string;
     book_chapter_cost: string;
     description: string;
+    free_copies: string;
 };
 
 const emptyForm: ItemForm = {
@@ -34,6 +36,7 @@ const emptyForm: ItemForm = {
     discount: '0',
     book_chapter_cost: '',
     description: '',
+    free_copies: '0',
 };
 
 const typeOptions = [
@@ -85,6 +88,7 @@ export default function CustomPackageItemsPage() {
                     ? ''
                     : String(Number(item.book_chapter_cost)),
             description: item.description ?? '',
+            free_copies: String(item.free_copies ?? 0),
         });
         setStatusMessage('');
     }
@@ -113,6 +117,7 @@ export default function CustomPackageItemsPage() {
                     ? null
                     : form.book_chapter_cost,
             description: form.description.trim() || null,
+            free_copies: Math.max(0, Math.floor(Number(form.free_copies) || 0)),
         };
 
         try {
@@ -210,9 +215,25 @@ export default function CustomPackageItemsPage() {
                     Biaya item ini bila dicentang pada proyek Book Chapter
                     (dipotong dari total harga bab). Kosongkan = gratis.
                 </small>
+                <Input
+                    label="Eksemplar buku gratis (N)"
+                    type="number"
+                    min="0"
+                    value={form.free_copies}
+                    onChange={(e) =>
+                        setForm({ ...form, free_copies: e.target.value })
+                    }
+                />
+                <small className="text-oxford-navy-900/65 -mt-2">
+                    Jumlah buku cetak yang diberikan item ini (paket custom &
+                    Book Chapter). Biaya cetak di Keuangan = 20% harga jual × (3
+                    + N).
+                </small>
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-oxford-navy-900">Deskripsi</label>
+                    <label className="text-sm font-medium text-oxford-navy-900">
+                        Deskripsi
+                    </label>
                     <textarea
                         className="w-full p-3 outline-none rounded-xl ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 focus:ring-1 focus:ring-oxford-navy-500"
                         rows={4}

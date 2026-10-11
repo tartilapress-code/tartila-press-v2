@@ -5,13 +5,13 @@
         "home": "Home",
         "services": "Services",
         "packages": "Packages",
-        "articles": "Articles",
-        "contact": "Contact",
-        "books": "Books",
-        "events": "Events",
+        "bookChapter": "Book Chapters",
+        "books": "Book Catalog",
         "authors": "Authors",
         "editors": "Editors",
-        "bookChapter": "Book Chapters"
+        "events": "Events",
+        "articles": "Articles",
+        "about": "About Us"
     },
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
@@ -37,5 +37,13 @@
     "language": {
         "choose": "Choose language",
         "label": "Language"
+    },
+    "notifications": {
+        "label": "Notifications",
+        "open": "Open notifications",
+        "unread": "{{count}} unread",
+        "markAll": "Mark all as read",
+        "empty": "No notifications yet.",
+        "viewAll": "View all notifications"
     }
 }

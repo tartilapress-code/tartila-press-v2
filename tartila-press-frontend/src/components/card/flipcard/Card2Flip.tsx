@@ -7,6 +7,7 @@ import PillBadge from '@/components/ui/PillBadge';
 import type { PackageSummary } from '@/data/package/packageApi';
 import { useFormat } from '@/i18n/useFormat';
 import type { PackageHighlight } from '@/lib/packageFeatures';
+import ResponsiveImg from '@/components/ui/ResponsiveImg';
 
 type Card2Props = {
     packages: PackageSummary[];
@@ -73,8 +74,9 @@ export default function Card2({
                             <div className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-forest-moss-100 bg-white shadow-[0_6px_24px_-10px_rgba(1,26,44,0.22)] backface-hidden">
                                 <div className="relative h-44 shrink-0 bg-linear-to-br from-forest-moss-50 to-forest-moss-100">
                                     {pkg.photo ? (
-                                        <img
+                                        <ResponsiveImg
                                             src={pkg.photo}
+                                            sizes="(min-width: 1024px) 320px, (min-width: 640px) 50vw, 100vw"
                                             alt=""
                                             className="h-full w-full object-cover"
                                         />

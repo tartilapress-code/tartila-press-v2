@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Input from '@/components/Input/Input';
+import { SearchField } from '@/components/ui/FilterControls';
+import Pagination from '@/components/ui/Pagination';
+import type { PageMeta } from '@/lib/pagination';
 import Button from '@/components/Button/Button';
 import * as adminApi from '@/data/admin/adminApi';
 import type {
@@ -17,6 +20,8 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 
 type SaleFormState = {
     marketplace_name: string;
+    // Buku fisik / ebook: menentukan royalti yang dipakai (MOU).
+    format: 'physical' | 'ebook';
     original_price: string;
     discount_percentage: string;
     discounted_price: string;
@@ -25,6 +30,7 @@ type SaleFormState = {
 
 const emptySaleForm: SaleFormState = {
     marketplace_name: '',
+    format: 'physical',
     original_price: '',
     discount_percentage: '',
     discounted_price: '',
@@ -34,6 +40,7 @@ const emptySaleForm: SaleFormState = {
 function saleFormToPayload(form: SaleFormState): ExternalSalePayload {
     return {
         marketplace_name: form.marketplace_name,
+        format: form.format,
         original_price: form.original_price,
         discount_percentage:
             form.discount_percentage === ''
@@ -43,6 +50,30 @@ function saleFormToPayload(form: SaleFormState): ExternalSalePayload {
             form.discounted_price === '' ? null : form.discounted_price,
         quantity_sold: Number(form.quantity_sold) || 0,
     };
+}
+
+function FormatSelect({
+    value,
+    onChange,
+}: {
+    value: SaleFormState['format'];
+    onChange: (value: SaleFormState['format']) => void;
+}) {
+    return (
+        <label className="flex flex-col gap-1 text-sm text-oxford-navy-900">
+            <span>Jenis</span>
+            <select
+                className="rounded-lg border border-oxford-navy-900/15 bg-white p-2"
+                value={value}
+                onChange={(e) =>
+                    onChange(e.target.value as SaleFormState['format'])
+                }
+            >
+                <option value="physical">Buku fisik</option>
+                <option value="ebook">Ebook</option>
+            </select>
+        </label>
+    );
 }
 
 function ExternalSaleRow({
@@ -55,6 +86,7 @@ function ExternalSaleRow({
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [form, setForm] = useState<SaleFormState>({
         marketplace_name: sale.marketplace_name,
+        format: sale.format ?? 'physical',
         original_price: sale.original_price,
         discount_percentage:
             sale.discount_percentage === null
@@ -93,7 +125,7 @@ function ExternalSaleRow({
     if (isEditing) {
         return (
             <div className="flex flex-col gap-2 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-3">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                     <Input
                         label="Nama Lapak"
                         value={form.marketplace_name}
@@ -103,6 +135,10 @@ function ExternalSaleRow({
                                 marketplace_name: e.target.value,
                             })
                         }
+                    />
+                    <FormatSelect
+                        value={form.format}
+                        onChange={(format) => setForm({ ...form, format })}
                     />
                     <Input
                         label="Harga Asli"
@@ -170,7 +206,10 @@ function ExternalSaleRow({
         <div className="flex flex-row items-center justify-between gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-3">
             <div className="text-oxford-navy-900/80 text-sm flex flex-col">
                 <p className="text-oxford-navy-900 font-semibold">
-                    {sale.marketplace_name}
+                    {sale.marketplace_name}{' '}
+                    <span className="font-normal text-oxford-navy-900/60 text-xs">
+                        ({sale.format === 'ebook' ? 'ebook' : 'buku fisik'})
+                    </span>
                 </p>
                 <p>
                     Harga asli{' '}
@@ -255,8 +294,10 @@ function ExternalSalesManager({
             )}
 
             <div className="flex flex-col gap-2 border-t border-forest-moss-100 pt-3">
-                <p className="text-oxford-navy-900/80 text-sm">Tambah Penjualan Baru</p>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <p className="text-oxford-navy-900/80 text-sm">
+                    Tambah Penjualan Baru
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                     <Input
                         label="Nama Lapak"
                         value={form.marketplace_name}
@@ -267,6 +308,10 @@ function ExternalSalesManager({
                             })
                         }
                         required
+                    />
+                    <FormatSelect
+                        value={form.format}
+                        onChange={(format) => setForm({ ...form, format })}
                     />
                     <Input
                         label="Harga Asli"
@@ -329,34 +374,68 @@ export default function RoyaltiesPage() {
     const [royalties, setRoyalties] = useState<RoyaltySummary[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [search, setSearch] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
 
-    function load() {
+    // Pencarian & halaman dikerjakan server.
+    const load = useCallback(() => {
         adminApi
-            .listRoyalties()
-            .then((response) => setRoyalties(response.data))
+            .listRoyalties({ search: search.trim(), page })
+            .then((response) => {
+                setRoyalties(response.data);
+                setMeta(response.meta ?? null);
+            })
             .finally(() => setIsLoading(false));
-    }
+    }, [search, page]);
 
     useEffect(() => {
-        load();
-    }, []);
+        const timeout = setTimeout(load, 300);
+
+        return () => clearTimeout(timeout);
+    }, [load]);
 
     return (
         <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Royalti</h5>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                    Royalti
+                    {meta && (
+                        <span className="ml-2 font-sans text-sm font-normal text-oxford-navy-900/60">
+                            ({meta.total})
+                        </span>
+                    )}
+                </h5>
+                <SearchField
+                    value={search}
+                    onChange={(value) => {
+                        setSearch(value);
+                        setPage(1);
+                    }}
+                    placeholder="Cari judul buku"
+                    ariaLabel="Cari buku"
+                    className="sm:w-72"
+                />
+            </div>
             <p className="text-oxford-navy-900/65 text-sm">
-                Buku yang sudah diberi nilai royalti (atur lewat halaman
-                Buku). Jumlah terjual dihitung otomatis dari pesanan yang
-                sudah selesai, ditambah penjualan luar sistem yang dicatat
-                manual di sini.
+                Semua buku terbit yang punya penulis terdaftar. Buku dengan MOU
+                distribusi memakai royalti buku fisik & ebook dari MOU
+                (penjualan luar sistem dihitung sesuai jenisnya). Tanpa MOU,
+                persentase royalti otomatis: paket penerbit biasa 25% untuk
+                penulis; Book Chapter 25% dibagi jumlah bab, tiap penulis
+                menerima sesuai bab yang ditulisnya (oleh editor: ditambah 5%
+                untuk editor). Jumlah terjual dihitung dari pesanan yang sudah
+                selesai, ditambah penjualan luar sistem yang dicatat manual di
+                sini. Sumber ketiga adalah ebook di Tartila Book (pembelian +
+                bacaan), dibagi menurut bobot royalti ebook tiap penerima dan
+                dihitung dari pengaturan yang berlaku saat ini.
             </p>
 
             {isLoading ? (
                 <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
             ) : royalties.length === 0 ? (
                 <p className="text-oxford-navy-900/70 text-sm">
-                    Belum ada buku dengan nilai royalti. Atur Royalti (%)
-                    lewat halaman Buku terlebih dahulu.
+                    Belum ada buku terbit dengan penulis terdaftar.
                 </p>
             ) : (
                 <div className="flex flex-col gap-3">
@@ -371,10 +450,52 @@ export default function RoyaltiesPage() {
                                         {book.title}
                                     </p>
                                     <p className="text-oxford-navy-900/65 text-sm">
-                                        {book.author?.name ??
-                                            book.authors_text}{' '}
-                                        — Royalti {book.royalty_percentage}%
+                                        {book.package_label} — total royalti
+                                        buku fisik {book.royalty_percentage}%
+                                        {book.ebook_royalty_percentage !==
+                                            book.royalty_percentage &&
+                                            `, ebook ${book.ebook_royalty_percentage}%`}
+                                        {book.mou &&
+                                            ` (MOU ${book.mou.number})`}
                                     </p>
+                                    <ul className="text-oxford-navy-900/65 text-sm">
+                                        {book.shares.map((share) => (
+                                            <li
+                                                key={`${share.role}-${share.user_id}`}
+                                            >
+                                                {share.role === 'editor'
+                                                    ? 'Editor'
+                                                    : 'Penulis'}{' '}
+                                                {share.name}
+                                                {share.chapters
+                                                    ? ` (${share.chapters}/${share.total_chapters} bab)`
+                                                    : ''}
+                                                : {share.rate}% (
+                                                {rupiahFormatter.format(
+                                                    share.royalty_amount
+                                                )}
+                                                )
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    {book.reader && (
+                                        <p className="text-oxford-navy-900/65 text-sm">
+                                            Ebook Tartila Book:{' '}
+                                            {book.reader.orders} pembelian (
+                                            {rupiahFormatter.format(
+                                                book.reader.purchase_royalty
+                                            )}
+                                            ), {book.reader.read_events} bacaan
+                                            (
+                                            {rupiahFormatter.format(
+                                                book.reader.read_royalty
+                                            )}
+                                            ) —{' '}
+                                            {rupiahFormatter.format(
+                                                book.reader.total
+                                            )}
+                                        </p>
+                                    )}
                                     <p className="text-oxford-navy-900/65 text-sm">
                                         Harga:{' '}
                                         {rupiahFormatter.format(
@@ -384,8 +505,7 @@ export default function RoyaltiesPage() {
                                 </div>
                                 <div className="text-right text-sm">
                                     <p className="text-oxford-navy-900/70">
-                                        Jumlah Order:{' '}
-                                        {book.total_orders_count}
+                                        Jumlah Order: {book.total_orders_count}
                                     </p>
                                     <p className="text-oxford-navy-900/70">
                                         Jumlah Selesai:{' '}
@@ -409,9 +529,7 @@ export default function RoyaltiesPage() {
                                 className="self-start"
                                 onClick={() =>
                                     setExpandedId(
-                                        expandedId === book.id
-                                            ? null
-                                            : book.id
+                                        expandedId === book.id ? null : book.id
                                     )
                                 }
                             >
@@ -430,6 +548,8 @@ export default function RoyaltiesPage() {
                     ))}
                 </div>
             )}
+
+            <Pagination meta={meta} onPageChange={setPage} />
         </div>
     );
 }

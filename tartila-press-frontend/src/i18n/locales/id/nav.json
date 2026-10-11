@@ -5,13 +5,13 @@
         "home": "Home",
         "services": "Layanan",
         "packages": "Paket",
-        "articles": "Artikel",
-        "contact": "Kontak",
-        "books": "Book",
-        "events": "Event",
+        "bookChapter": "Book Chapter",
+        "books": "Katalog Buku",
         "authors": "Penulis",
         "editors": "Editor",
-        "bookChapter": "Book Chapter"
+        "events": "Event",
+        "articles": "Artikel",
+        "about": "Tentang Kami"
     },
     "openMenu": "Buka menu",
     "closeMenu": "Tutup menu",
@@ -37,5 +37,13 @@
     "language": {
         "choose": "Pilih bahasa",
         "label": "Bahasa"
+    },
+    "notifications": {
+        "label": "Notifikasi",
+        "open": "Buka notifikasi",
+        "unread": "{{count}} belum dibaca",
+        "markAll": "Tandai semua dibaca",
+        "empty": "Belum ada notifikasi.",
+        "viewAll": "Lihat semua notifikasi"
     }
 }

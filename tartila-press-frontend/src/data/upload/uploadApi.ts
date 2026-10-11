@@ -5,9 +5,12 @@ export type ImageFolder =
     | 'profiles'
     | 'bio-photos'
     | 'packages'
-    | 'articles';
+    | 'articles'
+    // Foto legalitas & Tim Kami (halaman Tentang Kami).
+    | 'about';
 
-export type DocumentFolder = 'event-documents' | 'event-banners' | 'certificates';
+export type DocumentFolder =
+    'event-documents' | 'event-banners' | 'certificates';
 
 export const uploadImage = (file: File, folder?: ImageFolder) => {
     const formData = new FormData();

@@ -17,6 +17,7 @@ type PackageItem = {
     services: string[] | null;
     terms: string[] | null;
     is_active: boolean;
+    free_copies: number;
 };
 
 type FormState = {
@@ -29,6 +30,7 @@ type FormState = {
     facilities: string[];
     services: string[];
     terms: string[];
+    free_copies: string;
 };
 
 const emptyForm: FormState = {
@@ -41,6 +43,7 @@ const emptyForm: FormState = {
     facilities: [],
     services: [],
     terms: [],
+    free_copies: '0',
 };
 
 function ListEditor({
@@ -64,7 +67,9 @@ function ListEditor({
 
     return (
         <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-oxford-navy-900">{label}</label>
+            <label className="text-sm font-medium text-oxford-navy-900">
+                {label}
+            </label>
             <div className="flex flex-row gap-2">
                 <input
                     value={draft}
@@ -130,6 +135,7 @@ export default function PackagesPage() {
             facilities: pkg.facilities ?? [],
             services: pkg.services ?? [],
             terms: pkg.terms ?? [],
+            free_copies: String(pkg.free_copies ?? 0),
         });
     }
 
@@ -152,6 +158,7 @@ export default function PackagesPage() {
             facilities: form.facilities,
             services: form.services,
             terms: form.terms,
+            free_copies: Math.max(0, Math.floor(Number(form.free_copies) || 0)),
         };
 
         try {
@@ -193,17 +200,13 @@ export default function PackagesPage() {
                 <Input
                     label="Nama Paket"
                     value={form.name}
-                    onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
                     required
                 />
                 <ImageInput
                     label="Foto"
                     value={form.photo}
-                    onChange={(value) =>
-                        setForm({ ...form, photo: value })
-                    }
+                    onChange={(value) => setForm({ ...form, photo: value })}
                     folder="packages"
                 />
                 <Input
@@ -229,6 +232,19 @@ export default function PackagesPage() {
                     }
                 />
                 <Input
+                    label="Eksemplar buku gratis (N)"
+                    type="number"
+                    min="0"
+                    value={form.free_copies}
+                    onChange={(e) =>
+                        setForm({ ...form, free_copies: e.target.value })
+                    }
+                />
+                <small className="text-oxford-navy-900/65 -mt-2">
+                    Jumlah buku cetak yang diberikan paket ini. Dipakai di
+                    Keuangan: biaya cetak = 20% harga jual × (3 + N).
+                </small>
+                <Input
                     label="Keterangan"
                     value={form.description}
                     onChange={(e) =>
@@ -246,9 +262,7 @@ export default function PackagesPage() {
                 <ListEditor
                     label="Layanan"
                     items={form.services}
-                    onChange={(items) =>
-                        setForm({ ...form, services: items })
-                    }
+                    onChange={(items) => setForm({ ...form, services: items })}
                 />
                 <ListEditor
                     label="Ketentuan"
@@ -304,8 +318,7 @@ export default function PackagesPage() {
                                         )}
                                     </p>
                                     <p className="text-oxford-navy-900/65 text-sm">
-                                        Rp {pkg.price} — diskon{' '}
-                                        {pkg.discount}%
+                                        Rp {pkg.price} — diskon {pkg.discount}%
                                     </p>
                                 </div>
                                 <div className="flex flex-row gap-2 shrink-0">
@@ -317,9 +330,7 @@ export default function PackagesPage() {
                                     </Button>
                                     <Button
                                         variant="outline2"
-                                        onClick={() =>
-                                            handleToggleActive(pkg)
-                                        }
+                                        onClick={() => handleToggleActive(pkg)}
                                     >
                                         {pkg.is_active
                                             ? 'Nonaktifkan'

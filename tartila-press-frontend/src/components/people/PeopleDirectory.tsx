@@ -20,11 +20,11 @@ export default function PeopleDirectory({
 
     useEffect(() => {
         publicProfileApi
-            .listByRole(role)
+            .listByRole(role, { per_page: limit ?? 12 })
             .then((response) => setPeople(response.data))
             .catch(() => setPeople([]))
             .finally(() => setIsLoading(false));
-    }, [role]);
+    }, [role, limit]);
 
     if (isLoading) {
         return (
@@ -44,11 +44,9 @@ export default function PeopleDirectory({
         );
     }
 
-    const shown = limit ? people.slice(0, limit) : people;
-
     return (
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {shown.map((person) => (
+            {people.map((person) => (
                 <PersonCard key={person.slug} person={person} role={role} />
             ))}
         </div>

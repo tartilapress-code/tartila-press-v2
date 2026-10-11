@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { SearchField } from '@/components/ui/FilterControls';
+import Pagination from '@/components/ui/Pagination';
+import type { PageMeta } from '@/lib/pagination';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ContentLanguageField from '@/components/language/ContentLanguageField';
@@ -6,6 +9,7 @@ import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import Select from '@/components/Select/Select';
 import Button from '@/components/Button/Button';
+import EbookManager from '@/components/book/EbookManager';
 import * as adminApi from '@/data/admin/adminApi';
 import type { BookPayload } from '@/data/admin/adminApi';
 import { ApiError } from '@/lib/http';
@@ -26,13 +30,18 @@ type BookItem = {
     cover_layout_designer: string | null;
     price: string;
     discount: number;
-    royalty_percentage: string | null;
     languages: string[];
     is_active: boolean;
     is_chapter_compilation: boolean;
     category: Category | null;
     field_category: Category | null;
     chapters: { id: number }[];
+    // Ebook lengkap untuk penulis (berkasnya privat).
+    ebook_name: string | null;
+    ebook_uploaded_at: string | null;
+    ebook_pages: number | null;
+    // Ebook PDF dengan jumlah halaman yang diketahui: tampil di Tartila Book.
+    in_tartila_book: boolean;
 };
 
 type FormState = {
@@ -48,7 +57,6 @@ type FormState = {
     languages: ContentLanguage[];
     price: string;
     discount: string;
-    royalty_percentage: string;
     citation_publisher: string;
     citation_publication_date: string;
     google_scholar_url: string;
@@ -67,7 +75,6 @@ const emptyForm: FormState = {
     languages: [],
     price: '',
     discount: '0',
-    royalty_percentage: '',
     citation_publisher: '',
     citation_publication_date: '',
     google_scholar_url: '',
@@ -119,16 +126,29 @@ export default function BooksPage() {
     const [editingBook, setEditingBook] = useState<BookItem | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
+    const [search, setSearch] = useState<string>('');
+    const [active, setActive] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
 
-    function load() {
+    // Pencarian, filter aktif & halaman dikerjakan server.
+    const load = useCallback(() => {
         adminApi
-            .listBooksAdmin()
-            .then((response) => setBooks(response.data))
+            .listBooksAdmin({ search: search.trim(), active, page })
+            .then((response) => {
+                setBooks(response.data);
+                setMeta(response.meta ?? null);
+            })
             .finally(() => setIsLoading(false));
-    }
+    }, [search, active, page]);
 
     useEffect(() => {
-        load();
+        const timeout = setTimeout(load, 300);
+
+        return () => clearTimeout(timeout);
+    }, [load]);
+
+    useEffect(() => {
         Promise.all([
             adminApi.listBookCategoriesAdmin(),
             adminApi.listFieldCategoriesAdmin(),
@@ -160,7 +180,6 @@ export default function BooksPage() {
             languages: toContentLanguages(book.languages),
             price: book.price,
             discount: String(book.discount),
-            royalty_percentage: book.royalty_percentage ?? '',
             citation_publisher: '',
             citation_publication_date: '',
             google_scholar_url: '',
@@ -179,10 +198,6 @@ export default function BooksPage() {
             languages: form.languages,
             price: form.price,
             discount: Number(form.discount) || 0,
-            royalty_percentage:
-                form.royalty_percentage === ''
-                    ? null
-                    : Number(form.royalty_percentage),
             citation_publisher: form.citation_publisher || undefined,
             citation_publication_date:
                 form.citation_publication_date || undefined,
@@ -243,7 +258,9 @@ export default function BooksPage() {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-row items-center justify-between">
-                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Buku</h5>
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                    Buku
+                </h5>
                 <Link to="/admin/books/gabung-bab">
                     <Button variant="outline2">
                         Gabungkan Naskah jadi Book Chapter
@@ -253,13 +270,15 @@ export default function BooksPage() {
 
             <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                 <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
-                    {editingBook ? `Ubah "${editingBook.title}"` : 'Tambah Buku Manual'}
+                    {editingBook
+                        ? `Ubah "${editingBook.title}"`
+                        : 'Tambah Buku Manual'}
                 </h5>
 
                 {editingBook?.manuscript_id ? (
                     <p className="text-oxford-navy-900/65 text-sm">
-                        Judul &amp; penulis buku ini berasal dari naskah,
-                        tidak bisa diubah di sini.
+                        Judul &amp; penulis buku ini berasal dari naskah, tidak
+                        bisa diubah di sini.
                     </p>
                 ) : (
                     <>
@@ -378,16 +397,6 @@ export default function BooksPage() {
                     }
                 />
                 <Input
-                    label="Royalti (%)"
-                    value={form.royalty_percentage}
-                    onChange={(e) =>
-                        setForm({
-                            ...form,
-                            royalty_percentage: e.target.value,
-                        })
-                    }
-                />
-                <Input
                     label="Penerbit Sitasi"
                     value={form.citation_publisher}
                     onChange={(e) =>
@@ -445,9 +454,44 @@ export default function BooksPage() {
             </div>
 
             <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
-                    Daftar Buku
-                </h5>
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                        Daftar Buku
+                        {meta && (
+                            <span className="ml-2 font-sans text-sm font-normal text-oxford-navy-900/60">
+                                ({meta.total})
+                            </span>
+                        )}
+                    </h5>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <SearchField
+                            value={search}
+                            onChange={(value) => {
+                                setSearch(value);
+                                setPage(1);
+                            }}
+                            placeholder="Cari judul atau penulis"
+                            ariaLabel="Cari buku"
+                            className="sm:w-72"
+                        />
+                        <div className="sm:w-48">
+                            <Select
+                                name="active_filter"
+                                label="Status"
+                                option_data={[
+                                    { value: '', label: 'Semua' },
+                                    { value: '1', label: 'Aktif' },
+                                    { value: '0', label: 'Nonaktif' },
+                                ]}
+                                value={active}
+                                onChange={(e) => {
+                                    setActive(e.target.value);
+                                    setPage(1);
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
 
                 {isLoading ? (
                     <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
@@ -477,8 +521,8 @@ export default function BooksPage() {
                                         </p>
                                         <p className="text-oxford-navy-900/65 text-sm">
                                             {book.authors_text} — Rp{' '}
-                                            {book.price} (diskon{' '}
-                                            {book.discount}%)
+                                            {book.price} (diskon {book.discount}
+                                            %)
                                         </p>
                                     </div>
                                     <div className="flex flex-row gap-2 shrink-0">
@@ -513,10 +557,20 @@ export default function BooksPage() {
                                         handleUploadPreview(book, file)
                                     }
                                 />
+                                <EbookManager
+                                    bookId={book.id}
+                                    ebookName={book.ebook_name}
+                                    uploadedAt={book.ebook_uploaded_at}
+                                    pages={book.ebook_pages}
+                                    inTartilaBook={book.in_tartila_book}
+                                    onChanged={load}
+                                />
                             </div>
                         ))}
                     </div>
                 )}
+
+                <Pagination meta={meta} onPageChange={setPage} />
             </div>
         </div>
     );

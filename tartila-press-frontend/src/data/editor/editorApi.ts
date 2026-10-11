@@ -53,20 +53,27 @@ export type BookChapterProjectPayload = Partial<{
     package_item_ids: number[];
 }>;
 
-export const getBookChapterSettings = () => http.get('/editor/book-chapter-settings');
+export const getBookChapterSettings = () =>
+    http.get('/editor/book-chapter-settings');
 
 // Fasilitas & layanan (item paket custom) yang bisa dicentang, beserta biaya
 // khusus Book Chapter (null = gratis).
 export const getBookChapterPackageItems = () =>
     http.get('/editor/book-chapter-package-items');
 
-export const myBookChapterProjects = () => http.get('/editor/book-chapter-projects');
+export const myBookChapterProjects = () =>
+    http.get('/editor/book-chapter-projects');
 
 export const getMyBookChapterProject = (id: number | string) =>
     http.get(`/editor/book-chapter-projects/${id}`);
 
-export const createMyBookChapterProject = (payload: BookChapterProjectPayload) =>
-    http.post('/editor/book-chapter-projects', payload);
+// Data terbaru untuk poster "Promosikan Projek" (dengan nama editor).
+export const myBookChapterProjectPromo = (id: number | string) =>
+    http.get(`/editor/book-chapter-projects/${id}/promo`);
+
+export const createMyBookChapterProject = (
+    payload: BookChapterProjectPayload
+) => http.post('/editor/book-chapter-projects', payload);
 
 export const updateMyBookChapterProject = (
     id: number | string,

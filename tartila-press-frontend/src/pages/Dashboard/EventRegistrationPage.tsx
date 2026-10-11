@@ -5,6 +5,8 @@ import DocumentInput from '@/components/Input/DocumentInput';
 import * as eventApi from '@/data/event/eventApi';
 import type { Event } from '@/data/event/eventApi';
 import { ApiError } from '@/lib/http';
+import PaymentMethodPicker from '@/components/order/PaymentMethodPicker';
+import { usePaymentMethodChoice } from '@/hooks/usePaymentMethodChoice';
 
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -15,6 +17,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 export default function EventRegistrationPage() {
     const { slug } = useParams<{ slug: string }>();
     const navigate = useNavigate();
+    const paymentChoice = usePaymentMethodChoice();
 
     const [event, setEvent] = useState<Event | null>(null);
     const [documentUrl, setDocumentUrl] = useState<string>('');
@@ -39,10 +42,14 @@ export default function EventRegistrationPage() {
         try {
             const response = await eventApi.register(event.slug, {
                 document_url: documentUrl || undefined,
+                payment_method_id:
+                    Number(event.fee) > 0
+                        ? (paymentChoice.selectedId ?? undefined)
+                        : undefined,
             });
             navigate(
                 response.data.order_id
-                    ? '/dashboard/pesanan'
+                    ? `/dashboard/pesanan/${response.data.order_id}/invoice`
                     : '/dashboard/event-saya'
             );
         } catch (error) {
@@ -65,7 +72,9 @@ export default function EventRegistrationPage() {
     }
 
     const fee = Number(event.fee);
-    const canSubmit = !event.requires_document || documentUrl !== '';
+    const canSubmit =
+        (!event.requires_document || documentUrl !== '') &&
+        (fee <= 0 || !paymentChoice.isMissing);
 
     return (
         <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 max-w-xl">
@@ -88,11 +97,13 @@ export default function EventRegistrationPage() {
                 </p>
                 {fee > 0 && (
                     <p className="text-oxford-navy-900/65 text-sm">
-                        Setelah konfirmasi, Anda akan diarahkan ke halaman
-                        Pesanan untuk mengunggah bukti pembayaran.
+                        Setelah konfirmasi, Anda mendapat invoice dan bisa
+                        langsung mengunggah bukti pembayaran.
                     </p>
                 )}
             </div>
+
+            {fee > 0 && <PaymentMethodPicker choice={paymentChoice} />}
 
             {errorMessage && (
                 <p className="text-red-600 text-sm">{errorMessage}</p>

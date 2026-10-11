@@ -1,8 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import {
-    BooksAndPlant,
-    LeafBranch,
-} from '@/components/book/catalog/CatalogArt';
+import { BooksAndPlant } from '@/components/book/catalog/CatalogArt';
 
 /**
  * Hero katalog: judul serif, penjelasan singkat, ilustrasi buku & tanaman,
@@ -13,8 +10,6 @@ export default function CatalogHero() {
 
     return (
         <section className="relative overflow-hidden bg-linear-to-br from-white via-white to-oxford-navy-50/70">
-            <LeafBranch className="pointer-events-none absolute -left-14 top-2 hidden h-[300px] w-auto sm:block" />
-
             <div className="relative flex flex-col justify-center gap-3 px-6 py-8 sm:px-10 lg:min-h-[230px] lg:pl-36 lg:pr-[46%] xl:pl-44 xl:pr-[50%]">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-forest-moss-700">
                     {t('books.catalog.hero.eyebrow')}

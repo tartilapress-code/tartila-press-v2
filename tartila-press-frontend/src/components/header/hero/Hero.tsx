@@ -1,28 +1,36 @@
+import { useEffect, useState } from 'react';
 import { HashLink } from 'react-router-hash-link';
 import { useTranslation } from 'react-i18next';
 import { RiWhatsappLine } from '@remixicon/react';
-import logo from '../../../assets/logo/logo.png';
-import photo from '../../../assets/images/buku.png';
+import { useAboutPage } from '@/hooks/useAboutPage';
+import { whatsappUrl } from '@/lib/siteContact';
 import Button from '@/components/Button/Button';
-import {
-    BookStackColor,
-    HeroHill,
-    HeroLeafRight,
-    Sprig,
-} from '@/components/art/HeroArt';
+import { HeroHill, HeroLeafRight, Sprig } from '@/components/art/HeroArt';
 import PillBadge from '@/components/ui/PillBadge';
-
-// Nomor WhatsApp untuk tombol "Konsultasi".
-const WHATSAPP_URL = 'https://wa.me/6283180773955';
+import * as bookApi from '@/data/book/bookApi';
+import type { HeroCover } from '@/data/book/bookApi';
+import HeroShowcase, { HeroShowcaseSkeleton } from './HeroShowcase';
 
 /**
  * Hero beranda (tema terang): lencana, judul serif, penjelasan, tombol
- * "Lihat Paket" / "Konsultasi", dan foto rak buku dalam bingkai berhias
- * bukit, daun, serta tumpukan buku.
+ * "Lihat Paket" / "Konsultasi", dan etalase sampul buku terbaru (lihat
+ * HeroShowcase).
  */
 export default function Hero(): React.ReactNode {
     const { t } = useTranslation();
+    // Nomor WhatsApp dari halaman Tentang Kami (diatur admin).
+    const { about } = useAboutPage();
+    const whatsappLink = whatsappUrl(about.profile.whatsapp);
     const brandName = t('common.brand.name');
+    // null = sedang dimuat.
+    const [covers, setCovers] = useState<HeroCover[] | null>(null);
+
+    useEffect(() => {
+        bookApi
+            .heroCovers()
+            .then((response) => setCovers(response.data))
+            .catch(() => setCovers([]));
+    }, []);
 
     return (
         <section
@@ -52,7 +60,7 @@ export default function Hero(): React.ReactNode {
                                 {t('home.hero.viewPackages')}
                             </Button>
                         </HashLink>
-                        <a href={WHATSAPP_URL} target="_blank" rel="noreferrer">
+                        <a href={whatsappLink} target="_blank" rel="noreferrer">
                             <Button
                                 variant="outline2"
                                 className="inline-flex items-center gap-2 px-6"
@@ -67,28 +75,12 @@ export default function Hero(): React.ReactNode {
                     </div>
                 </div>
 
-                <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
-                    <div
-                        aria-hidden
-                        className="absolute -right-4 -top-4 h-full w-full rounded-[2rem] bg-forest-moss-100"
-                    />
-                    <img
-                        src={photo}
-                        alt={t('home.hero.photoAlt')}
-                        className="relative aspect-[4/3] w-full rounded-[2rem] object-cover shadow-[0_18px_44px_-18px_rgba(1,26,44,0.5)]"
-                    />
-                    <div className="absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl border border-forest-moss-100 bg-white px-4 py-3 shadow-[0_10px_28px_-12px_rgba(1,26,44,0.4)] sm:left-6">
-                        <img src={logo} alt="" className="h-10 w-auto" />
-                        <div className="flex flex-col">
-                            <span className="font-display text-base font-bold leading-tight text-oxford-navy-700">
-                                {brandName}
-                            </span>
-                            <span className="font-display text-xs text-oxford-navy-900/70">
-                                {t('common.brand.slogan')}
-                            </span>
-                        </div>
-                    </div>
-                    <BookStackColor className="pointer-events-none absolute -right-2 bottom-0 hidden h-[130px] w-auto translate-y-1/3 lg:block" />
+                <div className="relative mx-auto w-full max-w-[28rem] sm:max-w-[32rem] lg:max-w-none">
+                    {covers === null ? (
+                        <HeroShowcaseSkeleton />
+                    ) : (
+                        <HeroShowcase covers={covers} />
+                    )}
                 </div>
             </div>
 

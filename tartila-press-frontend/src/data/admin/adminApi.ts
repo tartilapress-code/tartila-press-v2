@@ -1,6 +1,11 @@
+import type { ManuscriptDifficulty } from '@/lib/manuscriptDifficulty';
 import { http } from '@/lib/http';
+import { queryString, type PageParams } from '@/lib/pagination';
 
-export const listUsers = () => http.get('/admin/users');
+// Per halaman (bawaan 20): ?search= nama/email, ?role=.
+export const listUsers = (
+    params: Partial<{ search: string; role: string }> & PageParams = {}
+) => http.get(`/admin/users${queryString(params)}`);
 
 export const updateUserRoles = (userId: number, roles: string[]) =>
     http.patch(`/admin/users/${userId}/roles`, { roles });
@@ -26,6 +31,8 @@ export type PackagePayload = Partial<{
     services: string[];
     notes: string[];
     is_active: boolean;
+    // Eksemplar buku gratis untuk pemesan (biaya cetak 3 + N).
+    free_copies: number;
 }>;
 
 export const listPackages = () => http.get('/admin/packages');
@@ -48,6 +55,8 @@ export type CustomPackageItemPayload = Partial<{
     book_chapter_cost: number | string | null;
     description: string | null;
     is_active: boolean;
+    // Eksemplar buku gratis dari item ini (biaya cetak 3 + N).
+    free_copies: number;
 }>;
 
 export const listCustomItems = () => http.get('/admin/custom-package-items');
@@ -63,14 +72,23 @@ export const updateCustomItem = (
 export const deleteCustomItem = (id: number) =>
     http.delete(`/admin/custom-package-items/${id}`);
 
-export const listOrders = () => http.get('/admin/orders');
+// Per halaman; meta.counts = jumlah pesanan per kategori (tab).
+export const listOrders = (
+    params: Partial<{ category: string; status: string; sort: string }> &
+        PageParams = {}
+) => http.get(`/admin/orders${queryString(params)}`);
 
 export const updateOrderStatus = (id: number, status: string) =>
     http.patch(`/admin/orders/${id}/status`, { status });
 
 export const verifyPayment = (
     id: number,
-    payload: { decision: 'approve' | 'reject'; note?: string }
+    payload: {
+        decision: 'approve' | 'reject';
+        note?: string;
+        // Rekening penerima transfer (saldo per rekening di Keuangan).
+        payment_method_id?: number | null;
+    }
 ) => http.post(`/admin/orders/${id}/verify-payment`, payload);
 
 export type PaymentMethodPayload = Partial<{
@@ -80,8 +98,7 @@ export type PaymentMethodPayload = Partial<{
     is_active: boolean;
 }>;
 
-export const listPaymentMethodsAdmin = () =>
-    http.get('/admin/payment-methods');
+export const listPaymentMethodsAdmin = () => http.get('/admin/payment-methods');
 
 export const createPaymentMethod = (payload: PaymentMethodPayload) =>
     http.post('/admin/payment-methods', payload);
@@ -107,13 +124,14 @@ export type BookShipmentPayload = Partial<{
     estimated_arrival_date: string | null;
 }>;
 
-export const updateBookShipment = (
-    id: number,
-    payload: BookShipmentPayload
-) => http.patch(`/admin/book-shipments/${id}`, payload);
+export const updateBookShipment = (id: number, payload: BookShipmentPayload) =>
+    http.patch(`/admin/book-shipments/${id}`, payload);
 
-export const listManuscripts = (status?: string) =>
-    http.get(`/admin/manuscripts${status ? `?status=${status}` : ''}`);
+// Per halaman (bawaan 20); unpublished=1: belum jadi buku/bab buku.
+export const listManuscripts = (
+    params: Partial<{ status: string; search: string; unpublished: 1 }> &
+        PageParams = {}
+) => http.get(`/admin/manuscripts${queryString(params)}`);
 
 export const reviewManuscriptRevision = (
     manuscriptId: number | string,
@@ -123,6 +141,11 @@ export const reviewManuscriptRevision = (
         note?: string;
         // Wajib saat approve naskah yang editornya dipilih langsung penulis.
         fee?: number | string;
+        // Tata otomatis naskah Word dengan template lalu kirim ke editor.
+        auto_layout?: boolean;
+        manuscript_template_id?: number | null;
+        // Tingkat kesulitan naskah (saat menerima naskah penulis).
+        difficulty?: ManuscriptDifficulty;
     }
 ) =>
     http.post(
@@ -137,13 +160,41 @@ export const assignManuscriptEditor = (
         fee: number | string;
         deadline?: string;
         note?: string;
+        difficulty?: ManuscriptDifficulty;
     }
 ) => http.post(`/admin/manuscripts/${manuscriptId}/assign-editor`, payload);
 
 export const openManuscriptPool = (
     manuscriptId: number | string,
-    payload: { fee: number | string; deadline?: string; note?: string }
+    payload: {
+        fee: number | string;
+        deadline?: string;
+        note?: string;
+        difficulty?: ManuscriptDifficulty;
+        // Kriteria editor: id Kategori Keilmuan; kosong = umum.
+        pool_field_category_ids?: number[];
+    }
 ) => http.post(`/admin/manuscripts/${manuscriptId}/open-pool`, payload);
+
+export const updateManuscriptPoolSettings = (
+    manuscriptId: number | string,
+    payload: Partial<{
+        difficulty: ManuscriptDifficulty | null;
+        pool_field_category_ids: number[];
+    }>
+) => http.put(`/admin/manuscripts/${manuscriptId}/pool-settings`, payload);
+
+// Pengaturan pool naskah: bidang keahlian editor + naskah di pool.
+export const getManuscriptPoolSettings = () =>
+    http.get('/admin/manuscript-pool');
+
+export const updateEditorFieldCategories = (
+    userId: number,
+    fieldCategoryIds: number[]
+) =>
+    http.put(`/admin/manuscript-pool/editors/${userId}`, {
+        field_category_ids: fieldCategoryIds,
+    });
 
 export type BookPayload = Partial<{
     title: string;
@@ -159,14 +210,16 @@ export type BookPayload = Partial<{
     languages: string[];
     price: number | string;
     discount: number;
-    royalty_percentage: number | string | null;
     citation_publisher: string;
     citation_publication_date: string;
     google_scholar_url: string;
     is_active: boolean;
 }>;
 
-export const listBooksAdmin = () => http.get('/admin/books');
+// Per halaman (bawaan 20): ?search=, ?active=1|0.
+export const listBooksAdmin = (
+    params: Partial<{ search: string; active: string }> & PageParams = {}
+) => http.get(`/admin/books${queryString(params)}`);
 
 export const publishFromManuscript = (
     manuscriptId: number | string,
@@ -249,14 +302,21 @@ export type BookChapterProjectPayload = Partial<{
     package_item_ids: number[];
 }>;
 
-export const listBookChapterProjectsAdmin = () =>
-    http.get('/admin/book-chapter-projects');
+// Data terbaru untuk poster promosi Book Chapter (Konten Sosmed).
+export const bookChapterProjectPromo = (id: number | string) =>
+    http.get(`/admin/book-chapter-projects/${id}/promo`);
+
+// Per halaman (bawaan 20): ?search= judul/editor.
+export const listBookChapterProjectsAdmin = (
+    params: Partial<{ search: string }> & PageParams = {}
+) => http.get(`/admin/book-chapter-projects${queryString(params)}`);
 
 export const getBookChapterProjectAdmin = (id: number | string) =>
     http.get(`/admin/book-chapter-projects/${id}`);
 
-export const createBookChapterProjectAdmin = (payload: BookChapterProjectPayload) =>
-    http.post('/admin/book-chapter-projects', payload);
+export const createBookChapterProjectAdmin = (
+    payload: BookChapterProjectPayload
+) => http.post('/admin/book-chapter-projects', payload);
 
 export const updateBookChapterProjectAdmin = (
     id: number | string,
@@ -276,8 +336,49 @@ export const updateBookChapterProjectChapterAdmin = (
     payload: Partial<ChapterInput>
 ) => http.patch(`/admin/book-chapter-projects/chapters/${chapterId}`, payload);
 
-export const deleteBookChapterProjectChapterAdmin = (chapterId: number | string) =>
-    http.delete(`/admin/book-chapter-projects/chapters/${chapterId}`);
+export const deleteBookChapterProjectChapterAdmin = (
+    chapterId: number | string
+) => http.delete(`/admin/book-chapter-projects/chapters/${chapterId}`);
+
+// --- Book Chapter: gabungkan naskah semua bab --------------------------------
+
+export type CompilationOverview = {
+    chapters: {
+        id: number;
+        chapter_number: number;
+        title: string;
+        manuscript: {
+            id: number;
+            status: string;
+            author: string | null;
+            ready: boolean;
+            file: string | null;
+            is_docx: boolean;
+        } | null;
+    }[];
+    filled: number;
+    missing: number;
+    blockers: string[];
+    compilation: {
+        id: number;
+        status: string;
+        editor: string | null;
+        can_recompile: boolean;
+    } | null;
+};
+
+export const getBookChapterCompilation = (projectId: number | string) =>
+    http.get(`/admin/book-chapter-projects/${projectId}/compilation`);
+
+export const compileBookChapter = (
+    projectId: number | string,
+    payload: {
+        auto_layout: boolean;
+        manuscript_template_id?: number | null;
+        allow_missing?: boolean;
+    }
+) =>
+    http.post(`/admin/book-chapter-projects/${projectId}/compilation`, payload);
 
 export const bulkImportBookChapterProjects = (formData: FormData) =>
     http.upload('/admin/book-chapter-projects/bulk-import', formData);
@@ -293,7 +394,8 @@ export type BookChapterSettingPayload = {
     min_book_cost?: number | string;
 };
 
-export const getBookChapterSettings = () => http.get('/admin/book-chapter-settings');
+export const getBookChapterSettings = () =>
+    http.get('/admin/book-chapter-settings');
 
 export const updateBookChapterSettings = (payload: BookChapterSettingPayload) =>
     http.patch('/admin/book-chapter-settings', payload);
@@ -301,6 +403,7 @@ export const updateBookChapterSettings = (payload: BookChapterSettingPayload) =>
 export type ExternalSale = {
     id: number;
     marketplace_name: string;
+    format: 'physical' | 'ebook';
     original_price: string;
     discount_percentage: number | null;
     discounted_price: string | null;
@@ -311,9 +414,37 @@ export type RoyaltySummary = {
     id: number;
     title: string;
     authors_text: string;
-    author: { id: number; name: string } | null;
     price: string;
-    royalty_percentage: string;
+    package: 'regular' | 'chapter_editor' | 'chapter_admin';
+    package_label: string;
+    /** Total semua penerima, mis. 25 atau 30 (buku fisik). */
+    royalty_percentage: number;
+    ebook_royalty_percentage: number;
+    // MOU distribusi buku yang menjadi dasar royalti, bila ada.
+    mou: { id: number; number: string } | null;
+    shares: {
+        user_id: number;
+        name: string;
+        role: 'author' | 'editor';
+        rate: number;
+        ebook_rate: number;
+        chapters?: number;
+        total_chapters?: number;
+        royalty_amount: number;
+        /** Bagian dari royalty_amount yang berasal dari ebook Tartila Book. */
+        reader_royalty_amount: number;
+    }[];
+    /** Ringkasan ebook di Tartila Book; null kalau buku belum ada di sana. */
+    reader: {
+        orders: number;
+        revenue: number;
+        purchase_percent: number;
+        purchase_royalty: number;
+        read_events: number;
+        read_fee: number;
+        read_royalty: number;
+        total: number;
+    } | null;
     external_sales: ExternalSale[];
     total_orders_count: number;
     completed_orders_count: number;
@@ -327,13 +458,17 @@ export type RoyaltySummary = {
 
 export type ExternalSalePayload = Partial<{
     marketplace_name: string;
+    format: 'physical' | 'ebook';
     original_price: number | string;
     discount_percentage: number | null;
     discounted_price: number | string | null;
     quantity_sold: number;
 }>;
 
-export const listRoyalties = () => http.get('/admin/royalties');
+// Per halaman (bawaan 20): ?search= judul.
+export const listRoyalties = (
+    params: Partial<{ search: string }> & PageParams = {}
+) => http.get(`/admin/royalties${queryString(params)}`);
 
 export const createExternalSale = (
     bookId: number | string,

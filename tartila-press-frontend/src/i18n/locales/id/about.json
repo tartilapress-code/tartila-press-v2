@@ -1,0 +1,30 @@
+{
+    "page": {
+        "badge": "Tentang Kami",
+        "heroBefore": "Mengenal ",
+        "heroText": "Penerbit yang mendampingi penulis dari naskah hingga buku terbit, dengan proses yang profesional, transparan, dan terpercaya.",
+        "scriptTop": "Menata Ilmu,",
+        "scriptBottom": "Menguatkan Peradaban"
+    },
+    "profile": "Profil",
+    "vision": "Visi",
+    "mission": "Misi",
+    "legality": "Legalitas",
+    "legalityText": "Dokumen resmi yang menjadi dasar kegiatan penerbitan kami.",
+    "team": "Tim Kami",
+    "teamText": "Orang-orang di balik setiap buku yang kami terbitkan.",
+    "expertise": "Keahlian",
+    "contact": "Kontak",
+    "social": "Sosial Media",
+    "address": "Alamat",
+    "openMap": "Buka di Google Maps",
+    "mapTitle": "Peta lokasi {{name}}",
+    "previous": "Sebelumnya",
+    "next": "Berikutnya",
+    "viewPhoto": "Lihat foto {{name}}",
+    "close": "Tutup",
+    "empty": "Informasi profil belum tersedia.",
+    "ctaTitle": "Siap menerbitkan buku bersama kami?",
+    "ctaText": "Lihat paket penerbitan atau konsultasikan kebutuhan Anda lebih dulu.",
+    "ctaAction": "Lihat Paket"
+}

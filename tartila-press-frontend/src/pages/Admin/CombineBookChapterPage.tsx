@@ -63,7 +63,11 @@ export default function CombineBookChapterPage() {
 
     useEffect(() => {
         Promise.all([
-            adminApi.listManuscripts('completed'),
+            adminApi.listManuscripts({
+                status: 'completed',
+                unpublished: 1,
+                per_page: 100,
+            }),
             adminApi.listBookCategoriesAdmin(),
             adminApi.listFieldCategoriesAdmin(),
         ])
@@ -173,9 +177,7 @@ export default function CombineBookChapterPage() {
                                     checked={selectedIds.includes(
                                         manuscript.id
                                     )}
-                                    onChange={() =>
-                                        toggleSelect(manuscript.id)
-                                    }
+                                    onChange={() => toggleSelect(manuscript.id)}
                                 />
                                 <span className="text-oxford-navy-900 text-sm">
                                     {manuscript.title} — {manuscript.user.name}
@@ -211,8 +213,7 @@ export default function CombineBookChapterPage() {
                                     variant="outline2"
                                     onClick={() => moveDown(index)}
                                     disabled={
-                                        index ===
-                                        selectedManuscripts.length - 1
+                                        index === selectedManuscripts.length - 1
                                     }
                                 >
                                     ↓

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { RiArrowLeftLine } from '@remixicon/react';
+import NotificationRouteSync from '@/components/notification/NotificationRouteSync';
 
 /**
  * Kerangka halaman dashboard (user dan admin) bertema terang: tautan kembali,
@@ -31,6 +32,7 @@ export default function DashboardShell({
     return (
         // Keluar dari margin <main> supaya latar selebar halaman.
         <div className="-mx-10 -my-2 min-h-[70vh] bg-forest-moss-50/50">
+            <NotificationRouteSync />
             <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
                 <Link
                     to={backTo}

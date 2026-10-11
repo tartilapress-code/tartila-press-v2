@@ -4,6 +4,7 @@ import { RiArrowRightLine, RiArticleLine, RiHeartLine } from '@remixicon/react';
 import logo from '@/assets/logo/logo.png';
 import type { Article } from '@/data/article/articleApi';
 import { useFormat } from '@/i18n/useFormat';
+import ResponsiveImg from '@/components/ui/ResponsiveImg';
 
 function excerptOf(body: string, maxLength = 160): string {
     const plain = body.replace(/\s+/g, ' ').trim();
@@ -35,8 +36,9 @@ export default function ArticleCard({
         >
             <div className="relative h-44 w-full overflow-hidden bg-forest-moss-50">
                 {article.photo ? (
-                    <img
+                    <ResponsiveImg
                         src={article.photo}
+                        sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
                         alt=""
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -75,8 +77,9 @@ export default function ArticleCard({
 
                 <div className="mt-auto flex items-center justify-between gap-3 pt-2">
                     <div className="flex min-w-0 items-center gap-2.5">
-                        <img
+                        <ResponsiveImg
                             src={authorPhoto || logo}
+                            sizes="40px"
                             alt=""
                             className="size-9 shrink-0 rounded-full bg-forest-moss-50 object-cover ring-1 ring-forest-moss-100"
                         />

@@ -2,51 +2,6 @@
 
 type ArtProps = { className?: string };
 
-const LEAF = 'M0 0C18-22 62-26 90 0C62 26 18 22 0 0Z';
-
-// Titik tumbuh daun mengikuti batang (kurva M40 380 C30 280 60 180 130 30);
-// rotasi negatif = menghadap kanan-atas, di atas 180 = menghadap kiri-atas.
-const branchLeaves = [
-    { x: 38, y: 350, r: -25, s: 1, tone: 'fill-forest-moss-300/80' },
-    { x: 39, y: 320, r: 205, s: 0.9, tone: 'fill-forest-moss-200/90' },
-    { x: 42, y: 289, r: -35, s: 1.05, tone: 'fill-forest-moss-200/90' },
-    { x: 47, y: 257, r: 215, s: 0.95, tone: 'fill-forest-moss-300/80' },
-    { x: 55, y: 224, r: -42, s: 1, tone: 'fill-forest-moss-300/80' },
-    { x: 65, y: 189, r: 222, s: 0.9, tone: 'fill-forest-moss-200/90' },
-    { x: 78, y: 153, r: -50, s: 0.9, tone: 'fill-forest-moss-200/90' },
-    { x: 93, y: 114, r: 228, s: 0.78, tone: 'fill-forest-moss-300/80' },
-    { x: 110, y: 74, r: -60, s: 0.75, tone: 'fill-forest-moss-300/80' },
-    { x: 130, y: 30, r: -72, s: 0.6, tone: 'fill-forest-moss-200/90' },
-];
-
-/** Cabang berdaun hijau lembut di tepi kiri hero. */
-export function LeafBranch({ className }: ArtProps) {
-    return (
-        <svg viewBox="0 0 220 380" className={className} aria-hidden>
-            <path
-                d="M40 380C30 280 60 180 130 30"
-                className="fill-none stroke-forest-moss-400/70"
-                strokeWidth="3"
-                strokeLinecap="round"
-            />
-            {branchLeaves.map((leaf, index) => (
-                <g
-                    key={index}
-                    transform={`translate(${leaf.x} ${leaf.y}) rotate(${leaf.r}) scale(${leaf.s})`}
-                >
-                    <path d={LEAF} className={leaf.tone} />
-                    <path
-                        d="M6 0L80 0"
-                        className="fill-none stroke-white/60"
-                        strokeWidth="1.4"
-                        strokeLinecap="round"
-                    />
-                </g>
-            ))}
-        </svg>
-    );
-}
-
 const PLANT_LEAF = 'M0 0C25-20 75-22 100 0C75 22 25 20 0 0Z';
 
 // Urutan gambar: daun terluar (gelap) dulu, daun tengah (terang) di atasnya.
@@ -239,25 +194,6 @@ export function BooksAndPlant({ className }: ArtProps) {
                     opacity="0.85"
                 />
             </g>
-        </svg>
-    );
-}
-
-/** Lingkaran navy dan lengkung hijau di pojok kiri bawah bagian daftar buku. */
-export function CornerBlob({ className }: ArtProps) {
-    return (
-        <svg viewBox="0 0 320 300" className={className} aria-hidden>
-            <circle cx="60" cy="240" r="150" className="fill-oxford-navy-700" />
-            <path
-                d="M-10 330C30 220 140 175 310 150C275 245 175 305 55 340Z"
-                className="fill-forest-moss-400/80"
-            />
-            <path
-                d="M10 345C80 255 170 215 262 205"
-                className="fill-none stroke-white/50"
-                strokeWidth="2"
-                strokeLinecap="round"
-            />
         </svg>
     );
 }

@@ -1,4 +1,5 @@
 import { apiUrl, http } from '@/lib/http';
+import { queryString, type PageParams } from '@/lib/pagination';
 
 export type BookCategoryItem = { id: number; name: string };
 
@@ -80,26 +81,26 @@ export type BookListParams = Partial<{
     book_category_id: number | string;
     field_category_id: number | string;
     sort: 'newest' | 'price_asc' | 'price_desc' | 'rating';
-}>;
+}> &
+    PageParams;
 
-const toQueryString = (params: BookListParams) => {
-    const query = new URLSearchParams();
-
-    Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-            query.set(key, String(value));
-        }
-    });
-
-    const qs = query.toString();
-
-    return qs ? `?${qs}` : '';
-};
-
+// Per halaman: respons { data, meta } (bawaan 24 buku per halaman).
 export const list = (params: BookListParams = {}) =>
-    http.get(`/books${toQueryString(params)}`);
+    http.get(`/books${queryString(params)}`);
 
 export const get = (id: number | string) => http.get(`/books/${id}`);
+
+// Sampul terbaru (paling baru diunggah lebih dulu) untuk hero beranda.
+export type HeroCover = {
+    id: number;
+    title: string;
+    slug: string;
+    front_cover: string;
+    authors: string | null;
+    category: string | null;
+};
+
+export const heroCovers = () => http.get('/books/hero-covers');
 
 // PDF preview disajikan lewat API (berheader CORS) supaya bisa dibaca PDF.js;
 // alamat langsung di /storage tidak bisa di-fetch dari origin frontend.

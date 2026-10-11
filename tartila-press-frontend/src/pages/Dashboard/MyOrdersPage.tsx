@@ -7,6 +7,8 @@ import OrderMessages from '@/components/order/OrderMessages';
 import { getOrderCategory, type OrderCategory } from '@/lib/orderCategory';
 import { SHIPPING_STAGE_LABELS } from '@/lib/shippingStatus';
 import { ApiError } from '@/lib/http';
+import { UnreadDot } from '@/components/notification/UnreadBadge';
+import { useUnreadSubjects } from '@/context/useNotifications';
 
 type OrderItem = {
     id: number;
@@ -34,10 +36,15 @@ type OrderStatusHistoryEntry = {
 type OrderRecord = {
     id: number;
     order_number: string;
+    invoice_number: string | null;
+    payment_due_at: string | null;
+    payment_method: PaymentMethod | null;
     status: string;
     subtotal: string;
     discount_total: string;
     editor_fee: string;
+    voucher_code: string | null;
+    voucher_discount: string;
     total: string;
     created_at: string;
     editor: { id: number; name: string } | null;
@@ -48,6 +55,13 @@ type OrderRecord = {
     payment_verification_note: string | null;
     status_histories: OrderStatusHistoryEntry[];
 };
+
+// Batas bayar invoice selalu dalam WIB.
+const dueFormatter = new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Jakarta',
+});
 
 type PaymentMethod = {
     id: number;
@@ -108,19 +122,47 @@ function PaymentSection({
         );
     }
 
+    // Dibatalkan karena lewat batas bayar (atau oleh admin dengan catatan).
+    const cancelNote =
+        order.status === 'cancelled'
+            ? [...order.status_histories]
+                  .reverse()
+                  .find((entry) => entry.event === 'order_cancelled')?.note
+            : null;
+
+    if (cancelNote) {
+        return (
+            <div className="flex flex-col gap-1 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3">
+                <p className="text-red-600 text-sm font-semibold">
+                    Pesanan dibatalkan
+                </p>
+                <p className="text-oxford-navy-900/70 text-sm">{cancelNote}</p>
+            </div>
+        );
+    }
+
     if (order.status !== 'pending') {
         return null;
     }
 
+    const targets = order.payment_method
+        ? [order.payment_method]
+        : paymentMethods;
+
     return (
         <div className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3">
-            {paymentMethods.length > 0 && (
+            {targets.length > 0 && (
                 <div className="flex flex-col gap-1">
                     <p className="text-oxford-navy-900 font-semibold text-sm">
-                        Transfer ke salah satu rekening berikut:
+                        {order.payment_method
+                            ? 'Transfer ke rekening pilihan Anda:'
+                            : 'Transfer ke salah satu rekening berikut:'}
                     </p>
-                    {paymentMethods.map((method) => (
-                        <p key={method.id} className="text-oxford-navy-900/80 text-sm">
+                    {targets.map((method) => (
+                        <p
+                            key={method.id}
+                            className="text-oxford-navy-900/80 text-sm"
+                        >
                             {method.bank_name} — {method.account_number} a.n.{' '}
                             {method.account_holder_name}
                         </p>
@@ -143,6 +185,20 @@ function PaymentSection({
             ) : (
                 <p className="text-oxford-navy-900/70 text-xs">
                     Setelah transfer, unggah bukti transfer di bawah ini.
+                    {order.payment_due_at && (
+                        <>
+                            {' '}
+                            Batas bayar{' '}
+                            <strong>
+                                {dueFormatter.format(
+                                    new Date(order.payment_due_at)
+                                )}{' '}
+                                WIB
+                            </strong>
+                            ; jika tidak ada konfirmasi pembayaran, pesanan
+                            dibatalkan otomatis.
+                        </>
+                    )}
                 </p>
             )}
 
@@ -216,13 +272,13 @@ const categoryTabs: { value: OrderCategory; label: string }[] = [
 ];
 
 export default function MyOrdersPage() {
+    const unreadOrders = useUnreadSubjects('order');
     const [orders, setOrders] = useState<OrderRecord[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
     const [errorMessage, setErrorMessage] = useState<string>('');
-    const [activeCategory, setActiveCategory] =
-        useState<OrderCategory>('book');
+    const [activeCategory, setActiveCategory] = useState<OrderCategory>('book');
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
     function loadOrders() {
@@ -278,7 +334,9 @@ export default function MyOrdersPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Pesanan Saya</h5>
+            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                Pesanan Saya
+            </h5>
 
             <div className="flex flex-row flex-wrap gap-2">
                 {categoryTabs.map((tab) => (
@@ -310,205 +368,234 @@ export default function MyOrdersPage() {
                 ) : (
                     <div className="flex flex-col gap-3">
                         {grouped[activeCategory].map((order) => (
-                        <div
-                            key={order.id}
-                            className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
-                        >
-                            <div className="flex flex-row items-center justify-between">
-                                <p className="text-oxford-navy-900 font-semibold">
-                                    {order.order_number}
-                                </p>
-                                <span className="text-forest-moss-700 text-sm">
-                                    {statusLabels[order.status] ??
-                                        order.status}
-                                </span>
-                            </div>
-                            <ul className="text-oxford-navy-900/80 text-sm">
-                                {order.items.map((item) => (
-                                    <li key={item.id}>
-                                        {item.name} —{' '}
-                                        {rupiahFormatter.format(
-                                            Number(item.subtotal)
+                            <div
+                                key={order.id}
+                                className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4"
+                            >
+                                <div className="flex flex-row items-center justify-between">
+                                    <p className="flex items-center gap-2 text-oxford-navy-900 font-semibold">
+                                        {unreadOrders.has(order.id) && (
+                                            <UnreadDot />
                                         )}
-                                    </li>
-                                ))}
-                            </ul>
-                            {Number(order.discount_total) > 0 && (
-                                <p className="text-forest-moss-700 text-sm">
-                                    Diskon: −
-                                    {rupiahFormatter.format(
-                                        Number(order.discount_total)
-                                    )}
-                                </p>
-                            )}
-                            {order.editor && (
-                                <p className="text-oxford-navy-900/70 text-sm">
-                                    Editor: {order.editor.name} (+
-                                    {rupiahFormatter.format(
-                                        Number(order.editor_fee)
-                                    )}
-                                    )
-                                </p>
-                            )}
-                            <p className="text-oxford-navy-900 font-semibold">
-                                Total: {rupiahFormatter.format(
-                                    Number(order.total)
+                                        {order.order_number}
+                                    </p>
+                                    <span className="text-forest-moss-700 text-sm">
+                                        {statusLabels[order.status] ??
+                                            order.status}
+                                    </span>
+                                </div>
+                                <ul className="text-oxford-navy-900/80 text-sm">
+                                    {order.items.map((item) => (
+                                        <li key={item.id}>
+                                            {item.name} —{' '}
+                                            {rupiahFormatter.format(
+                                                Number(item.subtotal)
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                                {Number(order.discount_total) > 0 && (
+                                    <p className="text-forest-moss-700 text-sm">
+                                        Diskon: −
+                                        {rupiahFormatter.format(
+                                            Number(order.discount_total)
+                                        )}
+                                    </p>
                                 )}
-                            </p>
-
-                            <PaymentSection
-                                order={order}
-                                paymentMethods={paymentMethods}
-                                onUploaded={loadOrders}
-                            />
-
-                            {order.book_shipment && (
-                                <div className="flex flex-col gap-1 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3">
-                                    <p className="text-oxford-navy-900/80 text-sm">
-                                        Dikirim ke:{' '}
-                                        {order.book_shipment.recipient_name},{' '}
-                                        {
-                                            order.book_shipment
-                                                .recipient_address
-                                        }{' '}
-                                        ({order.book_shipment.recipient_phone}
+                                {Number(order.voucher_discount) > 0 && (
+                                    <p className="text-forest-moss-700 text-sm">
+                                        Voucher {order.voucher_code}: −
+                                        {rupiahFormatter.format(
+                                            Number(order.voucher_discount)
+                                        )}
+                                    </p>
+                                )}
+                                {order.editor && (
+                                    <p className="text-oxford-navy-900/70 text-sm">
+                                        Editor: {order.editor.name} (+
+                                        {rupiahFormatter.format(
+                                            Number(order.editor_fee)
+                                        )}
                                         )
                                     </p>
-                                    <p className="text-forest-moss-700 text-sm font-semibold">
-                                        Status:{' '}
-                                        {SHIPPING_STAGE_LABELS[
-                                            order.book_shipment.status
-                                        ] ?? order.book_shipment.status}
-                                    </p>
-                                    {order.book_shipment
-                                        .estimated_arrival_date && (
-                                        <p className="text-oxford-navy-900/70 text-sm">
-                                            Estimasi sampai:{' '}
-                                            {dateFormatter.format(
-                                                new Date(
-                                                    order.book_shipment.estimated_arrival_date
-                                                )
-                                            )}
-                                        </p>
+                                )}
+                                <p className="text-oxford-navy-900 font-semibold">
+                                    Total:{' '}
+                                    {rupiahFormatter.format(
+                                        Number(order.total)
                                     )}
-                                    {order.book_shipment.status ===
-                                        'awaiting_confirmation' && (
-                                        <div className="flex flex-col gap-2 mt-1">
-                                            <p className="text-oxford-navy-900/70 text-xs">
-                                                Kalau tidak dikonfirmasi
-                                                dalam 2 hari, pesanan akan
-                                                otomatis dianggap sudah
-                                                sampai.
+                                </p>
+                                <Link
+                                    to={`/dashboard/pesanan/${order.id}/invoice`}
+                                    className="self-start text-sm font-semibold text-forest-moss-700 underline"
+                                >
+                                    Lihat invoice
+                                    {order.invoice_number
+                                        ? ` ${order.invoice_number}`
+                                        : ''}
+                                </Link>
+
+                                <PaymentSection
+                                    order={order}
+                                    paymentMethods={paymentMethods}
+                                    onUploaded={loadOrders}
+                                />
+
+                                {order.book_shipment && (
+                                    <div className="flex flex-col gap-1 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3">
+                                        <p className="text-oxford-navy-900/80 text-sm">
+                                            Dikirim ke:{' '}
+                                            {order.book_shipment.recipient_name}
+                                            ,{' '}
+                                            {
+                                                order.book_shipment
+                                                    .recipient_address
+                                            }{' '}
+                                            (
+                                            {
+                                                order.book_shipment
+                                                    .recipient_phone
+                                            }
+                                            )
+                                        </p>
+                                        <p className="text-forest-moss-700 text-sm font-semibold">
+                                            Status:{' '}
+                                            {SHIPPING_STAGE_LABELS[
+                                                order.book_shipment.status
+                                            ] ?? order.book_shipment.status}
+                                        </p>
+                                        {order.book_shipment
+                                            .estimated_arrival_date && (
+                                            <p className="text-oxford-navy-900/70 text-sm">
+                                                Estimasi sampai:{' '}
+                                                {dateFormatter.format(
+                                                    new Date(
+                                                        order.book_shipment
+                                                            .estimated_arrival_date
+                                                    )
+                                                )}
                                             </p>
+                                        )}
+                                        {order.book_shipment.status ===
+                                            'awaiting_confirmation' && (
+                                            <div className="flex flex-col gap-2 mt-1">
+                                                <p className="text-oxford-navy-900/70 text-xs">
+                                                    Kalau tidak dikonfirmasi
+                                                    dalam 2 hari, pesanan akan
+                                                    otomatis dianggap sudah
+                                                    sampai.
+                                                </p>
+                                                <Button
+                                                    variant="primary"
+                                                    className="self-start"
+                                                    onClick={() =>
+                                                        handleConfirmReceived(
+                                                            order.id
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        confirmingId ===
+                                                        order.id
+                                                    }
+                                                >
+                                                    {confirmingId === order.id
+                                                        ? 'Memproses...'
+                                                        : 'Konfirmasi Buku Sudah Sampai'}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {order.status === 'confirmed' &&
+                                    getOrderCategory(
+                                        order.items[0]?.itemable_type
+                                    ) !== 'book' &&
+                                    (order.manuscript ? (
+                                        <Link
+                                            to={`/dashboard/naskah/${order.manuscript.id}`}
+                                        >
+                                            <Button
+                                                variant="outline2"
+                                                className="self-start"
+                                            >
+                                                Lihat Naskah
+                                            </Button>
+                                        </Link>
+                                    ) : (
+                                        <Link
+                                            to={`/dashboard/submit-naskah/${order.id}`}
+                                        >
                                             <Button
                                                 variant="primary"
                                                 className="self-start"
-                                                onClick={() =>
-                                                    handleConfirmReceived(
-                                                        order.id
-                                                    )
-                                                }
-                                                disabled={
-                                                    confirmingId === order.id
-                                                }
                                             >
-                                                {confirmingId === order.id
-                                                    ? 'Memproses...'
-                                                    : 'Konfirmasi Buku Sudah Sampai'}
+                                                Submit Naskah
                                             </Button>
+                                        </Link>
+                                    ))}
+
+                                <div className="flex flex-col gap-2">
+                                    <button
+                                        onClick={() =>
+                                            setExpandedId(
+                                                expandedId === order.id
+                                                    ? null
+                                                    : order.id
+                                            )
+                                        }
+                                        className="text-forest-moss-700 text-xs hover:text-forest-moss-800 self-start"
+                                    >
+                                        {expandedId === order.id
+                                            ? 'Tutup Detail Pesanan'
+                                            : 'Riwayat & Pesan ke Admin'}
+                                    </button>
+                                    {expandedId === order.id && (
+                                        <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-3">
+                                            <div className="flex flex-col gap-1">
+                                                <p className="text-oxford-navy-900 font-semibold text-sm">
+                                                    Riwayat Proses
+                                                </p>
+                                                {order.status_histories.map(
+                                                    (entry) => (
+                                                        <div
+                                                            key={entry.id}
+                                                            className="text-xs"
+                                                        >
+                                                            <span className="text-oxford-navy-900/55">
+                                                                {dateTimeFormatter.format(
+                                                                    new Date(
+                                                                        entry.created_at
+                                                                    )
+                                                                )}
+                                                            </span>{' '}
+                                                            <span className="text-oxford-navy-900/80">
+                                                                {ORDER_HISTORY_EVENT_LABELS[
+                                                                    entry.event
+                                                                ] ??
+                                                                    entry.event}
+                                                            </span>
+                                                            {entry.note && (
+                                                                <p className="text-oxford-navy-900/55 italic">
+                                                                    {entry.note}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+
+                                            <OrderMessages
+                                                orderId={order.id}
+                                                canSend={
+                                                    order.status !== 'completed'
+                                                }
+                                            />
                                         </div>
                                     )}
                                 </div>
-                            )}
-
-                            {order.status === 'confirmed' &&
-                                getOrderCategory(
-                                    order.items[0]?.itemable_type
-                                ) !== 'book' &&
-                                (order.manuscript ? (
-                                    <Link
-                                        to={`/dashboard/naskah/${order.manuscript.id}`}
-                                    >
-                                        <Button
-                                            variant="outline2"
-                                            className="self-start"
-                                        >
-                                            Lihat Naskah
-                                        </Button>
-                                    </Link>
-                                ) : (
-                                    <Link
-                                        to={`/dashboard/submit-naskah/${order.id}`}
-                                    >
-                                        <Button
-                                            variant="primary"
-                                            className="self-start"
-                                        >
-                                            Submit Naskah
-                                        </Button>
-                                    </Link>
-                                ))}
-
-                            <div className="flex flex-col gap-2">
-                                <button
-                                    onClick={() =>
-                                        setExpandedId(
-                                            expandedId === order.id
-                                                ? null
-                                                : order.id
-                                        )
-                                    }
-                                    className="text-forest-moss-700 text-xs hover:text-forest-moss-800 self-start"
-                                >
-                                    {expandedId === order.id
-                                        ? 'Tutup Detail Pesanan'
-                                        : 'Riwayat & Pesan ke Admin'}
-                                </button>
-                                {expandedId === order.id && (
-                                    <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-3">
-                                        <div className="flex flex-col gap-1">
-                                            <p className="text-oxford-navy-900 font-semibold text-sm">
-                                                Riwayat Proses
-                                            </p>
-                                            {order.status_histories.map(
-                                                (entry) => (
-                                                    <div
-                                                        key={entry.id}
-                                                        className="text-xs"
-                                                    >
-                                                        <span className="text-oxford-navy-900/55">
-                                                            {dateTimeFormatter.format(
-                                                                new Date(
-                                                                    entry.created_at
-                                                                )
-                                                            )}
-                                                        </span>{' '}
-                                                        <span className="text-oxford-navy-900/80">
-                                                            {ORDER_HISTORY_EVENT_LABELS[
-                                                                entry.event
-                                                            ] ?? entry.event}
-                                                        </span>
-                                                        {entry.note && (
-                                                            <p className="text-oxford-navy-900/55 italic">
-                                                                {entry.note}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-
-                                        <OrderMessages
-                                            orderId={order.id}
-                                            canSend={
-                                                order.status !== 'completed'
-                                            }
-                                        />
-                                    </div>
-                                )}
                             </div>
-                        </div>
-                    ))}
+                        ))}
                     </div>
                 )}
             </div>

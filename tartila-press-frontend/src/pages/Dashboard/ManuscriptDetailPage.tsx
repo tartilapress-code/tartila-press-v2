@@ -7,6 +7,24 @@ import Button from '@/components/Button/Button';
 import { useAuth } from '@/context/useAuth';
 import { hasAnyRole } from '@/context/AuthContext';
 import { ApiError } from '@/lib/http';
+import IsbnStartButton from '@/components/isbn/IsbnStartButton';
+import SignaturePad from '@/components/isbn/SignaturePad';
+import MouAgreeCheckbox from '@/components/mou/MouAgreeCheckbox';
+import MouDocument from '@/components/mou/MouDocument';
+import * as mouApi from '@/data/mou/mouApi';
+import ManuscriptPublicationCard from '@/components/publication/ManuscriptPublicationCard';
+import AutoLayoutOption, {
+    type AutoLayoutValue,
+} from '@/components/manuscriptTemplate/AutoLayoutOption';
+import CompilationChaptersPanel from '@/components/bookChapter/CompilationChaptersPanel';
+import DifficultyBadge from '@/components/manuscript/DifficultyBadge';
+import FieldCategoryPicker from '@/components/manuscript/FieldCategoryPicker';
+import {
+    DIFFICULTY_OPTIONS,
+    isDifficulty,
+    type ManuscriptDifficulty,
+} from '@/lib/manuscriptDifficulty';
+import { CHAPTER_STATUS_LABELS } from '@/lib/manuscriptStatus';
 import * as manuscriptApi from '@/data/manuscript/manuscriptApi';
 import * as adminApi from '@/data/admin/adminApi';
 import * as editorApi from '@/data/editor/editorApi';
@@ -16,7 +34,7 @@ type Category = { id: number; name: string };
 type Revision = {
     id: number;
     revision_number: number;
-    role: 'penulis' | 'editor';
+    role: 'penulis' | 'editor' | 'layout' | 'compilation';
     original_filename: string;
     note: string | null;
     admin_status: 'pending' | 'approved' | 'rejected';
@@ -42,14 +60,36 @@ type ManuscriptDetail = {
     } | null;
     editor_deadline: string | null;
     editor_assignment_note: string | null;
+    // Diisi admin saat menerima naskah penulis.
+    difficulty: ManuscriptDifficulty | null;
+    // Kriteria editor pool (id Kategori Keilmuan); null = umum.
+    pool_field_category_ids: number[] | null;
+    open_for_claim: boolean;
     user: { id: number; name: string };
     editor: { id: number; name: string } | null;
     revisions: Revision[];
     book: { id: number } | null;
+    isbn_application: {
+        id: number;
+        applicant_id: number;
+        status: 'draft' | 'signed' | 'processed';
+    } | null;
     book_chapter: {
         id: number;
         book: { id: number; is_chapter_offering: boolean };
     } | null;
+    // Naskah gabungan semua bab proyek Book Chapter.
+    compiled_book: { id: number; title: string } | null;
+    // MOU distribusi buku (naskah selesai / naskah gabungan di review akhir).
+    mou: mouApi.Mou | null;
+    // Bab Book Chapter: catatan revisi dari editor/admin naskah gabungan.
+    chapter_revision_requests?: {
+        id: number;
+        note: string;
+        created_at: string;
+        resolved_at: string | null;
+        requester: { id: number; name: string } | null;
+    }[];
 };
 
 type EditorItem = {
@@ -67,6 +107,7 @@ const statusLabels: Record<string, string> = {
     editor_revision_requested: 'Perlu Revisi dari Editor',
     pending_penulis_review: 'Menunggu Review Akhir Penulis',
     completed: 'Selesai',
+    ...CHAPTER_STATUS_LABELS,
 };
 
 const editorSourceLabels: Record<string, string> = {
@@ -96,9 +137,7 @@ export default function ManuscriptDetailPage() {
     const { user } = useAuth();
     const isAdmin = hasAnyRole(user, ['admin']);
 
-    const [manuscript, setManuscript] = useState<ManuscriptDetail | null>(
-        null
-    );
+    const [manuscript, setManuscript] = useState<ManuscriptDetail | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
@@ -107,14 +146,32 @@ export default function ManuscriptDetailPage() {
     const [isUploading, setIsUploading] = useState<boolean>(false);
 
     const [reviewNote, setReviewNote] = useState<string>('');
+    const [mouAgreed, setMouAgreed] = useState<boolean>(false);
     const [approveFee, setApproveFee] = useState<string>('');
     const [isReviewing, setIsReviewing] = useState<boolean>(false);
+    // Tingkat kesulitan: '' = ikuti nilai naskah saat ini.
+    const [approveDifficulty, setApproveDifficulty] = useState<
+        ManuscriptDifficulty | ''
+    >('');
+    const [settingsDifficulty, setSettingsDifficulty] = useState<
+        ManuscriptDifficulty | ''
+    >('');
+    const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
+    const [autoLayout, setAutoLayout] = useState<AutoLayoutValue>({
+        enabled: true,
+        templateId: null,
+    });
 
     const [editors, setEditors] = useState<EditorItem[]>([]);
     const [selectedEditorId, setSelectedEditorId] = useState<string>('');
     const [assignFee, setAssignFee] = useState<string>('');
     const [assignDeadline, setAssignDeadline] = useState<string>('');
     const [assignNote, setAssignNote] = useState<string>('');
+    const [assignDifficulty, setAssignDifficulty] = useState<
+        ManuscriptDifficulty | ''
+    >('');
+    // Kriteria editor saat dibuka ke pool; null = belum diubah.
+    const [poolFields, setPoolFields] = useState<number[] | null>(null);
     const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
     const [showPublishForm, setShowPublishForm] = useState<boolean>(false);
@@ -147,6 +204,9 @@ export default function ManuscriptDetailPage() {
     useEffect(() => {
         if (isAdmin && manuscript?.status === 'pending_editor_assignment') {
             editorApi.directory().then((response) => setEditors(response.data));
+            adminApi
+                .listFieldCategoriesAdmin()
+                .then((response) => setFieldCategories(response.data));
         }
     }, [isAdmin, manuscript?.status]);
 
@@ -175,7 +235,16 @@ export default function ManuscriptDetailPage() {
         (a) => a.id === user?.id
     );
     const isAssignedEditor = manuscript.editor?.id === user?.id;
-    const latestRevision = manuscript.revisions[manuscript.revisions.length - 1];
+    const latestRevision =
+        manuscript.revisions[manuscript.revisions.length - 1];
+    // Book Chapter: bab digabung menjadi satu naskah buku untuk editor.
+    const isChapter = Boolean(
+        manuscript.book_chapter?.book.is_chapter_offering
+    );
+    const isCompilation = manuscript.compiled_book !== null;
+    const openChapterNotes = (
+        manuscript.chapter_revision_requests ?? []
+    ).filter((item) => item.resolved_at === null);
 
     async function handleDownload(revision: Revision) {
         try {
@@ -237,10 +306,25 @@ export default function ManuscriptDetailPage() {
                         decision === 'approve' && needsAdminFee
                             ? approveFee
                             : undefined,
+                    auto_layout:
+                        decision === 'approve' &&
+                        canAutoLayout &&
+                        autoLayout.enabled,
+                    manuscript_template_id:
+                        decision === 'approve' && canAutoLayout
+                            ? autoLayout.templateId
+                            : undefined,
+                    difficulty:
+                        decision === 'approve' &&
+                        needsDifficulty &&
+                        effectiveApproveDifficulty
+                            ? effectiveApproveDifficulty
+                            : undefined,
                 }
             );
             setReviewNote('');
             setApproveFee('');
+            setApproveDifficulty('');
             load();
         } catch (error) {
             setStatusMessage(
@@ -253,7 +337,10 @@ export default function ManuscriptDetailPage() {
         }
     }
 
-    async function handleFinalReview(decision: 'approve' | 'revise') {
+    async function handleFinalReview(
+        decision: 'approve' | 'revise',
+        signature?: string
+    ) {
         setIsReviewing(true);
         setStatusMessage('');
 
@@ -261,6 +348,7 @@ export default function ManuscriptDetailPage() {
             await manuscriptApi.finalReview(manuscript!.id, {
                 decision,
                 note: reviewNote || undefined,
+                ...(signature ? { mou_agreed: true, signature } : {}),
             });
             setReviewNote('');
             load();
@@ -285,6 +373,7 @@ export default function ManuscriptDetailPage() {
                 fee: assignFee,
                 deadline: assignDeadline || undefined,
                 note: assignNote || undefined,
+                difficulty: effectiveAssignDifficulty || undefined,
             });
             load();
         } catch (error) {
@@ -307,7 +396,11 @@ export default function ManuscriptDetailPage() {
                 fee: assignFee,
                 deadline: assignDeadline || undefined,
                 note: assignNote || undefined,
+                difficulty: effectiveAssignDifficulty || undefined,
+                pool_field_category_ids: effectivePoolFields,
             });
+            setPoolFields(null);
+            setAssignDifficulty('');
             load();
         } catch (error) {
             setStatusMessage(
@@ -320,16 +413,43 @@ export default function ManuscriptDetailPage() {
         }
     }
 
+    async function handleSaveDifficulty() {
+        if (!settingsDifficulty) return;
+
+        setIsSavingSettings(true);
+        setStatusMessage('');
+
+        try {
+            await adminApi.updateManuscriptPoolSettings(manuscript!.id, {
+                difficulty: settingsDifficulty,
+            });
+            setSettingsDifficulty('');
+            load();
+        } catch (error) {
+            setStatusMessage(
+                error instanceof ApiError
+                    ? error.message
+                    : 'Terjadi kesalahan. Silakan coba lagi.'
+            );
+        } finally {
+            setIsSavingSettings(false);
+        }
+    }
+
     const canPenulisUpload =
         isCoAuthor &&
         ['submitted', 'revision_requested'].includes(manuscript.status);
     const canEditorUpload =
         isAssignedEditor &&
-        ['in_editing', 'editor_revision_requested'].includes(
-            manuscript.status
-        );
+        ['in_editing', 'editor_revision_requested'].includes(manuscript.status);
     const canAdminReview =
         isAdmin && latestRevision && latestRevision.admin_status === 'pending';
+    // Auto layout hanya untuk naskah Word milik penulis.
+    const canAutoLayout =
+        Boolean(canAdminReview) &&
+        !isChapter &&
+        latestRevision?.role === 'penulis' &&
+        latestRevision.original_filename.toLowerCase().endsWith('.docx');
 
     // Penulis memilih editor langsung → saat approve naskah penulis, admin
     // wajib mengisi fee. Total fee editor = fee permintaan editor + fee admin.
@@ -345,19 +465,57 @@ export default function ManuscriptDetailPage() {
         approveFeeAmount >= 0;
     const canAdminAssign =
         isAdmin && manuscript.status === 'pending_editor_assignment';
+    // Tingkat kesulitan wajib diisi saat menerima naskah penulis (bukan bab
+    // Book Chapter: kesulitan diisi pada naskah gabungannya).
+    const needsDifficulty =
+        Boolean(canAdminReview) &&
+        latestRevision?.role === 'penulis' &&
+        !isChapter;
+    const effectiveApproveDifficulty =
+        approveDifficulty || manuscript.difficulty || '';
+    const effectiveAssignDifficulty =
+        assignDifficulty || manuscript.difficulty || '';
+    const effectivePoolFields =
+        poolFields ?? manuscript.pool_field_category_ids ?? [];
     const canPenulisFinalReview =
         isCoAuthor &&
         manuscript.status === 'pending_penulis_review' &&
         !myCoAuthorEntry?.has_approved;
+    // Book Chapter: menyetujui naskah akhir = menyetujui & menandatangani MOU.
+    const myMou = manuscript.mou?.me ?? null;
+    const approvalSignsMou =
+        myMou !== null &&
+        !myMou.signed &&
+        myMou.sign_via === 'final_review' &&
+        myMou.blocked_reason === null;
+    const approvalBlockedByMou =
+        myMou !== null &&
+        !myMou.signed &&
+        myMou.sign_via === 'final_review' &&
+        myMou.blocked_reason !== null;
     const isWaitingForOtherAuthors =
         isCoAuthor &&
         manuscript.status === 'pending_penulis_review' &&
         myCoAuthorEntry?.has_approved;
+    // Penulis pertama (urutan pertama co-author) mengajukan ISBN setelah
+    // naskah selesai disetujui; paket Book Chapter lewat editor proyek.
+    const isbnApplication =
+        manuscript.isbn_application?.applicant_id === user?.id
+            ? manuscript.isbn_application
+            : null;
+    const canRequestIsbn =
+        manuscript.status === 'completed' &&
+        !manuscript.book &&
+        !manuscript.book_chapter &&
+        !isCompilation &&
+        !manuscript.isbn_application &&
+        manuscript.co_authors[0]?.id === user?.id;
     const canPublishAsBook =
         isAdmin &&
         manuscript.status === 'completed' &&
         !manuscript.book &&
-        !manuscript.book_chapter;
+        !manuscript.book_chapter &&
+        !isCompilation;
 
     async function handlePublish() {
         setIsPublishing(true);
@@ -400,8 +558,74 @@ export default function ManuscriptDetailPage() {
                     Diajukan oleh: {manuscript.user.name}
                 </p>
                 <p className="text-forest-moss-700 font-semibold">
-                    Status: {statusLabels[manuscript.status] ?? manuscript.status}
+                    Status:{' '}
+                    {statusLabels[manuscript.status] ?? manuscript.status}
                 </p>
+                {(manuscript.difficulty || manuscript.open_for_claim) && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <DifficultyBadge difficulty={manuscript.difficulty} />
+                        {manuscript.open_for_claim && (
+                            <span className="rounded-full bg-forest-moss-50 px-2.5 py-0.5 text-xs font-medium text-forest-moss-800 ring-1 ring-forest-moss-200">
+                                Terbuka di pool editor
+                                {(manuscript.pool_field_category_ids ?? [])
+                                    .length > 0
+                                    ? ' (bidang tertentu)'
+                                    : ' (umum)'}
+                            </span>
+                        )}
+                    </div>
+                )}
+                {isAdmin && !canAdminReview && (
+                    <div className="flex flex-wrap items-end gap-2">
+                        <div className="w-48">
+                            <Select
+                                name="difficulty_setting"
+                                label="Tingkat Kesulitan (admin)"
+                                option_data={[
+                                    ...(manuscript.difficulty
+                                        ? []
+                                        : [
+                                              {
+                                                  value: '',
+                                                  label: 'Belum diisi',
+                                              },
+                                          ]),
+                                    ...DIFFICULTY_OPTIONS,
+                                ]}
+                                value={
+                                    settingsDifficulty ||
+                                    manuscript.difficulty ||
+                                    ''
+                                }
+                                onChange={(e) =>
+                                    setSettingsDifficulty(
+                                        isDifficulty(e.target.value)
+                                            ? e.target.value
+                                            : ''
+                                    )
+                                }
+                            />
+                        </div>
+                        {settingsDifficulty &&
+                            settingsDifficulty !== manuscript.difficulty && (
+                                <Button
+                                    variant="primary"
+                                    onClick={handleSaveDifficulty}
+                                    disabled={isSavingSettings}
+                                >
+                                    Simpan
+                                </Button>
+                            )}
+                        {manuscript.open_for_claim && (
+                            <Link
+                                to="/admin/pool-naskah"
+                                className="pb-3 text-sm text-forest-moss-700 hover:text-forest-moss-800"
+                            >
+                                Ubah kriteria editor pool →
+                            </Link>
+                        )}
+                    </div>
+                )}
                 {manuscript.editor && (
                     <div className="text-oxford-navy-900/70 text-sm">
                         <p>Editor: {manuscript.editor.name}</p>
@@ -418,7 +642,8 @@ export default function ManuscriptDetailPage() {
                                     Number(manuscript.editor_fee)
                                 )}
                                 {manuscript.editor_source === 'author' &&
-                                    manuscript.editor_requested_fee !== null && (
+                                    manuscript.editor_requested_fee !==
+                                        null && (
                                         <>
                                             {' '}
                                             (fee permintaan editor{' '}
@@ -429,8 +654,7 @@ export default function ManuscriptDetailPage() {
                                             )}{' '}
                                             + fee dari admin{' '}
                                             {rupiahFormatter.format(
-                                                manuscript.editor_admin_fee ??
-                                                    0
+                                                manuscript.editor_admin_fee ?? 0
                                             )}
                                             )
                                         </>
@@ -446,6 +670,57 @@ export default function ManuscriptDetailPage() {
                     </div>
                 )}
             </div>
+
+            {manuscript.mou && !(canPenulisFinalReview && approvalSignsMou) && (
+                <div className="flex flex-col gap-2 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <div className="flex flex-row flex-wrap items-center justify-between gap-2">
+                        <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                            MOU Distribusi Buku
+                        </h5>
+                        <span
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${mouApi.STATUS_CLASS[manuscript.mou.status]}`}
+                        >
+                            {manuscript.mou.status_label}
+                        </span>
+                    </div>
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        {
+                            manuscript.mou.signatories.filter(
+                                (row) => row.signed_at
+                            ).length
+                        }{' '}
+                        dari {manuscript.mou.signatories.length} penulis sudah
+                        menandatangani. Buku baru bisa diterbitkan setelah semua
+                        penulis menandatangani.
+                        {myMou && !myMou.signed && myMou.blocked_reason && (
+                            <span className="block text-amber-700">
+                                {myMou.blocked_reason}
+                            </span>
+                        )}
+                    </p>
+                    {(myMou || isAdmin) && (
+                        <Link
+                            to={
+                                myMou
+                                    ? `/dashboard/mou/${manuscript.mou.id}`
+                                    : `/admin/mou/${manuscript.mou.id}`
+                            }
+                            className="self-start bg-oxford-navy-700 hover:bg-oxford-navy-600 text-white rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+                        >
+                            {myMou &&
+                            !myMou.signed &&
+                            myMou.sign_via === 'direct'
+                                ? 'Tinjau & tanda tangani MOU'
+                                : 'Lihat MOU'}
+                        </Link>
+                    )}
+                </div>
+            )}
+
+            <ManuscriptPublicationCard
+                key={`${manuscript.id}-${manuscript.status}`}
+                manuscriptId={manuscript.id}
+            />
 
             <div className="flex flex-col gap-2 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                 <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
@@ -491,7 +766,11 @@ export default function ManuscriptDetailPage() {
                                     Revisi {revision.revision_number} —{' '}
                                     {revision.role === 'penulis'
                                         ? 'Penulis'
-                                        : 'Editor'}{' '}
+                                        : revision.role === 'layout'
+                                          ? 'Auto layout'
+                                          : revision.role === 'compilation'
+                                            ? 'Gabungan semua bab'
+                                            : 'Editor'}{' '}
                                     ({revision.uploader.name})
                                 </p>
                                 <button
@@ -534,6 +813,86 @@ export default function ManuscriptDetailPage() {
                 </div>
             </div>
 
+            {isCompilation && (
+                <div className="flex flex-col gap-2 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <p className="text-oxford-navy-900 text-sm">
+                        Ini naskah <strong>gabungan semua bab</strong> buku Book
+                        Chapter{' '}
+                        <strong>{manuscript.compiled_book?.title}</strong>,
+                        disusun menurut urutan bab. Editor mengerjakan berkas
+                        ini; review akhir dilakukan semua penulis bab.
+                    </p>
+                    {isAdmin && (
+                        <Link
+                            to={`/admin/book-chapter-projects/${manuscript.compiled_book?.id}`}
+                            className="text-forest-moss-700 text-sm hover:text-forest-moss-800 self-start"
+                        >
+                            Lihat di Kelola Proyek Book Chapter →
+                        </Link>
+                    )}
+                </div>
+            )}
+
+            {isCompilation && (isAssignedEditor || isAdmin) && (
+                <CompilationChaptersPanel
+                    manuscriptId={manuscript.id}
+                    isFinished={manuscript.status === 'completed'}
+                />
+            )}
+
+            {isChapter &&
+                ['awaiting_compilation', 'compiled'].includes(
+                    manuscript.status
+                ) && (
+                    <div className="flex flex-col gap-1 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6 text-sm text-oxford-navy-900/80">
+                        {manuscript.status === 'awaiting_compilation'
+                            ? 'Naskah bab ini sudah disetujui admin. Setelah naskah semua bab terkumpul, admin menggabungkannya menjadi satu buku sesuai urutan bab lalu dikirim ke editor.'
+                            : 'Naskah bab ini sudah digabung ke naskah buku dan sedang dikerjakan editor. Kalau editor meminta revisi untuk bab ini, catatannya muncul di halaman ini.'}
+                    </div>
+                )}
+
+            {isChapter &&
+                (manuscript.chapter_revision_requests ?? []).length > 0 && (
+                    <div className="flex flex-col gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                        <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                            Catatan Revisi Bab dari Editor
+                        </h5>
+                        {openChapterNotes.length > 0 && isCoAuthor && (
+                            <p className="text-amber-800 text-sm">
+                                Perbaiki naskah bab Anda sesuai catatan lalu
+                                unggah revisi (.docx) di bawah. Revisi diperiksa
+                                admin sebelum dipakai editor.
+                            </p>
+                        )}
+                        {(manuscript.chapter_revision_requests ?? []).map(
+                            (item) => (
+                                <div
+                                    key={item.id}
+                                    className={`rounded-lg p-4 text-sm ring-1 ${
+                                        item.resolved_at
+                                            ? 'bg-forest-moss-50 ring-forest-moss-100'
+                                            : 'bg-amber-50 ring-amber-200'
+                                    }`}
+                                >
+                                    <p className="whitespace-pre-line text-oxford-navy-900">
+                                        {item.note}
+                                    </p>
+                                    <p className="mt-1 text-xs text-oxford-navy-900/60">
+                                        {item.requester?.name ?? 'Editor'} ·{' '}
+                                        {new Date(
+                                            item.created_at
+                                        ).toLocaleDateString('id-ID')}{' '}
+                                        ·{' '}
+                                        {item.resolved_at
+                                            ? 'Sudah direvisi'
+                                            : 'Menunggu revisi'}
+                                    </p>
+                                </div>
+                            )
+                        )}
+                    </div>
+                )}
+
             {statusMessage && (
                 <p className="text-red-600 text-sm">{statusMessage}</p>
             )}
@@ -545,12 +904,22 @@ export default function ManuscriptDetailPage() {
                     </h5>
                     <input
                         type="file"
-                        accept=".pdf,.doc,.docx,.odt"
+                        accept={
+                            isChapter && canPenulisUpload
+                                ? '.docx'
+                                : '.pdf,.doc,.docx,.odt'
+                        }
                         onChange={(e) =>
                             setRevisionFile(e.target.files?.[0] ?? null)
                         }
                         className="text-oxford-navy-900 text-sm"
                     />
+                    {isChapter && canPenulisUpload && (
+                        <small className="text-oxford-navy-900/65 -mt-2">
+                            Naskah bab Book Chapter wajib Word (.docx) karena
+                            digabung dengan bab lain menjadi satu buku.
+                        </small>
+                    )}
                     <Input
                         label="Catatan (opsional)"
                         value={revisionNote}
@@ -615,6 +984,52 @@ export default function ManuscriptDetailPage() {
                         </div>
                     )}
 
+                    {latestRevision.role === 'penulis' && isChapter && (
+                        <p className="rounded-lg bg-forest-moss-50 ring-1 ring-forest-moss-100 p-3 text-oxford-navy-900 text-sm">
+                            Naskah bab Book Chapter: setelah disetujui, bab ini
+                            menunggu bab lain. Penggabungan menjadi satu buku
+                            (dengan auto layout) dilakukan di halaman Kelola
+                            Proyek Book Chapter.
+                        </p>
+                    )}
+
+                    {latestRevision.role === 'penulis' && !isChapter && (
+                        <AutoLayoutOption
+                            manuscriptId={manuscript.id}
+                            revisionId={latestRevision.id}
+                            filename={latestRevision.original_filename}
+                            value={autoLayout}
+                            onChange={setAutoLayout}
+                        />
+                    )}
+
+                    {needsDifficulty && (
+                        <div className="flex flex-col gap-1">
+                            <Select
+                                name="difficulty"
+                                label="Tingkat Kesulitan Naskah (wajib untuk approve)"
+                                option_data={[
+                                    {
+                                        value: '',
+                                        label: 'Pilih tingkat kesulitan',
+                                    },
+                                    ...DIFFICULTY_OPTIONS,
+                                ]}
+                                value={effectiveApproveDifficulty}
+                                onChange={(e) =>
+                                    setApproveDifficulty(
+                                        isDifficulty(e.target.value)
+                                            ? e.target.value
+                                            : ''
+                                    )
+                                }
+                            />
+                            <small className="text-oxford-navy-900/65">
+                                Tampil untuk editor di pool dan daftar naskah.
+                            </small>
+                        </div>
+                    )}
+
                     <Input
                         label="Catatan (wajib kalau reject)"
                         value={reviewNote}
@@ -626,7 +1041,8 @@ export default function ManuscriptDetailPage() {
                             onClick={() => handleAdminReview('approve')}
                             disabled={
                                 isReviewing ||
-                                (needsAdminFee && !isApproveFeeValid)
+                                (needsAdminFee && !isApproveFeeValid) ||
+                                (needsDifficulty && !effectiveApproveDifficulty)
                             }
                         >
                             Approve
@@ -665,9 +1081,9 @@ export default function ManuscriptDetailPage() {
                         required
                     />
                     <small className="text-oxford-navy-900/65 -mt-2">
-                        Ditugaskan langsung: ini fee editor. Dibuka ke pool:
-                        ini harga pengerjaan yang diterima editor yang
-                        mengambil naskah.
+                        Ditugaskan langsung: ini fee editor. Dibuka ke pool: ini
+                        harga pengerjaan yang diterima editor yang mengambil
+                        naskah.
                     </small>
                     <Input
                         label="Deadline"
@@ -680,6 +1096,47 @@ export default function ManuscriptDetailPage() {
                         value={assignNote}
                         onChange={(e) => setAssignNote(e.target.value)}
                     />
+                    <div className="w-56">
+                        <Select
+                            name="assign_difficulty"
+                            label="Tingkat Kesulitan"
+                            option_data={[
+                                ...(effectiveAssignDifficulty
+                                    ? []
+                                    : [{ value: '', label: 'Belum diisi' }]),
+                                ...DIFFICULTY_OPTIONS,
+                            ]}
+                            value={effectiveAssignDifficulty}
+                            onChange={(e) =>
+                                setAssignDifficulty(
+                                    isDifficulty(e.target.value)
+                                        ? e.target.value
+                                        : ''
+                                )
+                            }
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1 rounded-lg bg-forest-moss-50 p-4 ring-1 ring-forest-moss-100">
+                        <FieldCategoryPicker
+                            label="Kriteria Editor Pool (dipakai saat Buka ke Pool)"
+                            categories={fieldCategories}
+                            value={effectivePoolFields}
+                            onChange={setPoolFields}
+                            emptyLabel="Umum — semua editor bisa mengambil naskah ini."
+                        />
+                        <small className="text-oxford-navy-900/65">
+                            Pilih bidang supaya hanya editor dengan bidang
+                            keahlian itu yang bisa mengambil. Bidang keahlian
+                            editor diatur di{' '}
+                            <Link
+                                to="/admin/pool-naskah"
+                                className="text-forest-moss-700 underline"
+                            >
+                                Pengaturan Pool Naskah
+                            </Link>
+                            .
+                        </small>
+                    </div>
 
                     <div className="flex flex-row gap-2">
                         <Button
@@ -732,6 +1189,45 @@ export default function ManuscriptDetailPage() {
                     </div>
                 )}
 
+            {isbnApplication && (
+                <div className="flex flex-col gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <h5 className="font-display text-oxford-navy-700 text-lg font-bold">
+                        Surat Pengajuan ISBN
+                    </h5>
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        {isbnApplication.status === 'draft'
+                            ? 'Surat sudah dibuat tetapi belum Anda tandatangani.'
+                            : isbnApplication.status === 'signed'
+                              ? 'Sudah Anda tandatangani, menunggu tanda tangan dan stempel admin.'
+                              : 'Sudah diproses admin.'}
+                    </p>
+                    <Link
+                        to={`/dashboard/isbn/${isbnApplication.id}`}
+                        className="self-start bg-oxford-navy-700 hover:bg-oxford-navy-600 text-white rounded-lg px-4 py-3 text-sm font-semibold transition-colors"
+                    >
+                        {isbnApplication.status === 'draft'
+                            ? 'Lanjutkan & Tandatangani Surat'
+                            : 'Buka Surat Pengajuan ISBN'}
+                    </Link>
+                </div>
+            )}
+
+            {canRequestIsbn && (
+                <div className="flex flex-col gap-3 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <h5 className="font-display text-oxford-navy-700 text-lg font-bold">
+                        Ajukan ISBN
+                    </h5>
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Naskah Anda sudah selesai. Surat permohonan ISBN dan
+                        surat keaslian karya akan terisi otomatis dari Data
+                        Pribadi Anda untuk ditinjau dan ditandatangani.
+                    </p>
+                    <IsbnStartButton
+                        target={{ manuscript_id: manuscript.id }}
+                    />
+                </div>
+            )}
+
             {canPublishAsBook && !showPublishForm && (
                 <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                     <Button
@@ -750,8 +1246,8 @@ export default function ManuscriptDetailPage() {
                         Terbitkan sebagai Buku
                     </h5>
                     <p className="text-oxford-navy-900/65 text-sm">
-                        Judul &amp; penulis akan otomatis diambil dari
-                        naskah ini.
+                        Judul &amp; penulis akan otomatis diambil dari naskah
+                        ini.
                     </p>
 
                     <Input
@@ -882,14 +1378,44 @@ export default function ManuscriptDetailPage() {
                         value={reviewNote}
                         onChange={(e) => setReviewNote(e.target.value)}
                     />
+                    {approvalSignsMou && manuscript.mou && (
+                        <div className="flex flex-col gap-3">
+                            <p className="text-oxford-navy-900/80 text-sm">
+                                Menyetujui naskah akhir Book Chapter sekaligus
+                                menyetujui <strong>MOU distribusi buku</strong>{' '}
+                                berikut. Tinjau isinya, centang pernyataan, lalu
+                                tanda tangani.
+                            </p>
+                            <MouDocument mou={manuscript.mou} />
+                            <MouAgreeCheckbox
+                                checked={mouAgreed}
+                                onChange={setMouAgreed}
+                            />
+                            <SignaturePad
+                                onSave={(signature) =>
+                                    handleFinalReview('approve', signature)
+                                }
+                                isSaving={isReviewing}
+                                disabled={!mouAgreed}
+                                label="Setujui naskah & tanda tangani MOU"
+                            />
+                        </div>
+                    )}
+                    {approvalBlockedByMou && (
+                        <p className="text-amber-700 text-sm">
+                            {manuscript.mou?.me?.blocked_reason}
+                        </p>
+                    )}
                     <div className="flex flex-row gap-2">
-                        <Button
-                            variant="primary"
-                            onClick={() => handleFinalReview('approve')}
-                            disabled={isReviewing}
-                        >
-                            Setujui (Selesai)
-                        </Button>
+                        {!approvalSignsMou && !approvalBlockedByMou && (
+                            <Button
+                                variant="primary"
+                                onClick={() => handleFinalReview('approve')}
+                                disabled={isReviewing}
+                            >
+                                Setujui (Selesai)
+                            </Button>
+                        )}
                         <Button
                             variant="outline2"
                             onClick={() => handleFinalReview('revise')}
@@ -907,8 +1433,8 @@ export default function ManuscriptDetailPage() {
                         Review Akhir Naskah
                     </h5>
                     <p className="text-forest-moss-700 text-sm">
-                        Anda sudah menyetujui. Menunggu penulis lain
-                        menyetujui sebelum naskah berstatus selesai.
+                        Anda sudah menyetujui. Menunggu penulis lain menyetujui
+                        sebelum naskah berstatus selesai.
                     </p>
                 </div>
             )}

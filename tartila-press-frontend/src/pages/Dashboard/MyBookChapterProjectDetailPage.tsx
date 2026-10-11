@@ -17,6 +17,7 @@ import {
     toContentLanguages,
     type ContentLanguage,
 } from '@/lib/contentLanguages';
+import IsbnStartButton from '@/components/isbn/IsbnStartButton';
 import {
     calculateBookChapterCost,
     toNumber,
@@ -241,6 +242,20 @@ export default function MyBookChapterProjectDetailPage() {
                     </p>
                 </div>
 
+                {filled > 0 && filled === project.chapters.length && (
+                    <div className="flex flex-col gap-1 rounded-xl bg-forest-moss-50 p-4">
+                        <p className="text-oxford-navy-900 text-sm font-semibold">
+                            Ajukan ISBN
+                        </p>
+                        <p className="text-oxford-navy-900/70 text-xs">
+                            Setelah semua bab selesai disetujui penulis, surat
+                            permohonan ISBN terisi otomatis dan ditandatangani
+                            oleh editor.
+                        </p>
+                        <IsbnStartButton target={{ book_id: project.id }} />
+                    </div>
+                )}
+
                 <p className="text-oxford-navy-900/65 text-xs">
                     Perubahan harga, diskon, HKI/ISBN, fasilitas &amp; layanan,
                     serta mengubah/menghapus bab akan ditolak bila sisa biaya 1
@@ -326,7 +341,9 @@ export default function MyBookChapterProjectDetailPage() {
             </div>
 
             <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Daftar Bab</h5>
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                    Daftar Bab
+                </h5>
 
                 <div className="flex flex-col gap-3">
                     {project.chapters.map((chapter) => (

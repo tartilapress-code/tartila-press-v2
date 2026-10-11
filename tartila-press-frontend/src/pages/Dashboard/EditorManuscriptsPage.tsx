@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as editorApi from '@/data/editor/editorApi';
+import { UnreadDot } from '@/components/notification/UnreadBadge';
+import DifficultyBadge from '@/components/manuscript/DifficultyBadge';
+import { useUnreadSubjects } from '@/context/useNotifications';
 
 type ManuscriptItem = {
     id: number;
     title: string;
     authors: string[];
     status: string;
+    difficulty: string | null;
     user: { name: string };
 };
 
@@ -19,6 +23,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function EditorManuscriptsPage() {
+    const unreadManuscripts = useUnreadSubjects('manuscript');
     const [manuscripts, setManuscripts] = useState<ManuscriptItem[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -50,13 +55,23 @@ export default function EditorManuscriptsPage() {
                             className="flex flex-row items-center justify-between gap-4 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4 hover:bg-forest-moss-50"
                         >
                             <div>
-                                <p className="text-oxford-navy-900 font-semibold">
+                                <p className="flex items-center gap-2 text-oxford-navy-900 font-semibold">
+                                    {unreadManuscripts.has(manuscript.id) && (
+                                        <UnreadDot />
+                                    )}
                                     {manuscript.title}
                                 </p>
                                 <p className="text-oxford-navy-900/65 text-sm">
                                     Penulis: {manuscript.authors.join(', ')} (
                                     {manuscript.user.name})
                                 </p>
+                                {manuscript.difficulty && (
+                                    <div className="mt-1">
+                                        <DifficultyBadge
+                                            difficulty={manuscript.difficulty}
+                                        />
+                                    </div>
+                                )}
                             </div>
                             <span className="text-forest-moss-700 text-sm">
                                 {statusLabels[manuscript.status] ??

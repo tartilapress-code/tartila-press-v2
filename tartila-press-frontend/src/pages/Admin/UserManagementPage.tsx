@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import * as adminApi from '@/data/admin/adminApi';
 import Button from '@/components/Button/Button';
+import Select from '@/components/Select/Select';
+import { SearchField } from '@/components/ui/FilterControls';
+import Pagination from '@/components/ui/Pagination';
+import type { PageMeta } from '@/lib/pagination';
 import { ApiError } from '@/lib/http';
 
 type Role = {
@@ -59,7 +63,9 @@ function UserRolesRow({ user }: { user: UserItem }) {
     return (
         <div className="flex flex-col gap-3 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4">
             <div>
-                <p className="text-oxford-navy-900 font-semibold">{user.name}</p>
+                <p className="text-oxford-navy-900 font-semibold">
+                    {user.name}
+                </p>
                 <p className="text-oxford-navy-900/65 text-sm">{user.email}</p>
             </div>
 
@@ -101,17 +107,75 @@ function UserRolesRow({ user }: { user: UserItem }) {
 export default function UserManagementPage() {
     const [users, setUsers] = useState<UserItem[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [search, setSearch] = useState<string>('');
+    const [role, setRole] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
 
+    // Pencarian, peran & halaman dikerjakan server.
     useEffect(() => {
-        adminApi
-            .listUsers()
-            .then((response) => setUsers(response.data))
-            .finally(() => setIsLoading(false));
-    }, []);
+        let cancelled = false;
+        const timeout = setTimeout(() => {
+            adminApi
+                .listUsers({ search: search.trim(), role, page })
+                .then((response) => {
+                    if (cancelled) return;
+                    setUsers(response.data);
+                    setMeta(response.meta ?? null);
+                })
+                .finally(() => {
+                    if (!cancelled) setIsLoading(false);
+                });
+        }, 300);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timeout);
+        };
+    }, [search, role, page]);
 
     return (
         <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-            <h5 className="font-display text-oxford-navy-700 text-xl font-bold">Kelola User</h5>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                    Kelola User
+                    {meta && (
+                        <span className="ml-2 font-sans text-sm font-normal text-oxford-navy-900/60">
+                            ({meta.total})
+                        </span>
+                    )}
+                </h5>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <SearchField
+                        value={search}
+                        onChange={(value) => {
+                            setSearch(value);
+                            setPage(1);
+                        }}
+                        placeholder="Cari nama atau email"
+                        ariaLabel="Cari user"
+                        className="sm:w-72"
+                    />
+                    <div className="sm:w-44">
+                        <Select
+                            name="role_filter"
+                            label="Peran"
+                            option_data={[
+                                { value: '', label: 'Semua Peran' },
+                                ...ALL_ROLES.map((item) => ({
+                                    value: item.name,
+                                    label: item.label,
+                                })),
+                            ]}
+                            value={role}
+                            onChange={(e) => {
+                                setRole(e.target.value);
+                                setPage(1);
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
 
             {isLoading ? (
                 <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
@@ -122,6 +186,8 @@ export default function UserManagementPage() {
                     ))}
                 </div>
             )}
+
+            <Pagination meta={meta} onPageChange={setPage} />
         </div>
     );
 }

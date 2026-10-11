@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RiLayoutGridLine, RiRestartLine } from '@remixicon/react';
 import ArticleCard from '@/components/article/ArticleCard';
 import { SearchField, SelectField } from '@/components/ui/FilterControls';
 import ListHero from '@/components/ui/ListHero';
+import Pagination from '@/components/ui/Pagination';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as articleApi from '@/data/article/articleApi';
 import type { Article } from '@/data/article/articleApi';
+import type { PageMeta } from '@/lib/pagination';
 
 const SKELETON_COUNT = 6;
 
@@ -33,65 +35,83 @@ export default function ArticleListPage() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [query, setQuery] = useState<string>('');
     const [category, setCategory] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
+    const [categories, setCategories] = useState<string[]>([]);
+    const [featured, setFeatured] = useState<Article[]>([]);
+    const listRef = useRef<HTMLElement>(null);
 
+    const hasFilters = query.trim() !== '' || category !== '';
+
+    // Pencarian, kategori & halaman dikerjakan server. Tanpa filter, artikel
+    // terbaru dan paling disukai datang terpisah (meta.highlights).
     useEffect(() => {
-        articleApi
-            .list()
-            .then((response) => setArticles(response.data))
-            .finally(() => setIsLoading(false));
-    }, []);
+        let cancelled = false;
 
-    const categories = [
-        ...new Set(
-            articles
-                .map((article) => article.field_category?.name)
-                .filter((name): name is string => Boolean(name))
-        ),
-    ].sort((a, b) => a.localeCompare(b, 'id'));
+        const timeout = setTimeout(() => {
+            setIsLoading(true);
 
-    const needle = query.trim().toLocaleLowerCase('id');
-    const hasFilters = needle !== '' || category !== '';
-    const matched = articles.filter((article) => {
-        const inCategory =
-            category === '' || article.field_category?.name === category;
-        const author =
-            article.user.public_profile?.pen_name || article.user.name;
-        const inText =
-            needle === '' ||
-            article.title.toLocaleLowerCase('id').includes(needle) ||
-            author.toLocaleLowerCase('id').includes(needle);
+            articleApi
+                .list({
+                    search: query.trim(),
+                    category,
+                    page,
+                    highlight: 1,
+                })
+                .then((response) => {
+                    if (cancelled) return;
+                    setArticles(response.data);
+                    setMeta(response.meta ?? null);
+                    setCategories(response.meta?.categories ?? []);
+                    setFeatured(response.meta?.highlights ?? []);
+                })
+                .catch(() => {
+                    if (cancelled) return;
+                    setArticles([]);
+                    setMeta(null);
+                    setFeatured([]);
+                })
+                .finally(() => {
+                    if (!cancelled) setIsLoading(false);
+                });
+        }, 300);
 
-        return inCategory && inText;
-    });
+        return () => {
+            cancelled = true;
+            clearTimeout(timeout);
+        };
+    }, [query, category, page]);
 
-    // Tanpa filter: artikel terbaru dan yang paling disukai disorot di atas.
-    const newest = articles[0];
-    const mostLiked = articles
-        .filter((article) => article.id !== newest?.id)
-        .reduce<Article | null>((best, article) => {
-            if (!best || article.likes_count > best.likes_count) {
-                return article;
-            }
-            return best;
-        }, null);
+    // Sorotan hanya di halaman pertama.
+    const highlighted = (page === 1 ? featured : []).map((article, index) => ({
+        article,
+        badge:
+            index === 0
+                ? t('articles.badgeNewest')
+                : t('articles.badgeTopLiked'),
+    }));
+    const total = (meta?.total ?? articles.length) + featured.length;
+    const isEmpty = !hasFilters && total === 0;
 
-    const highlighted: { article: Article; badge: string }[] = [];
-    if (newest) {
-        highlighted.push({ article: newest, badge: t('articles.badgeNewest') });
+    function changeQuery(value: string) {
+        setQuery(value);
+        setPage(1);
     }
-    if (mostLiked) {
-        highlighted.push({
-            article: mostLiked,
-            badge: t('articles.badgeTopLiked'),
-        });
+
+    function changeCategory(value: string) {
+        setCategory(value);
+        setPage(1);
     }
 
-    const highlightedIds = new Set(highlighted.map((item) => item.article.id));
-    const rest = articles.filter((article) => !highlightedIds.has(article.id));
+    function changePage(next: number) {
+        setPage(next);
+        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     function resetFilters() {
         setQuery('');
         setCategory('');
+        setPage(1);
     }
 
     return (
@@ -111,28 +131,27 @@ export default function ArticleListPage() {
 
             <div className="mx-auto max-w-[1232px] px-4 pb-20 pt-8 sm:px-8 lg:px-10">
                 <section
+                    ref={listRef}
                     aria-labelledby="artikel-title"
                     className="flex min-w-0 flex-col gap-6 rounded-2xl border border-forest-moss-100 bg-white p-4 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-6"
                 >
                     <div className="flex flex-col gap-4">
                         <SectionTitle id="artikel-title">
                             {t('articles.list.all')}
-                            {!isLoading && articles.length > 0 && (
+                            {!isLoading && total > 0 && (
                                 <span className="font-sans text-sm font-normal text-oxford-navy-900/65">
                                     {t('articles.list.count', {
-                                        count: hasFilters
-                                            ? matched.length
-                                            : articles.length,
+                                        count: total,
                                     })}
                                 </span>
                             )}
                         </SectionTitle>
 
-                        {articles.length > 0 && (
+                        {!isEmpty && (
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_16rem]">
                                 <SearchField
                                     value={query}
-                                    onChange={setQuery}
+                                    onChange={changeQuery}
                                     placeholder={t(
                                         'articles.list.searchPlaceholder'
                                     )}
@@ -141,7 +160,7 @@ export default function ArticleListPage() {
                                 />
                                 <SelectField
                                     value={category}
-                                    onChange={setCategory}
+                                    onChange={changeCategory}
                                     options={[
                                         {
                                             value: '',
@@ -170,12 +189,12 @@ export default function ArticleListPage() {
                                 )
                             )}
                         </div>
-                    ) : articles.length === 0 ? (
+                    ) : isEmpty ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
                             {t('articles.empty')}
                         </p>
                     ) : hasFilters ? (
-                        matched.length === 0 ? (
+                        articles.length === 0 ? (
                             <div className="flex flex-col items-center gap-3 rounded-xl bg-forest-moss-50 px-6 py-14 text-center">
                                 <p className="text-sm text-oxford-navy-900/70">
                                     {t('articles.list.noMatch')}
@@ -193,14 +212,20 @@ export default function ArticleListPage() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                                {matched.map((article) => (
-                                    <ArticleCard
-                                        key={article.id}
-                                        article={article}
-                                    />
-                                ))}
-                            </div>
+                            <>
+                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                                    {articles.map((article) => (
+                                        <ArticleCard
+                                            key={article.id}
+                                            article={article}
+                                        />
+                                    ))}
+                                </div>
+                                <Pagination
+                                    meta={meta}
+                                    onPageChange={changePage}
+                                />
+                            </>
                         )
                     ) : (
                         <>
@@ -214,9 +239,9 @@ export default function ArticleListPage() {
                                 ))}
                             </div>
 
-                            {rest.length > 0 && (
+                            {articles.length > 0 && (
                                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                                    {rest.map((article) => (
+                                    {articles.map((article) => (
                                         <ArticleCard
                                             key={article.id}
                                             article={article}
@@ -224,6 +249,7 @@ export default function ArticleListPage() {
                                     ))}
                                 </div>
                             )}
+                            <Pagination meta={meta} onPageChange={changePage} />
                         </>
                     )}
                 </section>

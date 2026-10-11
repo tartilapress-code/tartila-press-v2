@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { SearchField } from '@/components/ui/FilterControls';
+import Pagination from '@/components/ui/Pagination';
+import type { PageMeta } from '@/lib/pagination';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ContentLanguageField from '@/components/language/ContentLanguageField';
@@ -91,15 +94,28 @@ export default function BookChapterProjectsPage() {
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
-    function load() {
+    const [search, setSearch] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
+
+    // Pencarian & halaman dikerjakan server.
+    const load = useCallback(() => {
         adminApi
-            .listBookChapterProjectsAdmin()
-            .then((response) => setProjects(response.data))
+            .listBookChapterProjectsAdmin({ search: search.trim(), page })
+            .then((response) => {
+                setProjects(response.data);
+                setMeta(response.meta ?? null);
+            })
             .finally(() => setIsLoading(false));
-    }
+    }, [search, page]);
 
     useEffect(() => {
-        load();
+        const timeout = setTimeout(load, 300);
+
+        return () => clearTimeout(timeout);
+    }, [load]);
+
+    useEffect(() => {
         editorApi.directory().then((response) => setEditors(response.data));
         adminApi
             .getBookChapterSettings()
@@ -263,7 +279,9 @@ export default function BookChapterProjectsPage() {
                 />
 
                 <div className="flex flex-col gap-3">
-                    <h6 className="text-oxford-navy-900 font-semibold">Daftar Bab</h6>
+                    <h6 className="text-oxford-navy-900 font-semibold">
+                        Daftar Bab
+                    </h6>
                     {chapters.map((row, index) => (
                         <div
                             key={index}
@@ -364,9 +382,26 @@ export default function BookChapterProjectsPage() {
             </div>
 
             <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
-                    Daftar Proyek Book Chapter
-                </h5>
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                        Daftar Proyek Book Chapter
+                        {meta && (
+                            <span className="ml-2 font-sans text-sm font-normal text-oxford-navy-900/60">
+                                ({meta.total})
+                            </span>
+                        )}
+                    </h5>
+                    <SearchField
+                        value={search}
+                        onChange={(value) => {
+                            setSearch(value);
+                            setPage(1);
+                        }}
+                        placeholder="Cari judul atau editor"
+                        ariaLabel="Cari proyek"
+                        className="sm:w-72"
+                    />
+                </div>
 
                 {isLoading ? (
                     <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
@@ -436,6 +471,8 @@ export default function BookChapterProjectsPage() {
                         })}
                     </div>
                 )}
+
+                <Pagination meta={meta} onPageChange={setPage} />
             </div>
         </div>
     );

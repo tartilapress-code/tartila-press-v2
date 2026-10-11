@@ -7,7 +7,11 @@ import EditorPicker, {
 import * as packageApi from '@/data/package/packageApi';
 import * as editorApi from '@/data/editor/editorApi';
 import * as orderApi from '@/data/order/orderApi';
+import VoucherField from '@/components/voucher/VoucherField';
+import { useVoucher } from '@/components/voucher/useVoucher';
 import { ApiError } from '@/lib/http';
+import PaymentMethodPicker from '@/components/order/PaymentMethodPicker';
+import { usePaymentMethodChoice } from '@/hooks/usePaymentMethodChoice';
 
 type PackageSummary = {
     id: number;
@@ -24,6 +28,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 export default function TakePackagePage() {
     const { packageId } = useParams<{ packageId: string }>();
     const navigate = useNavigate();
+    const paymentChoice = usePaymentMethodChoice();
 
     const [pkg, setPkg] = useState<PackageSummary | null>(null);
     const [wantsOwnEditor, setWantsOwnEditor] = useState<boolean>(false);
@@ -44,17 +49,22 @@ export default function TakePackagePage() {
 
     useEffect(() => {
         if (wantsOwnEditor && editors.length === 0) {
-            editorApi
-                .directory()
-                .then((response) => setEditors(response.data));
+            editorApi.directory().then((response) => setEditors(response.data));
         }
     }, [wantsOwnEditor, editors.length]);
+
+    const voucher = useVoucher(
+        pkg ? { type: 'package', package_id: pkg.id } : null
+    );
 
     const selectedEditor = editors.find(
         (editor) => editor.user_id === selectedEditorId
     );
     const editorFee = selectedEditor ? Number(selectedEditor.fee) : 0;
-    const total = (pkg?.final_price ?? 0) + editorFee;
+    const total =
+        (pkg?.final_price ?? 0) +
+        editorFee -
+        (voucher.quote?.voucher_discount ?? 0);
 
     async function handleSubmit() {
         if (!pkg) {
@@ -65,15 +75,17 @@ export default function TakePackagePage() {
         setErrorMessage('');
 
         try {
-            await orderApi.create({
+            const response = await orderApi.create({
+                payment_method_id: paymentChoice.selectedId ?? undefined,
                 type: 'package',
                 package_id: pkg.id,
+                voucher_code: voucher.code,
                 editor_id:
                     wantsOwnEditor && selectedEditorId
                         ? selectedEditorId
                         : undefined,
             });
-            navigate('/dashboard/pesanan');
+            navigate(`/dashboard/pesanan/${response.data.id}/invoice`);
         } catch (error) {
             setErrorMessage(
                 error instanceof ApiError
@@ -124,7 +136,16 @@ export default function TakePackagePage() {
                 />
             )}
 
-            <div className="border-t border-forest-moss-200 pt-4">
+            <VoucherField voucher={voucher} />
+            <PaymentMethodPicker choice={paymentChoice} />
+
+            <div className="flex flex-col gap-1 border-t border-forest-moss-200 pt-4">
+                {voucher.quote && (
+                    <p className="text-forest-moss-700 text-sm">
+                        Voucher ({voucher.quote.code}): −
+                        {rupiahFormatter.format(voucher.quote.voucher_discount)}
+                    </p>
+                )}
                 <p className="text-oxford-navy-900 text-lg font-semibold">
                     Total: {rupiahFormatter.format(total)}
                 </p>
@@ -138,7 +159,7 @@ export default function TakePackagePage() {
                 variant="primary"
                 className="self-start"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || paymentChoice.isMissing}
             >
                 {isSubmitting ? 'Memproses...' : 'Konfirmasi Ambil Paket'}
             </Button>

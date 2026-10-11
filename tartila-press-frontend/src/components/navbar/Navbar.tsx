@@ -12,6 +12,7 @@ import { useLanguage } from '@/i18n/useLanguage';
 import LanguageSwitcher, { LanguageChoices } from './LanguageSwitcher';
 import NavbarSearch from './NavbarSearch';
 import UserMenu from './UserMenu';
+import NotificationBell from '@/components/notification/NotificationBell';
 
 // Tautan aktif: halaman yang sama (atau turunannya); tautan ke bagian beranda
 // ("/#paket") hanya aktif di beranda dengan hash yang sama.
@@ -115,6 +116,7 @@ export default function Navbar() {
                     <div className="max-sm:hidden">
                         <LanguageSwitcher />
                     </div>
+                    {isAuthenticated && <NotificationBell />}
                     <span
                         aria-hidden
                         className={`h-8 w-px bg-forest-moss-200 ${desktopOnly}`}

@@ -4,7 +4,12 @@
         "headlineLead": "Publish Quality Books with",
         "subheadline": "Helping authors publish their work professionally with a modern, transparent, and trusted system.",
         "viewPackages": "View Packages",
-        "photoAlt": "Bookshelves in a library"
+        "photoAlt": "Bookshelves in a library",
+        "coversLabel": "Latest books published by {{name}}",
+        "coverLink": "View the book {{title}}",
+        "latestLabel": "Latest Release",
+        "latestBy": "by {{authors}}",
+        "latestView": "View book"
     },
     "sections": {
         "services": {

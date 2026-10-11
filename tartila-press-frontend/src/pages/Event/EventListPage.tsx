@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EventCard from '@/components/event/EventCard';
 import ListHero from '@/components/ui/ListHero';
+import Pagination from '@/components/ui/Pagination';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as eventApi from '@/data/event/eventApi';
 import type { Event } from '@/data/event/eventApi';
+import type { PageMeta } from '@/lib/pagination';
 
 function EventCardSkeleton() {
     return (
@@ -26,13 +28,33 @@ export default function EventListPage() {
     const { t } = useTranslation();
     const [events, setEvents] = useState<Event[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
+    const listRef = useRef<HTMLElement>(null);
 
     useEffect(() => {
+        let cancelled = false;
+
         eventApi
-            .list()
-            .then((response) => setEvents(response.data))
-            .finally(() => setIsLoading(false));
-    }, []);
+            .list({ page })
+            .then((response) => {
+                if (cancelled) return;
+                setEvents(response.data);
+                setMeta(response.meta ?? null);
+            })
+            .finally(() => {
+                if (!cancelled) setIsLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [page]);
+
+    function changePage(next: number) {
+        setPage(next);
+        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     return (
         <div className="-mx-10 -my-2 overflow-x-clip">
@@ -51,6 +73,7 @@ export default function EventListPage() {
 
             <div className="mx-auto max-w-[1232px] px-4 pb-20 pt-8 sm:px-8 lg:px-10">
                 <section
+                    ref={listRef}
                     aria-labelledby="event-title"
                     className="flex min-w-0 flex-col gap-6 rounded-2xl border border-forest-moss-100 bg-white p-4 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-6"
                 >
@@ -59,7 +82,7 @@ export default function EventListPage() {
                         {!isLoading && events.length > 0 && (
                             <span className="font-sans text-sm font-normal text-oxford-navy-900/65">
                                 {t('events.list.count', {
-                                    count: events.length,
+                                    count: meta?.total ?? events.length,
                                 })}
                             </span>
                         )}
@@ -76,11 +99,14 @@ export default function EventListPage() {
                             {t('events.empty')}
                         </p>
                     ) : (
-                        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                            {events.map((event) => (
-                                <EventCard key={event.id} event={event} />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                                {events.map((event) => (
+                                    <EventCard key={event.id} event={event} />
+                                ))}
+                            </div>
+                            <Pagination meta={meta} onPageChange={changePage} />
+                        </>
                     )}
                 </section>
             </div>

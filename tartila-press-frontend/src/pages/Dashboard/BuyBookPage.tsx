@@ -6,7 +6,11 @@ import ShippingAddressFields, {
 } from '@/components/order/ShippingAddressFields';
 import * as bookApi from '@/data/book/bookApi';
 import * as orderApi from '@/data/order/orderApi';
+import VoucherField from '@/components/voucher/VoucherField';
+import { useVoucher } from '@/components/voucher/useVoucher';
 import { ApiError } from '@/lib/http';
+import PaymentMethodPicker from '@/components/order/PaymentMethodPicker';
+import { usePaymentMethodChoice } from '@/hooks/usePaymentMethodChoice';
 
 type BookSummary = {
     id: number;
@@ -26,6 +30,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 export default function BuyBookPage() {
     const { bookSlug } = useParams<{ bookSlug: string }>();
     const navigate = useNavigate();
+    const paymentChoice = usePaymentMethodChoice();
 
     const [book, setBook] = useState<BookSummary | null>(null);
     const [shipping, setShipping] = useState<ShippingAddressValue>({
@@ -44,6 +49,10 @@ export default function BuyBookPage() {
             .finally(() => setIsLoading(false));
     }, [bookSlug]);
 
+    const voucher = useVoucher(
+        book ? { type: 'book', book_ids: [book.id] } : null
+    );
+
     async function handleSubmit() {
         if (!book) {
             return;
@@ -53,14 +62,16 @@ export default function BuyBookPage() {
         setErrorMessage('');
 
         try {
-            await orderApi.create({
+            const response = await orderApi.create({
+                payment_method_id: paymentChoice.selectedId ?? undefined,
                 type: 'book',
                 book_ids: [book.id],
+                voucher_code: voucher.code,
                 recipient_name: shipping.recipient_name || undefined,
                 recipient_phone: shipping.recipient_phone || undefined,
                 recipient_address: shipping.recipient_address || undefined,
             });
-            navigate('/dashboard/pesanan');
+            navigate(`/dashboard/pesanan/${response.data.id}/invoice`);
         } catch (error) {
             setErrorMessage(
                 error instanceof ApiError
@@ -97,6 +108,21 @@ export default function BuyBookPage() {
                 </span>
             </div>
 
+            <VoucherField voucher={voucher} />
+            <PaymentMethodPicker choice={paymentChoice} />
+
+            {voucher.quote && (
+                <p className="text-oxford-navy-900 text-lg font-semibold">
+                    Total:{' '}
+                    {rupiahFormatter.format(
+                        Math.max(
+                            0,
+                            book.final_price - voucher.quote.voucher_discount
+                        )
+                    )}
+                </p>
+            )}
+
             <ShippingAddressFields value={shipping} onChange={setShipping} />
 
             {errorMessage && (
@@ -107,7 +133,7 @@ export default function BuyBookPage() {
                 variant="primary"
                 className="self-start"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || paymentChoice.isMissing}
             >
                 {isSubmitting ? 'Memproses...' : 'Konfirmasi Beli Buku'}
             </Button>

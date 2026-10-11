@@ -9,7 +9,11 @@ import * as customPackageItemApi from '@/data/customPackageItem/customPackageIte
 import type { CustomItem } from '@/data/customPackageItem/customPackageItemApi';
 import * as editorApi from '@/data/editor/editorApi';
 import * as orderApi from '@/data/order/orderApi';
+import VoucherField from '@/components/voucher/VoucherField';
+import { useVoucher } from '@/components/voucher/useVoucher';
 import { ApiError } from '@/lib/http';
+import PaymentMethodPicker from '@/components/order/PaymentMethodPicker';
+import { usePaymentMethodChoice } from '@/hooks/usePaymentMethodChoice';
 
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -19,6 +23,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 
 export default function CustomPackagePage() {
     const navigate = useNavigate();
+    const paymentChoice = usePaymentMethodChoice();
     const [searchParams] = useSearchParams();
 
     const [items, setItems] = useState<CustomItem[]>([]);
@@ -79,11 +84,24 @@ export default function CustomPackagePage() {
             ) * 100
         ) / 100;
 
+    const voucher = useVoucher(
+        selectedItems.length > 0
+            ? {
+                  type: 'custom',
+                  custom_item_ids: selectedItems.map((item) => item.id),
+              }
+            : null
+    );
+
     const selectedEditor = editors.find(
         (editor) => editor.user_id === selectedEditorId
     );
     const editorFee = selectedEditor ? Number(selectedEditor.fee) : 0;
-    const total = subtotal - discountTotal + editorFee;
+    const total =
+        subtotal -
+        discountTotal -
+        (voucher.quote?.voucher_discount ?? 0) +
+        editorFee;
 
     async function handleSubmit() {
         if (selectedItems.length === 0) {
@@ -95,15 +113,17 @@ export default function CustomPackagePage() {
         setErrorMessage('');
 
         try {
-            await orderApi.create({
+            const response = await orderApi.create({
+                payment_method_id: paymentChoice.selectedId ?? undefined,
                 type: 'custom',
                 custom_item_ids: selectedItems.map((item) => item.id),
+                voucher_code: voucher.code,
                 editor_id:
                     wantsOwnEditor && selectedEditorId
                         ? selectedEditorId
                         : undefined,
             });
-            navigate('/dashboard/pesanan');
+            navigate(`/dashboard/pesanan/${response.data.id}/invoice`);
         } catch (error) {
             setErrorMessage(
                 error instanceof ApiError
@@ -210,8 +230,11 @@ export default function CustomPackagePage() {
                 />
             )}
 
+            <VoucherField voucher={voucher} />
+            <PaymentMethodPicker choice={paymentChoice} />
+
             <div className="flex flex-col gap-1 border-t border-forest-moss-200 pt-4">
-                {(discountTotal > 0 || editorFee > 0) && (
+                {(discountTotal > 0 || editorFee > 0 || voucher.quote) && (
                     <p className="text-oxford-navy-900/70 text-sm">
                         Subtotal: {rupiahFormatter.format(subtotal)}
                     </p>
@@ -219,6 +242,12 @@ export default function CustomPackagePage() {
                 {discountTotal > 0 && (
                     <p className="text-forest-moss-700 text-sm">
                         Diskon: −{rupiahFormatter.format(discountTotal)}
+                    </p>
+                )}
+                {voucher.quote && (
+                    <p className="text-forest-moss-700 text-sm">
+                        Voucher ({voucher.quote.code}): −
+                        {rupiahFormatter.format(voucher.quote.voucher_discount)}
                     </p>
                 )}
                 {editorFee > 0 && (
@@ -239,7 +268,7 @@ export default function CustomPackagePage() {
                 variant="primary"
                 className="self-start"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || paymentChoice.isMissing}
             >
                 {isSubmitting ? 'Memproses...' : 'Ambil Paket Custom'}
             </Button>

@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { queryString, type PageParams } from '@/lib/pagination';
 
 export type UpsertPublicProfilePayload = Partial<{
     pen_name: string;
@@ -34,5 +35,8 @@ export const deleteExperience = (id: number) =>
 
 export const getBySlug = (slug: string) => http.get(`/public/authors/${slug}`);
 
-export const listByRole = (role: 'penulis' | 'editor') =>
-    http.get(`/public/authors?role=${role}`);
+// Per halaman (bawaan 12); ?search= nama, ?sort=default|az|za.
+export const listByRole = (
+    role: 'penulis' | 'editor',
+    params: Partial<{ search: string; sort: string }> & PageParams = {}
+) => http.get(`/public/authors${queryString({ role, ...params })}`);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     RiArrowUpDownLine,
@@ -12,40 +12,15 @@ import ChapterProjectCard, {
 } from '@/components/bookChapter/ChapterProjectCard';
 import { SearchField, SelectField } from '@/components/ui/FilterControls';
 import ListHero from '@/components/ui/ListHero';
+import Pagination from '@/components/ui/Pagination';
 import QuoteCard from '@/components/ui/QuoteCard';
 import SectionTitle from '@/components/ui/SectionTitle';
-import {
-    categoryNames,
-    openPrice,
-    summarizeSlots,
-    type ChapterProject,
-} from '@/lib/bookChapterPublic';
+import type { ChapterProject } from '@/lib/bookChapterPublic';
+import type { PageMeta } from '@/lib/pagination';
 
 type SortMode = 'newest' | 'deadline' | 'price' | 'slots';
 
 const SKELETON_COUNT = 6;
-
-// Urutan "terbaru" mengikuti urutan dari server; lainnya diurutkan di sini.
-function sortProjects(projects: ChapterProject[], mode: SortMode) {
-    if (mode === 'newest') {
-        return projects;
-    }
-
-    const deadline = (p: ChapterProject) =>
-        p.submission_deadline
-            ? new Date(p.submission_deadline).getTime()
-            : Infinity;
-    const price = (p: ChapterProject) =>
-        openPrice(p.chapters)?.from ?? Infinity;
-    const openSlots = (p: ChapterProject) => summarizeSlots(p.chapters).open;
-
-    return [...projects].sort((a, b) => {
-        if (mode === 'deadline') return deadline(a) - deadline(b);
-        if (mode === 'price') return price(a) - price(b);
-
-        return openSlots(b) - openSlots(a);
-    });
-}
 
 /**
  * Halaman daftar Book Chapter: hero, kartu "Cara Kerja", dan daftar proyek
@@ -65,50 +40,69 @@ export default function BookChapterProjectListPage() {
     const [query, setQuery] = useState<string>('');
     const [category, setCategory] = useState<string>('');
     const [sort, setSort] = useState<SortMode>('newest');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
+    const [categories, setCategories] = useState<string[]>([]);
+    const listRef = useRef<HTMLElement>(null);
 
+    // Pencarian, kategori, urutan & halaman dikerjakan server.
     useEffect(() => {
         let cancelled = false;
 
-        bookChapterProjectApi
-            .list()
-            .then((response) => {
-                if (!cancelled) setProjects(response.data);
-            })
-            .catch(() => {
-                if (!cancelled) setProjects([]);
-            })
-            .finally(() => {
-                if (!cancelled) setIsLoading(false);
-            });
+        const timeout = setTimeout(() => {
+            setIsLoading(true);
+
+            bookChapterProjectApi
+                .list({ search: query.trim(), category, sort, page })
+                .then((response) => {
+                    if (cancelled) return;
+                    setProjects(response.data);
+                    setMeta(response.meta ?? null);
+                    setCategories(response.meta?.categories ?? []);
+                })
+                .catch(() => {
+                    if (cancelled) return;
+                    setProjects([]);
+                    setMeta(null);
+                })
+                .finally(() => {
+                    if (!cancelled) setIsLoading(false);
+                });
+        }, 300);
 
         return () => {
             cancelled = true;
+            clearTimeout(timeout);
         };
-    }, []);
+    }, [query, category, sort, page]);
 
-    const categories = [
-        ...new Set(projects.flatMap((project) => categoryNames(project))),
-    ].sort((a, b) => a.localeCompare(b, 'id'));
-
-    const needle = query.trim().toLocaleLowerCase('id');
-    const matched = projects.filter((project) => {
-        const inCategory =
-            category === '' || categoryNames(project).includes(category);
-        const inText =
-            needle === '' ||
-            project.title.toLocaleLowerCase('id').includes(needle) ||
-            (project.owner_editor?.name ?? '')
-                .toLocaleLowerCase('id')
-                .includes(needle);
-
-        return inCategory && inText;
-    });
-    const visible = sortProjects(matched, sort);
     const hasFilters = query.trim() !== '' || category !== '';
+    const total = meta?.total ?? projects.length;
+
+    function changeQuery(value: string) {
+        setQuery(value);
+        setPage(1);
+    }
+
+    function changeCategory(value: string) {
+        setCategory(value);
+        setPage(1);
+    }
+
+    function changeSort(value: SortMode) {
+        setSort(value);
+        setPage(1);
+    }
+
+    function changePage(next: number) {
+        setPage(next);
+        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 
     function resetFilters() {
         setQuery('');
         setCategory('');
+        setPage(1);
     }
 
     return (
@@ -136,16 +130,17 @@ export default function BookChapterProjectListPage() {
                 </aside>
 
                 <section
+                    ref={listRef}
                     aria-labelledby="chapter-list-title"
                     className="flex min-w-0 flex-col gap-6 rounded-2xl border border-forest-moss-100 bg-white p-4 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] sm:p-6"
                 >
                     <div className="flex flex-col gap-4">
                         <SectionTitle id="chapter-list-title">
                             {t('bookChapter.list.title')}
-                            {!isLoading && projects.length > 0 && (
+                            {!isLoading && total > 0 && (
                                 <span className="font-sans text-sm font-normal text-oxford-navy-900/65">
                                     {t('bookChapter.list.count', {
-                                        count: visible.length,
+                                        count: total,
                                     })}
                                 </span>
                             )}
@@ -154,7 +149,7 @@ export default function BookChapterProjectListPage() {
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_13rem_13rem]">
                             <SearchField
                                 value={query}
-                                onChange={setQuery}
+                                onChange={changeQuery}
                                 placeholder={t(
                                     'bookChapter.list.searchPlaceholder'
                                 )}
@@ -163,7 +158,7 @@ export default function BookChapterProjectListPage() {
                             />
                             <SelectField
                                 value={category}
-                                onChange={setCategory}
+                                onChange={changeCategory}
                                 options={[
                                     {
                                         value: '',
@@ -181,7 +176,9 @@ export default function BookChapterProjectListPage() {
                             />
                             <SelectField
                                 value={sort}
-                                onChange={(value) => setSort(value as SortMode)}
+                                onChange={(value) =>
+                                    changeSort(value as SortMode)
+                                }
                                 options={sortOptions}
                                 ariaLabel={t('bookChapter.list.sortAria')}
                                 icon={<RiArrowUpDownLine />}
@@ -197,11 +194,11 @@ export default function BookChapterProjectListPage() {
                                 )
                             )}
                         </div>
-                    ) : projects.length === 0 ? (
+                    ) : projects.length === 0 && !hasFilters ? (
                         <p className="rounded-xl bg-forest-moss-50 px-6 py-14 text-center text-sm text-oxford-navy-900/65">
                             {t('bookChapter.list.empty')}
                         </p>
-                    ) : visible.length === 0 ? (
+                    ) : projects.length === 0 ? (
                         <div className="flex flex-col items-center gap-3 rounded-xl bg-forest-moss-50 px-6 py-14 text-center">
                             <p className="text-sm text-oxford-navy-900/70">
                                 {t('bookChapter.list.noMatch')}
@@ -221,14 +218,17 @@ export default function BookChapterProjectListPage() {
                             )}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            {visible.map((project) => (
-                                <ChapterProjectCard
-                                    key={project.id}
-                                    project={project}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                {projects.map((project) => (
+                                    <ChapterProjectCard
+                                        key={project.id}
+                                        project={project}
+                                    />
+                                ))}
+                            </div>
+                            <Pagination meta={meta} onPageChange={changePage} />
+                        </>
                     )}
                 </section>
             </div>

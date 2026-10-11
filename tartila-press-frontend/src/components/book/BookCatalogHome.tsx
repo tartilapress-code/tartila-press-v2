@@ -16,8 +16,8 @@ export default function BookCatalogHome() {
 
     useEffect(() => {
         bookApi
-            .list()
-            .then((response) => setBooks(response.data.slice(0, COUNT)))
+            .list({ per_page: COUNT })
+            .then((response) => setBooks(response.data))
             .catch(() => setBooks([]))
             .finally(() => setIsLoading(false));
     }, []);

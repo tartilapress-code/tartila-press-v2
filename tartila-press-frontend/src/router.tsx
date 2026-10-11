@@ -8,11 +8,13 @@ import LoginPage from './pages/Login/LoginPage';
 import VerifyEmailPage from './pages/Auth/VerifyEmailPage';
 import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
-import RegistrationTest from './pages/Registration/RegistrationTest';
 import AuthorProfilePage from './pages/PublicProfile/AuthorProfilePage';
 import ProtectedRoute from './routes/ProtectedRoute';
 import UserLayout from './layouts/UserLayout';
 import AccountSettingsPage from './pages/Dashboard/AccountSettingsPage';
+import DashboardHomePage from './pages/Dashboard/DashboardHomePage';
+import MyPublishedBooksPage from './pages/Dashboard/MyPublishedBooksPage';
+import ManuscriptPoolSettingsPage from './pages/Admin/ManuscriptPoolSettingsPage';
 import PersonalDataPage from './pages/Dashboard/PersonalDataPage';
 import PublicProfilePage from './pages/Dashboard/PublicProfilePage';
 import AdminRoute from './routes/AdminRoute';
@@ -24,6 +26,7 @@ import PackageDetailPage from './pages/Package/PackageDetailPage';
 import TakePackagePage from './pages/Dashboard/TakePackagePage';
 import CustomPackagePage from './pages/Dashboard/CustomPackagePage';
 import MyOrdersPage from './pages/Dashboard/MyOrdersPage';
+import InvoicePage from './pages/Dashboard/InvoicePage';
 import EditorProfilePage from './pages/Dashboard/EditorProfilePage';
 import PackagesPage from './pages/Admin/PackagesPage';
 import CustomPackageItemsPage from './pages/Admin/CustomPackageItemsPage';
@@ -33,6 +36,7 @@ import EditorListPage from './pages/PublicProfile/EditorListPage';
 import ManuscriptSubmitPage from './pages/Dashboard/ManuscriptSubmitPage';
 import ManuscriptDetailPage from './pages/Dashboard/ManuscriptDetailPage';
 import MyManuscriptsPage from './pages/Dashboard/MyManuscriptsPage';
+import NotificationsPage from './pages/Dashboard/NotificationsPage';
 import EditorManuscriptPoolPage from './pages/Dashboard/EditorManuscriptPoolPage';
 import EditorManuscriptsPage from './pages/Dashboard/EditorManuscriptsPage';
 import EditorFeePage from './pages/Dashboard/EditorFeePage';
@@ -57,7 +61,25 @@ import BuyBookPage from './pages/Dashboard/BuyBookPage';
 import CartPage from './pages/Dashboard/CartPage';
 import PaymentMethodsPage from './pages/Admin/PaymentMethodsPage';
 import RoyaltyPage from './pages/Dashboard/RoyaltyPage';
+import MyVouchersPage from './pages/Dashboard/MyVouchersPage';
+import WalletPage from './pages/Dashboard/WalletPage';
+import IsbnApplicationPage from './pages/Dashboard/IsbnApplicationPage';
+import MouPage from './pages/Dashboard/MouPage';
 import RoyaltiesPage from './pages/Admin/RoyaltiesPage';
+import VouchersPage from './pages/Admin/VouchersPage';
+import WithdrawalsPage from './pages/Admin/WithdrawalsPage';
+import FinancePage from './pages/Admin/FinancePage';
+import HkiPage from './pages/Admin/HkiPage';
+import AboutSettingsPage from './pages/Admin/AboutSettingsPage';
+import AboutPage from './pages/About/AboutPage';
+import PublishManuscriptsPage from './pages/Admin/PublishManuscriptsPage';
+import IsbnSettingsPage from './pages/Admin/IsbnSettingsPage';
+import MouTemplatePage from './pages/Admin/MouTemplatePage';
+import MousPage from './pages/Admin/MousPage';
+import MouDetailPage from './pages/Admin/MouDetailPage';
+import SocialPostPage from './pages/Admin/SocialPostPage';
+import ManuscriptTemplatesPage from './pages/Admin/ManuscriptTemplatesPage';
+import ManuscriptTemplateEditorPage from './pages/Admin/ManuscriptTemplateEditorPage';
 import ArticleListPage from './pages/Article/ArticleListPage';
 import ArticleDetailPage from './pages/Article/ArticleDetailPage';
 import WriteArticlePage from './pages/Dashboard/WriteArticlePage';
@@ -69,6 +91,11 @@ import EventRegistrationPage from './pages/Dashboard/EventRegistrationPage';
 import MyEventsPage from './pages/Dashboard/MyEventsPage';
 import AdminEventsPage from './pages/Admin/EventsPage';
 import AdminEventCategoriesPage from './pages/Admin/EventCategoriesPage';
+import AdminEventAttendancePage from './pages/Admin/EventAttendancePage';
+import AdminCertificateTemplatesPage from './pages/Admin/CertificateTemplatesPage';
+import AdminCertificateTemplateEditorPage from './pages/Admin/CertificateTemplateEditorPage';
+import MyCertificatesPage from './pages/Dashboard/MyCertificatesPage';
+import EventAttendanceFormPage from './pages/Dashboard/EventAttendanceFormPage';
 
 const router = createBrowserRouter([
     {
@@ -133,6 +160,10 @@ const router = createBrowserRouter([
                 element: <ArticleListPage />,
             },
             {
+                path: 'tentang-kami',
+                element: <AboutPage />,
+            },
+            {
                 path: 'artikel/:slug',
                 element: <ArticleDetailPage />,
             },
@@ -173,6 +204,10 @@ const router = createBrowserRouter([
                         children: [
                             {
                                 index: true,
+                                element: <DashboardHomePage />,
+                            },
+                            {
+                                path: 'akun',
                                 element: <AccountSettingsPage />,
                             },
                             {
@@ -196,6 +231,10 @@ const router = createBrowserRouter([
                                 element: <MyOrdersPage />,
                             },
                             {
+                                path: 'pesanan/:id/invoice',
+                                element: <InvoicePage />,
+                            },
+                            {
                                 path: 'profil-editor',
                                 element: <EditorProfilePage />,
                             },
@@ -206,6 +245,10 @@ const router = createBrowserRouter([
                             {
                                 path: 'naskah',
                                 element: <MyManuscriptsPage />,
+                            },
+                            {
+                                path: 'notifikasi',
+                                element: <NotificationsPage />,
                             },
                             {
                                 path: 'naskah/:id',
@@ -248,6 +291,22 @@ const router = createBrowserRouter([
                                 element: <RoyaltyPage />,
                             },
                             {
+                                path: 'voucher-saya',
+                                element: <MyVouchersPage />,
+                            },
+                            {
+                                path: 'dompet',
+                                element: <WalletPage />,
+                            },
+                            {
+                                path: 'isbn/:id',
+                                element: <IsbnApplicationPage />,
+                            },
+                            {
+                                path: 'mou/:id',
+                                element: <MouPage />,
+                            },
+                            {
                                 path: 'tulis-artikel',
                                 element: <WriteArticlePage />,
                             },
@@ -262,6 +321,18 @@ const router = createBrowserRouter([
                             {
                                 path: 'event-saya',
                                 element: <MyEventsPage />,
+                            },
+                            {
+                                path: 'absensi-event/:slug',
+                                element: <EventAttendanceFormPage />,
+                            },
+                            {
+                                path: 'sertifikat-saya',
+                                element: <MyCertificatesPage />,
+                            },
+                            {
+                                path: 'buku-terbit',
+                                element: <MyPublishedBooksPage />,
                             },
                         ],
                     },
@@ -339,6 +410,66 @@ const router = createBrowserRouter([
                                 element: <RoyaltiesPage />,
                             },
                             {
+                                path: 'vouchers',
+                                element: <VouchersPage />,
+                            },
+                            {
+                                path: 'withdrawals',
+                                element: <WithdrawalsPage />,
+                            },
+                            {
+                                path: 'keuangan',
+                                element: <FinancePage />,
+                            },
+                            {
+                                path: 'hki',
+                                element: <HkiPage />,
+                            },
+                            {
+                                path: 'tentang-kami',
+                                element: <AboutSettingsPage />,
+                            },
+                            {
+                                path: 'pool-naskah',
+                                element: <ManuscriptPoolSettingsPage />,
+                            },
+                            {
+                                path: 'terbitkan-naskah',
+                                element: <PublishManuscriptsPage />,
+                            },
+                            {
+                                path: 'isbn-settings',
+                                element: <IsbnSettingsPage />,
+                            },
+                            {
+                                path: 'mou-template',
+                                element: <MouTemplatePage />,
+                            },
+                            {
+                                path: 'mou',
+                                element: <MousPage />,
+                            },
+                            {
+                                path: 'mou/:id',
+                                element: <MouDetailPage />,
+                            },
+                            {
+                                path: 'sosmed',
+                                element: <SocialPostPage />,
+                            },
+                            {
+                                path: 'manuscript-templates',
+                                element: <ManuscriptTemplatesPage />,
+                            },
+                            {
+                                path: 'manuscript-templates/new',
+                                element: <ManuscriptTemplateEditorPage />,
+                            },
+                            {
+                                path: 'manuscript-templates/:id',
+                                element: <ManuscriptTemplateEditorPage />,
+                            },
+                            {
                                 path: 'articles',
                                 element: <AdminArticlesPage />,
                             },
@@ -347,18 +478,30 @@ const router = createBrowserRouter([
                                 element: <AdminEventsPage />,
                             },
                             {
+                                path: 'events/:id/absensi',
+                                element: <AdminEventAttendancePage />,
+                            },
+                            {
                                 path: 'event-categories',
                                 element: <AdminEventCategoriesPage />,
+                            },
+                            {
+                                path: 'certificate-templates',
+                                element: <AdminCertificateTemplatesPage />,
+                            },
+                            {
+                                path: 'certificate-templates/new',
+                                element: <AdminCertificateTemplateEditorPage />,
+                            },
+                            {
+                                path: 'certificate-templates/:id',
+                                element: <AdminCertificateTemplateEditorPage />,
                             },
                         ],
                     },
                 ],
             },
         ],
-    },
-    {
-        path: '/test',
-        element: <RegistrationTest />,
     },
 ]);
 

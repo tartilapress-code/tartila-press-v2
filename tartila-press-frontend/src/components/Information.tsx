@@ -14,8 +14,8 @@ export default function Information() {
 
     useEffect(() => {
         articleApi
-            .list()
-            .then((response) => setArticles(response.data.slice(0, COUNT)))
+            .list({ per_page: COUNT })
+            .then((response) => setArticles(response.data))
             .catch(() => setArticles([]))
             .finally(() => setIsLoading(false));
     }, []);

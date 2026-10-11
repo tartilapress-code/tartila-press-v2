@@ -1,4 +1,5 @@
 import { useState, type SyntheticEvent } from 'react';
+import { responsiveSrcSet } from '@/lib/responsiveImage';
 
 // Sampul buku Tartila Press berukuran A5 (148 × 210 mm).
 const A5_WIDTH = 148;
@@ -24,6 +25,14 @@ type BookCoverProps = {
     alt?: string;
     // Lebar/posisi ditentukan pemakai; tinggi mengikuti rasio A5.
     className?: string;
+    // true: gambar selalu memenuhi bingkai (dipotong), tanpa latar buram —
+    // untuk tampilan dekoratif seperti tumpukan sampul di beranda.
+    fill?: boolean;
+    // true: dimuat segera dengan prioritas tinggi (gambar di bagian atas
+    // halaman, mis. hero beranda) alih-alih menunggu terlihat.
+    priority?: boolean;
+    // Lebar tampil sampul untuk memilih versi kecil gambar (atribut sizes).
+    sizes?: string;
 };
 
 // Sampul pengganti (belum ada gambar / gambar gagal dimuat): panel navy
@@ -59,6 +68,9 @@ export default function BookCover({
     title,
     alt = title,
     className = '',
+    fill = false,
+    priority = false,
+    sizes = '(min-width: 1024px) 260px, (min-width: 640px) 33vw, 50vw',
 }: BookCoverProps) {
     const candidates = [src, fallbackSrc].filter((url): url is string =>
         Boolean(url)
@@ -70,10 +82,14 @@ export default function BookCover({
         key: string;
         index: number;
         fit: CoverFit | null;
-    }>({ key, index: 0, fit: null });
+        // true: versi kecil (WebP) gagal, pakai berkas asli gambar ini.
+        plain: boolean;
+    }>({ key, index: 0, fit: null, plain: false });
 
-    const current = state.key === key ? state : { key, index: 0, fit: null };
+    const current =
+        state.key === key ? state : { key, index: 0, fit: null, plain: false };
     const currentSrc = candidates[current.index] ?? null;
+    const srcSet = current.plain ? undefined : responsiveSrcSet(currentSrc);
 
     function handleLoad(event: SyntheticEvent<HTMLImageElement>) {
         const { naturalWidth, naturalHeight } = event.currentTarget;
@@ -84,12 +100,18 @@ export default function BookCover({
         setState({
             key,
             index: current.index,
-            fit: isCloseToA5 ? 'cover' : 'contain',
+            fit: fill || isCloseToA5 ? 'cover' : 'contain',
+            plain: current.plain,
         });
     }
 
     function handleError() {
-        setState({ key, index: current.index + 1, fit: null });
+        // Versi kecil belum ada -> coba berkas asli dulu, baru gambar cadangan.
+        setState(
+            srcSet
+                ? { key, index: current.index, fit: null, plain: true }
+                : { key, index: current.index + 1, fit: null, plain: false }
+        );
     }
 
     return (
@@ -103,6 +125,8 @@ export default function BookCover({
                     {current.fit === 'contain' && (
                         <img
                             src={currentSrc}
+                            srcSet={srcSet}
+                            sizes={srcSet ? sizes : undefined}
                             alt=""
                             aria-hidden
                             className="absolute inset-0 h-full w-full scale-125 object-cover opacity-70 blur-xl"
@@ -110,10 +134,13 @@ export default function BookCover({
                     )}
                     <img
                         src={currentSrc}
+                        srcSet={srcSet}
+                        sizes={srcSet ? sizes : undefined}
                         alt={alt}
                         width={A5_WIDTH}
                         height={A5_HEIGHT}
-                        loading="lazy"
+                        loading={priority ? 'eager' : 'lazy'}
+                        fetchPriority={priority ? 'high' : 'auto'}
                         decoding="async"
                         onLoad={handleLoad}
                         onError={handleError}

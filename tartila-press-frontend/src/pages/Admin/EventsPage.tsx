@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import DocumentInput from '@/components/Input/DocumentInput';
@@ -7,6 +8,9 @@ import Button from '@/components/Button/Button';
 import * as eventApi from '@/data/event/eventApi';
 import type { CreateEventPayload, Event } from '@/data/event/eventApi';
 import { ApiError } from '@/lib/http';
+import Pagination from '@/components/ui/Pagination';
+import type { PageMeta } from '@/lib/pagination';
+import { SearchField } from '@/components/ui/FilterControls';
 
 type CategoryOption = { id: number; name: string };
 
@@ -56,15 +60,28 @@ export default function EventsPage() {
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
 
-    function load() {
+    const [search, setSearch] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [meta, setMeta] = useState<PageMeta | null>(null);
+
+    // Pencarian & halaman dikerjakan server.
+    const load = useCallback(() => {
         eventApi
-            .adminList()
-            .then((response) => setEvents(response.data))
+            .adminList({ search: search.trim(), page })
+            .then((response) => {
+                setEvents(response.data);
+                setMeta(response.meta ?? null);
+            })
             .finally(() => setIsLoading(false));
-    }
+    }, [search, page]);
 
     useEffect(() => {
-        load();
+        const timeout = setTimeout(load, 300);
+
+        return () => clearTimeout(timeout);
+    }, [load]);
+
+    useEffect(() => {
         eventApi
             .listCategories()
             .then((response) => setCategories(response.data));
@@ -149,7 +166,9 @@ export default function EventsPage() {
                 />
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-oxford-navy-900">Deskripsi</label>
+                    <label className="text-sm font-medium text-oxford-navy-900">
+                        Deskripsi
+                    </label>
                     <textarea
                         className="w-full p-3 outline-none rounded-xl ring-1 ring-forest-moss-200 placeholder:text-oxford-navy-900/40 bg-transparent text-oxford-navy-900 focus:ring-1 focus:ring-oxford-navy-500"
                         rows={5}
@@ -293,7 +312,7 @@ export default function EventsPage() {
                 />
 
                 <DocumentInput
-                    label="Sertifikat (unggah file atau isi link di bawah)"
+                    label="Sertifikat manual (opsional; sertifikat otomatis diatur lewat tombol Absensi & Sertifikat)"
                     value={form.certificate_url ?? ''}
                     onChange={(value) =>
                         setForm((prev) => ({
@@ -356,13 +375,32 @@ export default function EventsPage() {
             </div>
 
             <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
-                <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
-                    Daftar Event
-                </h5>
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                        Daftar Event
+                        {meta && (
+                            <span className="ml-2 font-sans text-sm font-normal text-oxford-navy-900/60">
+                                ({meta.total})
+                            </span>
+                        )}
+                    </h5>
+                    <SearchField
+                        value={search}
+                        onChange={(value) => {
+                            setSearch(value);
+                            setPage(1);
+                        }}
+                        placeholder="Cari judul event"
+                        ariaLabel="Cari event"
+                        className="sm:w-72"
+                    />
+                </div>
                 {isLoading ? (
                     <p className="text-oxford-navy-900/70 text-sm">Memuat...</p>
                 ) : events.length === 0 ? (
-                    <p className="text-oxford-navy-900/70 text-sm">Belum ada event.</p>
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Belum ada event.
+                    </p>
                 ) : (
                     <div className="flex flex-col gap-3">
                         {events.map((event) => (
@@ -390,9 +428,18 @@ export default function EventsPage() {
                                             : 'Gratis'}{' '}
                                         — {event.confirmed_registrations_count}{' '}
                                         peserta terdaftar
+                                        {event.attendance_enabled &&
+                                            ` — absensi aktif (${event.attendances_count ?? 0} sudah absen)`}
                                     </p>
                                 </div>
-                                <div className="flex flex-row gap-2 shrink-0">
+                                <div className="flex flex-row flex-wrap justify-end gap-2 shrink-0">
+                                    <Link
+                                        to={`/admin/events/${event.id}/absensi`}
+                                    >
+                                        <Button variant="outline2">
+                                            Absensi & Sertifikat
+                                        </Button>
+                                    </Link>
                                     <Button
                                         variant="outline2"
                                         onClick={() => handleEdit(event)}
@@ -401,9 +448,7 @@ export default function EventsPage() {
                                     </Button>
                                     <Button
                                         variant="outline2"
-                                        onClick={() =>
-                                            handleDelete(event.id)
-                                        }
+                                        onClick={() => handleDelete(event.id)}
                                     >
                                         Hapus
                                     </Button>
@@ -412,6 +457,8 @@ export default function EventsPage() {
                         ))}
                     </div>
                 )}
+
+                <Pagination meta={meta} onPageChange={setPage} />
             </div>
         </div>
     );

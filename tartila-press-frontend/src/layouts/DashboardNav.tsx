@@ -9,11 +9,18 @@ import { RiArrowDownSLine } from '@remixicon/react';
 export function NavGroup({
     label,
     children,
+    defaultOpen = true,
+    collapsedBadge,
 }: {
     label: string;
     children: ReactNode;
+    // false: tertutup sampai diklik.
+    defaultOpen?: boolean;
+    // Ditampilkan di sebelah judul selama kelompok tertutup (mis. angka
+    // notifikasi belum dibaca di dalamnya).
+    collapsedBadge?: ReactNode;
 }) {
-    const [isOpen, setIsOpen] = useState<boolean>(true);
+    const [isOpen, setIsOpen] = useState<boolean>(defaultOpen);
 
     return (
         <div className="flex shrink-0 flex-row items-center gap-1 border-l border-forest-moss-100 pl-2 first:border-l-0 first:pl-0 lg:flex-col lg:items-stretch lg:border-l-0 lg:border-t lg:pl-0 lg:pt-2 lg:first:border-t-0 lg:first:pt-0">
@@ -23,7 +30,10 @@ export function NavGroup({
                 aria-expanded={isOpen}
                 className="flex flex-row items-center justify-between gap-2 whitespace-nowrap px-2.5 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-oxford-navy-900/50 transition-colors hover:cursor-pointer hover:text-oxford-navy-700"
             >
-                {label}
+                <span className="flex items-center gap-2">
+                    {label}
+                    {!isOpen && collapsedBadge}
+                </span>
                 <RiArrowDownSLine
                     size={14}
                     aria-hidden

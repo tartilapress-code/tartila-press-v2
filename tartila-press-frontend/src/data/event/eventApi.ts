@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { queryString, type PageParams } from '@/lib/pagination';
 
 export type EventCategory = { id: number; name: string };
 
@@ -20,6 +21,24 @@ export type Event = {
     fee: string;
     is_active: boolean;
     confirmed_registrations_count: number;
+    // Only for registered participants (Event Saya) and admins; the public
+    // endpoints leave these out.
+    attendance_enabled?: boolean;
+    attendance_opens_at?: string | null;
+    attendance_closes_at?: string | null;
+    attendances_count?: number;
+};
+
+/** Attendance status of one registration, as shown in Event Saya. */
+export type AttendanceInfo = {
+    enabled: boolean;
+    state: 'disabled' | 'upcoming' | 'open' | 'closed';
+    opens_at: string | null;
+    closes_at: string | null;
+    submitted: boolean;
+    submitted_at: string | null;
+    has_certificate_template: boolean;
+    certificate_id: number | null;
 };
 
 export type EventRegistration = {
@@ -29,6 +48,7 @@ export type EventRegistration = {
     order_id: number | null;
     order: { id: number; order_number: string; status: string } | null;
     event: Event;
+    attendance_info?: AttendanceInfo;
     created_at: string;
 };
 
@@ -49,18 +69,24 @@ export type CreateEventPayload = Partial<{
     is_active: boolean;
 }>;
 
-export const list = () => http.get('/events');
+// Per halaman (bawaan 10).
+export const list = (params: PageParams = {}) =>
+    http.get(`/events${queryString(params)}`);
 
 export const get = (slug: string) => http.get(`/events/${slug}`);
 
 export const mine = () => http.get('/events/mine');
 
-export const register = (slug: string, payload: { document_url?: string }) =>
-    http.post(`/events/${slug}/register`, payload);
+export const register = (
+    slug: string,
+    payload: { document_url?: string; payment_method_id?: number }
+) => http.post(`/events/${slug}/register`, payload);
 
 export const listCategories = () => http.get('/event-categories');
 
-export const adminList = () => http.get('/admin/events');
+// Per halaman (bawaan 20): ?search= judul.
+export const adminList = (params: { search?: string } & PageParams = {}) =>
+    http.get(`/admin/events${queryString(params)}`);
 
 export const adminCreate = (payload: CreateEventPayload) =>
     http.post('/admin/events', payload);

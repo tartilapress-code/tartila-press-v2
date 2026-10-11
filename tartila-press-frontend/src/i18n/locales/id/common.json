@@ -11,5 +11,12 @@
     "notIncluded": "Tidak termasuk",
     "genericError": "Terjadi kesalahan. Silakan coba lagi.",
     "showPassword": "Lihat password",
-    "hidePassword": "Sembunyikan password"
+    "hidePassword": "Sembunyikan password",
+    "pagination": {
+        "aria": "Navigasi halaman",
+        "previous": "Sebelumnya",
+        "next": "Berikutnya",
+        "page": "Halaman {{page}}",
+        "summary": "{{from}}–{{to}} dari {{total}}"
+    }
 }

@@ -6,6 +6,7 @@ import router from '@/router.tsx';
 import { RouterProvider } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthProvider';
 import { CartProvider } from '@/context/CartProvider';
+import { NotificationProvider } from '@/context/NotificationProvider';
 import { initI18n } from '@/i18n';
 
 const root = document.getElementById('root');
@@ -16,9 +17,11 @@ void initI18n().then(() => {
     createRoot(root!).render(
         <StrictMode>
             <AuthProvider>
-                <CartProvider>
-                    <RouterProvider router={router} />
-                </CartProvider>
+                <NotificationProvider>
+                    <CartProvider>
+                        <RouterProvider router={router} />
+                    </CartProvider>
+                </NotificationProvider>
             </AuthProvider>
         </StrictMode>
     );

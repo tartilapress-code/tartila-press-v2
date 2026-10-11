@@ -1,4 +1,5 @@
 import type { Translation } from '../id';
+import about from './about.json';
 import articles from './articles.json';
 import auth from './auth.json';
 import bookChapter from './bookChapter.json';
@@ -17,6 +18,7 @@ import services from './services.json';
 
 // Bertipe `Translation`: kunci yang kurang dari bahasa Indonesia = galat kompilasi.
 const ms: Translation = {
+    about,
     articles,
     auth,
     bookChapter,

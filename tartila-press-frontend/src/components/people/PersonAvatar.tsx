@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ResponsiveImg from '@/components/ui/ResponsiveImg';
 
 type PersonAvatarProps = {
     name: string;
@@ -20,12 +21,11 @@ export default function PersonAvatar({
     eager = false,
 }: PersonAvatarProps) {
     const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
-    const showPhoto = Boolean(photo) && failedPhoto !== photo;
-
-    if (showPhoto) {
+    if (photo && failedPhoto !== photo) {
         return (
-            <img
-                src={photo ?? undefined}
+            <ResponsiveImg
+                src={photo}
+                sizes="160px"
                 alt={name}
                 loading={eager ? 'eager' : 'lazy'}
                 onError={() => setFailedPhoto(photo)}
