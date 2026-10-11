@@ -1,0 +1,132 @@
+@import 'tailwindcss';
+
+@theme {
+    --font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+
+    /* Green Tea — warna kedua/aksen (sage lembut, dulu hijau olive) */
+    --color-forest-moss-50: #f3f8f1;
+    --color-forest-moss-100: #e5f0e1;
+    --color-forest-moss-200: #cbe1c3;
+    --color-forest-moss-300: #b0d1a4;
+    --color-forest-moss-400: #9ec594;
+    --color-forest-moss-500: #8fb88a;
+    --color-forest-moss-600: #6f9a6a;
+    --color-forest-moss-700: #557650;
+    --color-forest-moss-800: #3c5439;
+    --color-forest-moss-900: #223122;
+    --color-forest-moss-950: #141d14;
+
+    --color-porcelain-50: #f8f8ed;
+    --color-porcelain-100: #f0f0db;
+    --color-porcelain-200: #e2e2b6;
+    --color-porcelain-300: #d3d392;
+    --color-porcelain-400: #c5c56d;
+    --color-porcelain-500: #b6b649;
+    --color-porcelain-600: #92923a;
+    --color-porcelain-700: #6d6d2c;
+    --color-porcelain-800: #49491d;
+    --color-porcelain-900: #24240f;
+    --color-porcelain-950: #1a1a0a;
+
+    /* Prussian Blue — warna dominan (dulu navy terlalu terang/tidak konsisten) */
+    --color-oxford-navy-50: #eaf3f8;
+    --color-oxford-navy-100: #d3e6f0;
+    --color-oxford-navy-200: #a8cce1;
+    --color-oxford-navy-300: #7cb0d0;
+    --color-oxford-navy-400: #4f8fba;
+    --color-oxford-navy-500: #2c6f9e;
+    --color-oxford-navy-600: #145480;
+    --color-oxford-navy-700: #003153;
+    --color-oxford-navy-800: #01253f;
+    --color-oxford-navy-900: #011a2c;
+    --color-oxford-navy-950: #010f1a;
+
+    --color-palm-leaf-50: #f3f6ef;
+    --color-palm-leaf-100: #e7edde;
+    --color-palm-leaf-200: #d0dabe;
+    --color-palm-leaf-300: #b8c89d;
+    --color-palm-leaf-400: #a1b67c;
+    --color-palm-leaf-500: #89a35c;
+    --color-palm-leaf-600: #6e8349;
+    --color-palm-leaf-700: #526237;
+    --color-palm-leaf-800: #374125;
+    --color-palm-leaf-900: #1b2112;
+    --color-palm-leaf-950: #13170d;
+}
+
+body {
+    position: relative;
+    margin: 0 auto;
+    box-sizing: content-box;
+    min-height: 100vh;
+    max-width: 1440px;
+    scroll-behavior: smooth;
+    background-color: #ffffff;
+}
+
+p,
+h1,
+h2 {
+    font-family: var(--font-family);
+    margin: 0;
+}
+
+/* Font serif (Lora, cadangan Georgia) untuk judul & kutipan. Sengaja kelas
+   biasa di luar @layer supaya tidak kalah oleh aturan `p, h1, h2` di atas. */
+.font-display {
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+}
+
+/* Tulisan tangan (Caveat) untuk kutipan dekoratif di hero. */
+.font-script {
+    font-family: 'Caveat', 'Segoe Script', 'Brush Script MT', cursive;
+}
+
+*,
+*::before,
+*::after {
+    /*outline: 1px solid red;*/
+}
+
+/*custom tailwindcss utility*/
+@utility img-style {
+    @apply w-full h-full object-cover;
+}
+@utility hover-translate {
+    @apply hover:-translate-y-2 hover:duration-300;
+}
+@utility card-shadow {
+    @apply shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)];
+}
+@utility highlight-ring {
+    @apply ring-2 ring-forest-moss-300/60 shadow-md shadow-forest-moss-200/50;
+}
+
+.debug {
+    *,
+    *::before,
+    *::after {
+        outline: 1px solid red;
+    }
+}
+
+/* Cetak invoice: hanya isi .print-area yang dicetak (navbar, sidebar, tombol disembunyikan). */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .print-area,
+    .print-area * {
+        visibility: visible;
+    }
+    .print-area {
+        position: absolute;
+        inset: 0 0 auto 0;
+        margin: 0;
+        box-shadow: none !important;
+    }
+    @page {
+        size: A4;
+        margin: 14mm;
+    }
+}
