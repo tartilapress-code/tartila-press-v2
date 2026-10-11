@@ -1,0 +1,328 @@
+################################################################################################
+#                                                                                              #
+#                         LAPORAN UJI PERFORMA SISTEM TARTILA PRESS                            #
+#                                                                                              #
+#        Tanggal   : 6 Oktober 2026                                                            #
+#        Cakupan   : API backend (Laravel 12), database, frontend (React 19), gambar           #
+#        Pelengkap : docs/SRS-SDD-Tartila-Press.txt (BAB 11 Testing, BAB 13 Maintenance)       #
+#                                                                                              #
+################################################################################################
+
+
+1. RINGKASAN
+------------------------------------------------------------------------------------------------
+
+  Dengan data saat ini (12 user, 17 buku, 29 pesanan) sistem CEPAT: hampir semua endpoint
+  diproses di bawah 100 ms. Namun sistem BELUM SIAP TUMBUH. Pada data simulasi 300x lebih besar
+  (3.600 user, 5.100 buku, 8.700 pesanan, 3.900 naskah):
+
+  +----------------------------------------------+----------------+------------------------------+
+  | Temuan                                       | Tingkat        | Dampak                       |
+  +----------------------------------------------+----------------+------------------------------+
+  | P1 Daftar tanpa pagination (katalog buku,    | KRITIS         | /books 6,6 dtk & 13 MB JSON; |
+  |    semua daftar admin, Book Chapter)         |                | admin 7-23 dtk per halaman   |
+  | P2 Query N+1 (relasi dimuat satu per satu)   | KRITIS         | hingga 16.543 query/request  |
+  | P3 Memori per request > batas PHP            | KRITIS         | /admin/books ERROR 500       |
+  |                                              |                | (butuh ~250 MB, batas 256 MB)|
+  | P4 Sampul buku tidak diperkecil              | TINGGI         | Beranda memuat ~11 MB gambar |
+  | P5 Semua halaman dalam 1 berkas JavaScript   | SEDANG         | 1,33 MB (368 KB gzip) untuk  |
+  |    (tanpa code-splitting)                    |                | setiap pengunjung            |
+  | P6 /about diminta ulang di setiap halaman,   | RENDAH         | 1 request tambahan per       |
+  |    9 request API di beranda                  |                | halaman                      |
+  +----------------------------------------------+----------------+------------------------------+
+
+  Kesimpulan: aman untuk peluncuran dengan volume data sekarang, tetapi P1-P3 harus diperbaiki
+  sebelum data mencapai ratusan buku/pesanan; P4 sebaiknya segera karena terasa di HP sekarang.
+
+
+2. METODE & LINGKUNGAN
+------------------------------------------------------------------------------------------------
+
+  Mesin uji: laptop Windows 11, PHP 8.2.12, PostgreSQL (dev), MariaDB 10.4 (uji), Node/Vite 8.
+
+  +----+--------------------------------+-------------------------------------------------------+
+  | No | Uji                            | Cara                                                  |
+  +----+--------------------------------+-------------------------------------------------------+
+  | U1 | Profil endpoint (data asli)    | 62 endpoint GET dijalankan di dalam proses Laravel;   |
+  |    |                                | median 5x, jumlah & waktu query, ukuran respons.      |
+  |    |                                | Semua di dalam transaksi yang di-ROLLBACK (data dev   |
+  |    |                                | terbukti tidak berubah).                              |
+  | U2 | Profil endpoint (data 300x)    | Database MariaDB terpisah berisi salinan data dev     |
+  |    |                                | x300 (156.127 baris; id & relasi digeser per salinan).|
+  | U3 | Pola N+1 & memori              | Query sejenis dikelompokkan; puncak memori per request|
+  | U4 | Uji beban HTTP                 | ApacheBench, 100-200 request, konkurensi 1 & 10,      |
+  |    |                                | (a) server dev, (b) mode produksi: OPcache, config/   |
+  |    |                                | route/event cache, APP_DEBUG=false, memory_limit 256M |
+  | U5 | Frontend                       | Build produksi (vite build), ukuran bundle, request   |
+  |    |                                | API & gambar per halaman lewat browser.               |
+  +----+--------------------------------+-------------------------------------------------------+
+
+  Batasan: server PHP bawaan hanya 1 worker (request diproses antre). Di VPS, PHP-FPM memakai
+  8 worker paralel (deploy/php-fpm-pool-v2.conf), sehingga throughput nyata kira-kira 4-8x lebih
+  tinggi, tergantung jumlah core CPU. Angka di bawah adalah perbandingan relatif, bukan janji SLA.
+
+
+3. HASIL BACKEND (U1 & U2)
+------------------------------------------------------------------------------------------------
+
+  Waktu = waktu proses di dalam aplikasi (tanpa jaringan & boot). q = jumlah query per request.
+
+  +--------+-------------------------------------+-------------------+----------------------------+
+  | Peran  | Endpoint                            | Data dev          | Data 300x                  |
+  +--------+-------------------------------------+-------------------+----------------------------+
+  | publik | /about                              | 3 ms   q=3        | 3 ms     q=3               |
+  | publik | /books (katalog & beranda)          | 34 ms  q=13 43 KB | 6.609 ms q=13 13 MB        |
+  | publik | /books/{slug}                       | 8 ms   q=6        | 11 ms    q=6               |
+  | publik | /books?search=...                   | 2 ms              | 14 ms                      |
+  | publik | /book-chapter-projects              | 64 ms  q=46       | 16.710 ms q=12.006 12 MB   |
+  | publik | /articles                           | 4 ms              | 241 ms   548 KB            |
+  | publik | /events                             | 3 ms              | 174 ms   913 KB            |
+  | publik | /public/authors                     | 4 ms              | 129 ms   129 KB            |
+  | publik | /api/katalog (Google Scholar)       | 7 ms              | 277 ms                     |
+  | penulis| /dashboard/summary (Ringkasan)      | 81 ms  q=94       | 3.303 ms q=5.476           |
+  | penulis| /orders/mine, /manuscripts/mine     | 14-23 ms          | 18-27 ms (stabil)          |
+  | penulis| /wallet, /royalties/mine            | 19-33 ms q=19-37  | 42-59 ms                   |
+  | editor | /dashboard/summary                  | 49 ms  q=61       | 3.206 ms q=5.443           |
+  | editor | /editor/manuscript-pool             | 4 ms              | 185 ms   247 KB            |
+  | admin  | /dashboard/summary                  | 80 ms  q=98       | 13.481 ms q=16.543         |
+  | admin  | /admin/users                        | 9 ms              | 1.867 ms 1,8 MB            |
+  | admin  | /admin/orders                       | 31 ms             | 7.962 ms 11 MB             |
+  | admin  | /admin/manuscripts                  | 45 ms  q=25       | 9.552 ms q=5.407 13 MB     |
+  | admin  | /admin/books                        | 90 ms  q=57       | 22.898 ms q=14.708 28 MB   |
+  | admin  | /admin/book-chapter-projects        | 79 ms  q=56       | 20.108 ms q=13.810 20 MB   |
+  | admin  | /admin/hki                          | 39 ms  q=51       | 8.929 ms q=11.114          |
+  | admin  | /admin/isbn-applications            | 15 ms  q=17       | 3.087 ms q=3.605           |
+  | admin  | /admin/vouchers, voucher-grants     | 5-6 ms q=7-8      | 526-649 ms q=905-1.203     |
+  | admin  | /admin/finance/summary              | 34 ms             | 5.974 ms                   |
+  | admin  | /admin/finance/packages             | 43 ms  q=44       | 8.618 ms q=6.622           |
+  +--------+-------------------------------------+-------------------+----------------------------+
+
+  Endpoint yang dibatasi per pengguna (pesanan saya, naskah saya, dompet, notifikasi) tetap
+  cepat karena datanya tidak ikut membesar. Yang melambat adalah endpoint yang mengambil SEMUA
+  baris (katalog, Book Chapter, seluruh menu admin, Ringkasan).
+
+  Memori puncak per request (data 300x): /admin/books +246 MB, /admin/book-chapter-projects
+  +177 MB, /book-chapter-projects +166 MB, /dashboard/summary admin +126 MB, /books +121 MB.
+  Uji mode produksi (memory_limit 256M) membuktikan /admin/books gagal dengan ERROR 500.
+
+
+4. AKAR MASALAH (U3)
+------------------------------------------------------------------------------------------------
+
+  4.1 N+1 dari atribut tambahan model ($appends)
+      Atribut dihitung untuk SETIAP baris saat diubah ke JSON dan memuat relasinya satu-satu:
+      - Book::editor_name            -> manuscript -> editor, ownerEditor
+      - BookChapter::effective_price, effective_discount -> book;  slot_status -> manuscript
+      Hasil: /admin/books = 7.800x "select books where id = ?" + 6.000x "select users ...".
+      Solusi: eager load (with('chapters.book', 'manuscript.editor', 'ownerEditor')) atau
+      setRelation induk ke anak; aktifkan Model::preventLazyLoading() di lingkungan dev/tes
+      agar N+1 baru langsung ketahuan.
+
+  4.2 N+1 di layanan agregat
+      - Ringkasan (dashboard/summary) & /admin/hki: per pesanan memuat order, manuscripts,
+        manuscript_authors, users; plus 3.300x "select includes_hki from finance_details".
+      - /admin/finance/packages: 3.600x manuscripts + 3.000x books per pesanan.
+      - /admin/isbn-applications: 1.800x users + 900x revisions per surat.
+      - /admin/vouchers & voucher-grants: 3 query nama target per voucher.
+      Solusi: muat sekali dengan whereIn/with lalu petakan di memori; untuk angka Ringkasan
+      gunakan COUNT/SUM di database, bukan memuat semua baris.
+
+  4.3 Tanpa pagination
+      Katalog publik, Book Chapter, artikel, event, direktori penulis/editor dan hampir semua
+      daftar admin mengembalikan SELURUH baris. Laporan keuangan memuat semua pesanan lunas
+      beserta item ke memori (FinanceService::paidOrders).
+      Solusi: paginate (mis. 20-50 per halaman) + filter/pencarian di server; frontend memakai
+      "muat lebih banyak"/nomor halaman. Beranda cukup meminta N buku terbaru (?limit=8).
+      Untuk keuangan: agregasi SQL per periode, atau tabel ringkasan bulanan.
+
+  4.4 Biaya per request
+      Server dev: ~250-350 ms per request walau proses aplikasi hanya 3 ms, karena tanpa
+      OPcache, tanpa config/route cache, APP_DEBUG aktif, dan koneksi PostgreSQL lokal di
+      Windows ~40 ms. Mode produksi + MariaDB: ~25-35 ms per request ringan.
+
+
+5. UJI BEBAN HTTP (U4)
+------------------------------------------------------------------------------------------------
+
+  Satu worker PHP (angka per worker). Median & persentil 95 dalam ms.
+
+  +------------------------------+-----------------------------+--------------------------------+
+  | Endpoint                     | Dev (PostgreSQL, debug)     | Mode produksi + MariaDB 300x   |
+  +------------------------------+-----------------------------+--------------------------------+
+  | /about        c=1            | 3,6 req/dtk  p50 251 p95 399| 37,8 req/dtk  p50 31  p95 34   |
+  | /about        c=10           | 3,9 req/dtk  p50 2.523      | 37,9 req/dtk  p50 262 p95 297  |
+  | /books/{slug} c=1            | 3,3 req/dtk  p50 268        | 34,2 req/dtk  p50 30  p95 44   |
+  | /books/{slug} c=10           | 3,5 req/dtk  p50 2.873      | 31,5 req/dtk  p50 311 p95 395  |
+  | /books?search c=1            | -                           | 29,0 req/dtk  p50 32  p95 50   |
+  | /books (semua) c=1           | 2,9 req/dtk  p50 309        | 1 request = 5,7 dtk (13 MB)    |
+  +------------------------------+-----------------------------+--------------------------------+
+  Tidak ada request gagal pada endpoint ringan. Perkiraan VPS 8 worker: +/- 150-250 req/dtk
+  untuk endpoint ringan, cukup untuk ribuan pengunjung per hari, SELAMA endpoint berat (P1-P3)
+  sudah diperbaiki; satu request /admin/books 20 dtk dapat menahan 1 dari 8 worker.
+
+
+6. FRONTEND (U5)
+------------------------------------------------------------------------------------------------
+
+  6.1 Bundle (vite build)
+  +--------------------------------+-----------+-----------+-------------------------------------+
+  | Berkas                         | Ukuran    | Gzip      | Catatan                             |
+  +--------------------------------+-----------+-----------+-------------------------------------+
+  | index.js (aplikasi utama)      | 1.333 KB  | 369 KB    | 87 halaman di-import langsung;      |
+  |                                |           |           | 0 lazy()                            |
+  | pdf.js (flipbook)              | 431 KB    | 129 KB    | Sudah lazy (hanya saat dibuka)      |
+  | index.css                      | 103 KB    | 16 KB     | Wajar                               |
+  | en.js / ms.js (bahasa)         | 24 KB     | 8 KB      | Sudah lazy                          |
+  +--------------------------------+-----------+-----------+-------------------------------------+
+  Pengunjung publik ikut mengunduh kode seluruh dashboard & admin. Solusi: React.lazy per rute
+  (terutama /dashboard/* dan /admin/*) -> unduhan awal diperkirakan turun 50-70%.
+
+  6.2 Request per halaman (build produksi, API server dev)
+  +--------------------------+-----------+-------------------------------------------------------+
+  | Halaman                  | API calls | Data selesai (dev, server 1 worker = antre)           |
+  +--------------------------+-----------+-------------------------------------------------------+
+  | / (Beranda)              | 9         | 4,3 dtk (about, hero-covers, item, paket, books,      |
+  |                          |           | penulis, editor, artikel, event)                      |
+  | /buku                    | 4         | 2,0 dtk                                               |
+  | /buku/{slug}             | 2         | 0,9 dtk                                               |
+  | /buku-bab                | 2         | 1,0 dtk                                               |
+  | /tentang-kami            | 1         | 0,5 dtk                                               |
+  +--------------------------+-----------+-------------------------------------------------------+
+  Dengan PHP-FPM, 9 request beranda berjalan paralel (~0,1-0,3 dtk). /about diminta di setiap
+  halaman (kontak footer) -> cukup sekali per sesi (cache di klien) atau header Cache-Control.
+
+  6.3 Gambar
+  - 194 berkas unggahan = 24,5 MB; 13 berkas > 500 KB; terbesar 3,1 MB.
+  - 10 sampul buku aktif = 10,9 MB (rata-rata 1,1 MB; contoh 1410x2250 px PNG) padahal
+    ditampilkan +/- 200-300 px. Beranda (rak buku hero + kartu) memuat hampir semuanya:
+    di 4G 10 Mbps +/- 9 detik hanya untuk gambar.
+  - Solusi: saat unggah, buat versi kecil (mis. lebar 400 px & 800 px, WebP/JPEG kualitas 80)
+    dan pakai di kartu/hero (srcset); berkas asli hanya untuk halaman detail/unduhan.
+    Server butuh ekstensi GD/Imagick (sudah dibutuhkan untuk sertifikat).
+  - public/cover/*.png (10,5 MB) adalah sisa data dummy, tidak dipakai halaman mana pun.
+
+
+7. REKOMENDASI & PRIORITAS
+------------------------------------------------------------------------------------------------
+
+  +---+-------------------------------------------------------------+----------+-------------+
+  | # | Tindakan                                                    | Dampak   | Usaha       |
+  +---+-------------------------------------------------------------+----------+-------------+
+  | 1 | Perkecil sampul & foto saat unggah + backfill gambar lama   | Tinggi   | Sedang      |
+  | 2 | Hapus N+1: eager load untuk Book/BookChapter appends,       | Sangat   | Rendah-     |
+  |   | Ringkasan, HKI, keuangan, ISBN, voucher; preventLazyLoading | tinggi   | Sedang      |
+  | 3 | Pagination + filter server di katalog, Book Chapter, dan    | Sangat   | Sedang-     |
+  |   | semua daftar admin (backend + frontend)                     | tinggi   | Tinggi      |
+  | 4 | Beranda: minta data terbatas (?limit) bukan semua buku      | Tinggi   | Rendah      |
+  | 5 | Ringkasan & keuangan: agregasi SQL (COUNT/SUM) + cache      | Tinggi   | Sedang      |
+  |   | singkat (mis. 5 menit)                                      |          |             |
+  | 6 | Code-splitting rute (React.lazy) untuk dashboard & admin    | Sedang   | Rendah      |
+  | 7 | Produksi: OPcache on, config/route/event cache (deploy.sh   | Tinggi   | Rendah      |
+  |   | sudah), APP_DEBUG=false, CACHE_STORE=redis/file bila ramai  |          |             |
+  | 8 | Indeks tambahan sesuai filter baru (status+created_at pada  | Sedang   | Rendah      |
+  |   | orders/manuscripts, is_active+created_at pada books)        |          |             |
+  | 9 | Cache /about di klien; Cache-Control untuk data publik      | Rendah   | Rendah      |
+  +---+-------------------------------------------------------------+----------+-------------+
+
+  Target setelah perbaikan (data 300x): semua endpoint < 300 ms, < 30 query per request,
+  < 64 MB memori per request, beranda < 1,5 MB total unduhan pada kunjungan pertama.
+
+
+8. CARA MENGULANG UJI
+------------------------------------------------------------------------------------------------
+
+  1. Uji fungsional dulu: php artisan test (harus lulus).
+  2. Database uji terpisah (JANGAN database dev/produksi): buat database MariaDB/MySQL kosong,
+     jalankan migrate dengan DB_* sebagai variabel lingkungan, isi data besar (salin data
+     contoh berkali-kali atau factory).
+  3. Ukur tiap endpoint di dalam transaksi yang di-rollback; catat waktu, jumlah query, ukuran,
+     memori (memory_reset_peak_usage()).
+  4. Uji beban di staging VPS (nginx + PHP-FPM), contoh:
+       ab -n 500 -c 20 -H "Accept: application/json" https://DOMAIN/api/v1/books/<slug>
+     Lakukan di luar jam ramai; jangan ke endpoint yang menulis data.
+  5. Frontend: npm run build (lihat ukuran chunk) dan Lighthouse di Chrome (mode HP).
+  6. Bandingkan dengan tabel di laporan ini.
+
+9. STATUS PERBAIKAN (6 Oktober 2026)
+------------------------------------------------------------------------------------------------
+
+  Rekomendasi #1 (gambar), #2 (N+1), #3 (pagination) dan #4 (beranda) SELESAI.
+  #5-#9 belum dikerjakan.
+
+  9.1 Gambar
+  - Setiap unggahan gambar (sampul, foto profil/bio, paket, artikel, Tentang Kami, spanduk
+    event) kini dibuatkan versi WebP lebar 400 & 900 px di samping berkas asli
+    ("abc.png" -> "abc.w400.webp", "abc.w900.webp"); berkas asli TIDAK diubah.
+    Kode: app/Support/ResponsiveImages.php; perintah: php artisan images:responsive
+    (sudah dijalankan untuk 24 gambar lama; deploy.sh menjalankannya otomatis).
+  - Frontend memakai srcset (BookCover, kartu artikel/event/paket, avatar, Tentang Kami,
+    punggung buku di hero); bila versi kecil tidak ada, otomatis kembali ke berkas asli.
+  - Hasil: 10 sampul aktif 10,9 MB -> 208 KB (layar biasa) / 561 KB (layar retina);
+    contoh satu sampul 3,1 MB -> 29 KB. Halaman detail buku memakai versi 900 px.
+  - Butuh ekstensi PHP gd (dengan WebP) di server; tanpa gd situs tetap memakai gambar asli.
+
+  9.2 Query N+1 (data 300x, sebelum -> sesudah)
+  +--------------------------------------+-------------------------+--------------------------+
+  | Endpoint                             | Query                   | Waktu                    |
+  +--------------------------------------+-------------------------+--------------------------+
+  | /book-chapter-projects               | 12.006 -> 8             | 16,7 dtk -> 7,4 dtk      |
+  | /dashboard/summary (penulis)         | 5.476 -> 74             | 3,3 dtk -> 0,43 dtk      |
+  | /dashboard/summary (editor)          | 5.443 -> 50             | 3,2 dtk -> 0,40 dtk      |
+  | /dashboard/summary (admin)           | 16.543 -> 56            | 13,5 dtk -> 3,2 dtk      |
+  | /admin/books                         | 14.708 -> 11            | 22,9 dtk -> 12,4 dtk     |
+  | /admin/book-chapter-projects         | 13.810 -> 12            | 20,1 dtk -> 10,0 dtk     |
+  | /admin/manuscripts                   | 5.407 -> 12             | 9,6 dtk -> 6,8 dtk       |
+  | /admin/hki                           | 11.114 -> 20            | 8,9 dtk -> 2,6 dtk       |
+  | /admin/isbn-applications             | 3.605 -> 10             | 3,1 dtk -> 1,2 dtk       |
+  | /admin/finance/packages              | 6.622 -> 24             | 8,6 dtk -> 4,5 dtk       |
+  | /admin/vouchers, voucher-grants      | 905 / 1.203 -> 5 / 4    | 0,5-0,6 dtk -> 0,15 dtk  |
+  +--------------------------------------+-------------------------+--------------------------+
+  Cara: Model::automaticallyEagerLoadRelationships() (AppServiceProvider) + pemuatan sekali
+  jalan di HkiService, FinanceService, IsbnApplicationController, VoucherService.
+  Pengaman: tests/Feature/QueryCountTest.php gagal bila jumlah query ikut bertambah
+  mengikuti jumlah baris.
+  Sisa waktu pada daftar besar kini karena SEMUA baris dikirim sekaligus (13-28 MB JSON):
+  itu ranah rekomendasi #3 (pagination).
+
+  9.3 Pagination & filter di server (7 Oktober 2026)
+  - Semua daftar besar kini per halaman: ?page=N&per_page=M (maks 100), respons
+    { data: [...], meta: { current_page, last_page, per_page, total, ... } }.
+    Helper: app/Http/Controllers/Concerns/PaginatesResults.php (dipakai semua controller);
+    komponen frontend src/components/ui/Pagination.tsx + src/lib/pagination.ts.
+  - Pencarian/filter/urutan yang dulu dikerjakan di browser dipindah ke server:
+    katalog (sudah), Book Chapter (cari, kategori, urutan tenggat/harga/slot),
+    artikel (cari, kategori; sorotan terbaru & terpopuler di meta.highlights),
+    penulis/editor (cari, A-Z/Z-A), pesanan admin (tab kategori + jumlah per tab,
+    status, urutan), naskah, buku, proyek Book Chapter, user (cari, peran),
+    royalti, event, penarikan saldo, Terbitkan Naskah, HKI (status + cari),
+    Konten Sosmed (pemilih buku), tab Diskon (jenis, status, cari; centang tersimpan
+    lintas halaman). Daftar antrean kecil (permintaan peran & artikel "pending",
+    voucher, hak voucher, pool naskah) tidak diubah.
+  - Beranda meminta secukupnya: 4 buku, 3 artikel, 4 event, 4 penulis, 4 editor.
+  - Tes: tests/Feature/PaginationTest.php; seluruh 652 tes lulus.
+
+  Data 300x, sebelum -> sesudah (waktu proses & ukuran respons):
+  +--------------------------------------+---------------------------+------------------------+
+  | Endpoint                             | Waktu                     | Ukuran                 |
+  +--------------------------------------+---------------------------+------------------------+
+  | /books (katalog & beranda)           | 6.608 ms -> 73 ms         | 12.982 KB -> 51 KB     |
+  | /book-chapter-projects               | 16.710 ms -> 303 ms       | 11.894 KB -> 179 KB    |
+  | /articles, /events                   | 174-241 ms -> 10-57 ms    | 548-913 KB -> 22-31 KB |
+  | /admin/books                         | 22.898 ms -> 27 ms        | 27.946 KB -> 43 KB     |
+  | /admin/book-chapter-projects         | 20.108 ms -> 261 ms       | 19.656 KB -> 352 KB    |
+  | /admin/manuscripts                   | 9.552 ms -> 16 ms         | 13.377 KB -> 16 KB     |
+  | /admin/orders                        | 7.962 ms -> 79 ms         | 11.105 KB -> 32 KB     |
+  | /admin/users                         | 1.867 ms -> 17 ms         | 1.840 KB -> 8 KB       |
+  | /admin/royalties                     | 1.679 ms -> 36 ms         | 1.186 KB -> 10 KB      |
+  | /admin/isbn-applications             | 3.087 ms -> 35 ms         | 1.725 KB -> 30 KB      |
+  | /admin/hki                           | 8.929 ms -> 2.560 ms      | 1.164 KB -> 10 KB      |
+  | /admin/social/books                  | 685 ms -> 14 ms           | 4.695 KB -> 23 KB      |
+  +--------------------------------------+---------------------------+------------------------+
+  /admin/books yang dulu ERROR 500 (kehabisan memori) kini normal.
+  Masih lambat (ranah rekomendasi #5, agregasi SQL): Ringkasan admin 3,2 dtk, HKI 2,6 dtk
+  (daftar dihitung penuh di memori sebelum dipotong), Keuangan 1,3-6,5 dtk, Pengaturan
+  Pool Naskah 2,2 dtk.
+
+================================================================================================
+                                     -- AKHIR LAPORAN --
+================================================================================================

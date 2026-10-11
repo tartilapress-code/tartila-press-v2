@@ -107,6 +107,13 @@ Kebutuhan:
 - Nginx, Composer, git
 - Ekstensi PHP: `mbstring`, `xml`, `curl`, `zip`, dan **satu** driver database:
   `pdo_mysql` (MySQL/MariaDB) atau `pdo_pgsql` (PostgreSQL)
+- Ekstensi `gd` sangat disarankan: dipakai fitur sertifikat otomatis untuk
+  mengubah gambar templat yang diunggah admin menjadi JPG dan memperkecilnya
+  (tanpa `gd`, hanya JPG, atau PNG tanpa transparansi, yang diterima), dan
+  untuk membuat versi kecil (WebP 400/900 px) setiap gambar unggahan supaya
+  halaman ringan. Tanpa `gd` situs tetap jalan tetapi memakai gambar asli yang
+  besar. Setelah `gd` terpasang, jalankan sekali `php artisan images:responsive`
+  untuk gambar yang sudah ada (deploy.sh juga menjalankannya).
 
 Tentukan domain dan versi PHP yang SUDAH terpasang (dipakai perintah-perintah
 berikut; ulangi kalau sesi SSH terputus):
@@ -128,7 +135,7 @@ sudo update-alternatives --set php /usr/bin/php8.2
 Lihat ekstensi mana yang belum ada:
 
 ```bash
-for m in pdo_mysql pdo_pgsql mbstring xml curl zip; do php -m | grep -qix "$m" && echo "ada     $m" || echo "belum   $m"; done
+for m in pdo_mysql pdo_pgsql mbstring xml curl zip gd; do php -m | grep -qix "$m" && echo "ada     $m" || echo "belum   $m"; done
 ```
 
 (`pdo_mysql` dan `pdo_pgsql` tidak perlu dua-duanya; cukup yang sesuai pilihan
@@ -535,10 +542,12 @@ Tanpa domain (hanya IP), lewati bagian ini dan tetap pakai `http://IP:8080`.
 
 ## 7. Jadwal otomatis (cron)
 
-Ada dua tugas harian (mengembalikan proyek Book Chapter yang kedaluwarsa dan
-mengonfirmasi otomatis pengiriman buku). Laravel hanya menjalankannya kalau
-`schedule:run` dipanggil tiap menit. Baris ini **menambah**; baris website lama
-(kalau ada) tetap:
+Ada tugas harian (mengembalikan proyek Book Chapter yang kedaluwarsa dan
+mengonfirmasi otomatis pengiriman buku) dan tugas tiap 10 menit
+(`orders:cancel-unpaid`: membatalkan pesanan yang belum mengunggah bukti
+transfer dalam 1×24 jam sesuai invoice). Laravel hanya menjalankannya kalau
+`schedule:run` dipanggil tiap menit — **tanpa cron ini pesanan tidak dibatalkan
+otomatis**. Baris ini **menambah**; baris website lama (kalau ada) tetap:
 
 ```bash
 (crontab -l 2>/dev/null; echo "* * * * * cd /var/www/tartila-press-v2/tartila-press_backend && php artisan schedule:run >> /dev/null 2>&1") | crontab -
@@ -584,6 +593,13 @@ php artisan config:cache
 Biarkan `REQUIRE_VERIFIED_EMAIL=false` sampai email terbukti terkirim; kalau
 `true`, akun yang emailnya belum diverifikasi tidak bisa membuat pesanan,
 mendaftar event, atau menulis artikel/komentar.
+
+Email notifikasi juga memakai SMTP yang sama: pesanan masuk dikirim ke
+`ORDER_NOTIFICATION_EMAIL` (kosong = email kontak di halaman Tentang Kami), dan setiap
+update naskah dikirim ke email penulis serta editornya. Email dikirim langsung
+setelah halaman selesai (tanpa worker antrean); kalau SMTP gagal, aksi user tetap
+berhasil dan kegagalannya tercatat di `storage/logs/laravel.log`. Ganti juga
+`APP_NAME="Tartila Press"` dan `MAIL_FROM_ADDRESS` supaya pengirim email benar.
 
 ---
 
@@ -708,6 +724,63 @@ Laravel, build frontend, dan memuat ulang PHP-FPM (tanpa mengganggu website lain
 
 ---
 
+## 12. Tartila Book (situs baca buku, terpisah)
+
+Tartila Book adalah situs React kedua (`tartila-book-frontend`) yang memakai
+**backend, database, dan akun yang sama** dengan Tartila Press. Hanya tampilannya
+yang terpisah, jadi cukup satu backend di server.
+
+**Yang perlu disiapkan**
+
+1. Nama (sub)domain baru, mis. `book.tartilapress.com` — tambahkan *A record* ke IP server.
+2. Backend sudah terbaru (`git pull`) dan migrasinya jalan: `bash deploy/deploy.sh`
+   (membuat tabel `reader_*`). Cron di langkah 7 sudah cukup; tugas
+   `reader:cancel-unpaid` ikut berjalan lewat `schedule:run`.
+3. Batas unggah ebook (admin): di repo sudah dinaikkan ke 210 MB
+   (`deploy/php-fpm-pool-v2.conf` dan `deploy/nginx-tartila-press-v2.conf`). Di server
+   yang sudah terpasang, salin ulang kedua berkas itu ke tempatnya lalu
+   `sudo systemctl reload php*-fpm nginx`. Validasi Laravel membatasi ebook 200 MB.
+
+**Build frontend**
+
+```bash
+cd /var/www/tartila-press-v2/tartila-book-frontend
+cat > .env.production.local <<EOF
+VITE_API_URL=https://$DOMAIN_PRESS/api/v1
+VITE_PRESS_URL=https://$DOMAIN_PRESS
+EOF
+npm ci
+npx vite build
+```
+
+`DOMAIN_PRESS` = alamat Tartila Press (API-nya dipakai bersama). Berkas
+`.env.production.local` itu juga tanda bagi `deploy.sh` untuk ikut membangun
+Tartila Book pada pembaruan berikutnya.
+
+**Nginx + HTTPS**
+
+```bash
+cd /var/www/tartila-press-v2
+sed -e "s|__LISTEN__|80|g" -e "s|__SERVER_NAME__|$DOMAIN_BOOK|g" deploy/nginx-tartila-book.conf | sudo tee /etc/nginx/sites-available/tartila-book > /dev/null
+sudo ln -sf /etc/nginx/sites-available/tartila-book /etc/nginx/sites-enabled/tartila-book
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d $DOMAIN_BOOK
+```
+
+**Setelah online**
+
+1. Masuk sebagai admin di Tartila Book → menu **Taksonomi** (isi bidang pendidikan,
+   kategori, genre) → **Paket langganan** → **Royalti & pengaturan** (persen pembelian
+   dan biaya per bacaan) → **Buku & ebook** (tambah buku terbit, klasifikasi, harga).
+   **Ebook tidak diunggah di Tartila Book**: unggah sekali di Tartila Press (Admin → Buku →
+   *Ebook lengkap*, format PDF); Tartila Book membaca berkas yang sama.
+2. Rekening pembayaran memakai daftar **Metode Pembayaran** di Tartila Press.
+3. Akun pembaca = akun Tartila Press (pendaftaran dan lupa kata sandi dialihkan ke sana).
+   Token login Tartila Book disimpan terpisah, jadi masuk di satu situs tidak otomatis
+   masuk di situs lain.
+
+---
+
 ## Reset total (hapus semua milik v2, mulai dari awal)
 
 Dipakai kalau pemasangan v2 sudah terlanjur jalan sebagian dan Anda ingin
@@ -772,6 +845,14 @@ seterusnya seperti biasa.
 - **Build frontend "Killed"** — memori kurang. Tambah swap 2 GB lalu ulangi:
   `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`
 - **Build frontend menolak versi Node** — `node -v` harus 20.19+ (lihat langkah 1).
+- **Sertifikat (PDF) gagal dibuat atau unggah gambar templat ditolak** — lihat
+  `storage/logs/laravel-*.log`. Pastikan `php -m | grep gd` menampilkan `gd`
+  (untuk PNG transparan atau gambar besar) dan `memory_limit` PHP-FPM minimal
+  256M (sudah diatur di pool `tartila-v2`). Font sertifikat ada di
+  `tartila-press_backend/resources/fonts/unifont`; metrik font dibuat otomatis
+  saat sertifikat pertama dibuat dan disimpan di folder itu juga (ikut `.gitignore`),
+  jadi folder itu sebaiknya bisa ditulis user PHP-FPM -- kalau tidak, sertifikat
+  tetap jadi tetapi sedikit lebih lambat.
 - **`git pull` menolak karena `package-lock.json` berubah** —
   `git checkout -- tartila-press-frontend/package-lock.json` (gunakan `npm ci`,
   bukan `npm install`, di server).

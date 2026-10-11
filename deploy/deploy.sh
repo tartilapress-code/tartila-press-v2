@@ -42,6 +42,8 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan event:cache
+# Versi kecil (WebP) gambar unggahan yang belum punya; aman diulang.
+php artisan images:responsive || true
 
 echo "==> 4/5 Frontend: build"
 cd "$FRONTEND"
@@ -50,6 +52,16 @@ npm ci
 # yang masih gagal karena beberapa berkas lama yang belum selesai (WIP).
 # Hasil situsnya sama.
 npx vite build
+
+# Tartila Book (situs baca buku): dibuild bila foldernya ada dan alamat API-nya
+# sudah diatur (tartila-book-frontend/.env.production.local, lihat DEPLOY.md §12).
+BOOK_FRONTEND="$ROOT/tartila-book-frontend"
+if [ -d "$BOOK_FRONTEND" ] && [ -f "$BOOK_FRONTEND/.env.production.local" ]; then
+    echo "==> 4b/5 Tartila Book: build"
+    cd "$BOOK_FRONTEND"
+    npm ci
+    npx vite build
+fi
 
 echo "==> 5/5 Memuat ulang PHP-FPM (membersihkan opcache)"
 PHPVER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"
