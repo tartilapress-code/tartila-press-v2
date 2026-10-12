@@ -1,0 +1,273 @@
+################################################################################################
+#                                                                                              #
+#        LAPORAN UJI BEBAN & KAPASITAS: TARTILA PRESS + TARTILA BOOK DIAKSES BERSAMAAN         #
+#                                                                                              #
+#        Tanggal   : 12-13 Oktober 2026                                                        #
+#        Cakupan   : API Laravel yang dipakai kedua situs, MariaDB, perhitungan kapasitas VPS  #
+#        Pelengkap : docs/SRS-SDD-Tartila-Press.txt (Lampiran F dan H),                        #
+#                    docs/Laporan-Uji-Performa-2026-10-06.txt (uji data 300x sebelumnya)       #
+#        Alat uji  : deploy/loadtest/ (loadtest.mjs, seed.sql, qprofile.php)                   #
+#                                                                                              #
+################################################################################################
+
+
+1. RINGKASAN
+------------------------------------------------------------------------------------------------
+
+  Target yang diminta: Tartila Press 10.000 pengguna per hari dan Tartila Book 1.000.000 pengguna
+  per hari, diakses bersamaan, dengan data yang sudah banyak.
+
+  Kesimpulan:
+  +----+---------------------------------------------------------------------------------------+
+  | 1  | Tartila Press (10.000 pengguna/hari) RINGAN: puncak sekitar 30 request/dtk, biaya     |
+  |    | sekitar 15 ms CPU per request = kurang dari 1 core. Tidak menjadi penentu spesifikasi.|
+  | 2  | Tartila Book (1 juta pengguna/hari) adalah beban utama: perkiraan puncak 1.500-3.000  |
+  |    | request/dtk dan 15.000-30.000 pembaca bersamaan. Dengan kode sekarang butuh sekitar   |
+  |    | 50-90 vCPU, TIDAK mungkin di satu VPS biasa.                                          |
+  | 3  | Dengan 4 perubahan arsitektur (bagian 6) kebutuhan turun menjadi sekitar 8-16 vCPU:   |
+  |    | satu VPS 16 vCPU / 32 GB RAM / 500 GB NVMe + CDN untuk PDF, atau dipisah app + DB.    |
+  | 4  | Untuk Tartila Press saja ditambah Tartila Book sampai sekitar 20.000 pengguna/hari:   |
+  |    | VPS 4 vCPU / 8 GB RAM / 160 GB SSD sudah cukup.                                       |
+  | 5  | Uji menemukan 5 masalah skala NYATA di kode; 4 sudah diperbaiki (bagian 4), 1 terbuka |
+  |    | (laporan Keuangan/Ringkasan admin Press gagal pada +/- 25.000 pesanan lunas).          |
+  +----+---------------------------------------------------------------------------------------+
+
+  BATASAN PENTING: angka kapasitas untuk 1 juta pengguna adalah EKSTRAPOLASI dari biaya CPU per
+  request yang DIUKUR, bukan hasil uji dengan 1 juta pengguna sungguhan. Mesin uji = laptop
+  Windows (4 core / 8 thread), bukan Linux + Nginx + PHP-FPM; di Linux biaya per request biasanya
+  lebih rendah, jadi angka di sini cenderung KONSERVATIF. Ulangi uji di VPS staging sebelum membeli
+  spesifikasi final (cara di bagian 9).
+
+
+2. LINGKUNGAN & METODE
+------------------------------------------------------------------------------------------------
+
+  Mesin uji   : Intel i7-7700HQ (4 core, 8 thread), 12 GB RAM, Windows 11, PHP 8.2.12, MariaDB 10.4.
+  Server web  : Apache + mod_php (48 thread = setara pm.max_children 48), OPcache aktif tanpa JIT,
+                validate_timestamps=0, route/config/event cache, APP_DEBUG=false, BCRYPT_ROUNDS=12.
+  Database    : MariaDB 10.4, buffer pool 3 GB, innodb_flush_log_at_trx_commit=1 (sama dengan
+                produksi), koneksi PHP persisten. CACHE_STORE/SESSION/QUEUE = database (sama dengan
+                template produksi deploy/backend.env.example).
+  Data uji    : 1.100.000 pengguna (100.000 Press + 1.000.000 pembaca), 5.000 buku, 20.000 naskah,
+                60.000 pesanan Press, 300.000 notifikasi; 3.000 buku Tartila Book, 400.000 pesanan
+                Tartila Book, 3 juta suka, 3 juta simpan, 600 ribu komentar, 1,5 juta penanda, 3,9
+                juta progres baca, 19,8 juta bacaan-halaman (kira-kira satu hari ramai). Total 6,1 GB.
+                Buku populer di id kecil (sebaran miring) supaya baris panas ikut teruji.
+  Pembangkit  : loadtest.mjs (Node): sesi pengguna datang menurut proses Poisson; tiap sesi menjalankan
+                langkah seperti peramban (grup request paralel + waktu berpikir). Waktu berpikir
+                dipercepat x0,1 supaya beban tinggi bisa dicapai (biaya per request tidak berubah).
+  Sesi Press  : Beranda (9 request paralel) -> katalog (4) -> cari -> detail buku (2); 30% pengguna
+                masuk: login, ringkasan, pesanan, naskah, dompet, royalti.
+  Sesi Book   : (15% login) katalog+rak (4) -> detail (2) -> buka PDF (3, Range) -> rata-rata 12 halaman,
+                tiap halaman: POST /reads + PUT /progress (+ Range tiap 4 halaman) -> kadang suka/simpan/
+                penanda/komentar. Rata-rata 36 request per sesi, sesi sekitar 5 menit pada kecepatan nyata.
+  Admin       : sesi pemantauan (pesanan, buku, royalti, pesanan Tartila Book).
+  Ukuran      : latensi p50/p95/p99, error (5xx, 429, timeout), CPU server (Apache/PHP + MariaDB),
+                memori, Mbps, serta profil query per request (qprofile.php).
+
+
+3. HASIL UJI BEBAN
+------------------------------------------------------------------------------------------------
+
+  3.1 Tangga beban (satu mesin, 48 worker PHP, CPU juga dipakai pembangkit beban & MariaDB)
+  +--------------------------------+--------+--------+---------+--------------+------------------+
+  | Skenario                       | req/dtk| error  | CPU     | ms-CPU/req   | puncak sesi      |
+  |                                |        |        | (core)  | (server+DB)  | bersamaan        |
+  +--------------------------------+--------+--------+---------+--------------+------------------+
+  | Press saja, 1 sesi/dtk         | 19     | 0%     | 0,29    | 15,1         | 7                |
+  | Press saja, 4 sesi/dtk         | 67     | 0%     | 1,02    | 15,3         | 22               |
+  | Book saja, 4 sesi/dtk          | 116    | 0,07%  | 4,2     | 36           | 120              |
+  | Campuran 1:100 (Book 4 + Press | 116    | 0%     | 4,6     | 39,6         | 104              |
+  |  0,04 + admin 0,1)             |        |        |         |              |                  |
+  | Campuran promo (Book 4 + Press | 144    | 0,01%  | 6,5     | 45,2         | 194              |
+  |  2 + admin 0,2)                |        |        |         |              |                  |
+  | Book saja, 8 sesi/dtk (JENUH)  | 150    | 0,04%  | 6,8     | 45           | 346              |
+  +--------------------------------+--------+--------+---------+--------------+------------------+
+  Titik jenuh mesin uji sekitar 150 req/dtk (semua core terpakai; latensi p50 naik ke 1,3-1,5 dtk
+  tetapi hampir tanpa error setelah perbaikan bagian 4). Press murah (15 ms/request); Book mahal
+  (36-45 ms/request) karena tiap halaman memicu 2 request tulis + Range PDF lewat PHP.
+
+  3.2 Latensi saat beban sedang (Campuran 1:100, 116 req/dtk, tanpa antrean)
+  +----------------------------------------+------+------+------+---------------------------------+
+  | Request                                | p50  | p95  | p99  | Catatan                         |
+  +----------------------------------------+------+------+------+---------------------------------+
+  | Book POST /reads (catat bacaan)        | 93   | 319  | 419  | 5-9 query tulis                 |
+  | Book PUT /progress                     | 74   | 269  | 372  |                                 |
+  | Book GET katalog (24 buku)             | 174  | 407  | 572  | terberat di sisi pembaca        |
+  | Book GET detail buku                   | 77   | 233  | 325  |                                 |
+  | Book GET rak saya                      | 92   | 303  | 437  |                                 |
+  | Book GET /file (Range 256 KB)          | 58   | 184  | 334  | lewat PHP (bandwidth terbesar)  |
+  | Book POST login (bcrypt cost 12)       | 48   | 387  | 472  |                                 |
+  | Press beranda (9 request paralel)      | 19-55| 41-110| -   | per request                     |
+  | Press katalog / detail / dashboard     | 63 / 33 / 64 | 113 / 85 / 178 |  | data 5.000 buku        |
+  | Admin pesanan Press / Tartila Book     | 1.479 / 824 | 2.532 / 2.251 | | 60k / 400k pesanan     |
+  | Admin royalti Tartila Book (1 hari)    | 975  | 1.768|  -   | sebelumnya 58 detik             |
+  +----------------------------------------+------+------+------+---------------------------------+
+  Semua jalur pembaca dan pengunjung Press di bawah 0,6 dtk (p99) pada beban sedang.
+
+  3.3 Trafik data: 244 MB per 60 dtk pada 116 req/dtk = 32 Mbps, hampir semuanya potongan PDF
+      (Range 256 KB) dan kira-kira 1,1 MB per sesi pembaca. Pembaca nyata (PDF.js) sering memuat
+      lebih banyak: pakai 2-5 MB per sesi untuk perencanaan.
+
+
+4. TEMUAN & PERBAIKAN (data besar)
+------------------------------------------------------------------------------------------------
+
+  +----+----------------------------------------------+------------------------------------------+
+  | No | Temuan                                       | Status                                   |
+  +----+----------------------------------------------+------------------------------------------+
+  | T1 | Jumlah suka/simpan/komentar dihitung dengan  | DIPERBAIKI. Penghitung disimpan di       |
+  |    | subquery COUNT (join users) di tiap katalog, | reader_books (migrasi 2026_10_26).       |
+  |    | detail, rak: detail 130 ms, rak 112-215 ms,  | Detail 14 ms, rak 21 ms, urut disukai    |
+  |    | urut "disukai" 12,4 detik, "populer" 1,8 dtk | 0,10 dtk, populer 0,06 dtk               |
+  | T2 | Laporan royalti Tartila Book menghitung dari | DIPERBAIKI. Tabel reader_daily_reads     |
+  |    | reader_page_reads (20 juta baris): 58 detik  | (migrasi 2026_10_27) + read_events;      |
+  |    | per hari; royalti Press admin 6,8 dtk; dompet| laporan 0,4 dtk, royalti Press 0,12 dtk  |
+  |    | & Royalti Saya ikut lambat                   | pembagian penulis hanya untuk 1 halaman  |
+  | T3 | Pencatatan bacaan: deadlock InnoDB pada baris| DIPERBAIKI. Urutan kunci tetap (halaman  |
+  |    | panas (4-5% request 500 saat jenuh)          | terurut), pembaruan buku sekali per      |
+  |    | dan kehabisan port ephemeral Windows (artefak| panggilan, ulang 3x saat deadlock; error |
+  |    | uji, bukan masalah Linux)                    | saat jenuh turun ke 0,04%                |
+  | T4 | Migrasi 2026_10_22 (riwayat proses) GAGAL di | DIPERBAIKI. Nama indeks dipendekkan.     |
+  |    | MySQL/MariaDB (nama indeks > 64 karakter)    | Hampir pasti menggagalkan deploy VPS     |
+  | T5 | Keuangan, Ringkasan admin, HKI, rincian paket| SEBAGIAN. Arus kas & grafik omzet kini   |
+  |    | memuat SEMUA pesanan lunas ke memori: 45.000 | ringan (ringkasan Keuangan 11 -> 4,4 dtk; |
+  |    | pesanan = 9,5 dtk dan 480 MB (batas 256 MB   | omzet bulan ini lewat SQL; Tartila Book  |
+  |    | -> ERROR 500). Ringkasan admin 500; Keuangan | diringkas per hari per rekening).        |
+  |    | ringkasan 4,4 dtk. Batas aman +/- 24.000     | TERBUKA: Ringkasan admin (hitungan HKI), |
+  |    | pesanan lunas                                | tab paket/buku/HKI. Perlu agregasi SQL   |
+  | T6 | Admin pengguna 1,1 juta: 1,1 dtk (COUNT +    | INFO. Wajar; tambah indeks/cari bila    |
+  |    | urut nama)                                   | pengguna > 1 juta                        |
+  +----+----------------------------------------------+------------------------------------------+
+  Catatan T5: pesanan Press 60.000 setara sekitar 8-12 bulan jika 3% pengguna harian membeli
+  (10.000 pengguna/hari). Jadi perbaikan T5 harus dijadwalkan sebelum tahun pertama berakhir.
+
+
+5. PROYEKSI BEBAN (rumus bisa diganti angkanya)
+------------------------------------------------------------------------------------------------
+
+  Asumsi: "per hari" = pengguna unik per hari; jam puncak = 15% sesi harian; lonjakan 5 menit = 2x
+  rata-rata jam puncak; sesi Press 25 request, sesi Book 36 request (12 halaman, bagian 2).
+  +--------------------------------------+------------------------+------------------------------+
+  | Besaran                              | Tartila Press          | Tartila Book                 |
+  +--------------------------------------+------------------------+------------------------------+
+  | Sesi per hari                        | 10.000                 | 1.000.000                    |
+  | Request per hari                     | 250 ribu               | 36 juta                      |
+  | Sesi per detik, jam puncak           | 0,42                   | 41,7                         |
+  | Request/dtk, jam puncak (rata-rata)  | 10                     | 1.500                        |
+  | Request/dtk, lonjakan 5 menit        | 21-31                  | 3.000                        |
+  | Pengguna bersamaan (sesi aktif)      | 25-75                  | 15.000 (30.000 lonjakan)     |
+  | Penulisan DB (bacaan-halaman)/dtk    | -                      | 500 (jam puncak)             |
+  | Pertumbuhan reader_page_reads        | -                      | 12 juta baris/hari = 2,2 GB  |
+  |                                      |                        | /hari (185 byte/baris diukur)|
+  | Unduh PDF (2-5 MB/sesi)              | -                      | 2-5 TB/hari; puncak 400-900  |
+  |                                      |                        | Mbps                         |
+  +--------------------------------------+------------------------+------------------------------+
+  Pada jam puncak Press hanya 2% dari trafik; spesifikasi ditentukan oleh Tartila Book.
+
+
+6. KAPASITAS CPU: KODE SEKARANG vs SETELAH OPTIMASI
+------------------------------------------------------------------------------------------------
+
+  Core terpakai = request/dtk x ms-CPU per request / 1000; core yang disediakan = / 0,6
+  (utilisasi aman 60%). ms-CPU diukur: Press 15 ms, Book 20 ms (beban ringan) sampai 36-45 ms
+  (mendekati jenuh, Windows). "Perkiraan Linux" = 0,6 x angka Windows (BELUM terbukti).
+
+  +----------------------------------+-----------+-------------+--------------+------------------+
+  | Profil                           | req/dtk   | ms-CPU/req  | core terpakai| core disediakan  |
+  |                                  | (puncak)  |             |              | (utilisasi 60%)  |
+  +----------------------------------+-----------+-------------+--------------+------------------+
+  | A. Press 10.000/hari saja        | 31        | 15          | 0,5          | 1 (pakai 2)      |
+  | B. Book 1 juta/hari, kode skrng  | 1.500     | 36          | 54           | 90               |
+  |    (konservatif, Windows)        | 3.000     | 36          | 108          | 180              |
+  | C. Book 1 juta/hari, kode skrng  | 1.500     | 22          | 33           | 55               |
+  |    (perkiraan Linux)             |           |             |              |                  |
+  | D. Book setelah optimasi 1-3     | 290       | 20          | 5,8          | 10 (19 lonjakan) |
+  | E. D + Octane/FrankenPHP (2,5x)  | 290       | 8           | 2,3          | 4 (8 lonjakan)   |
+  +----------------------------------+-----------+-------------+--------------+------------------+
+  Profil B-C menunjukkan: dengan kode sekarang 1 juta pengguna/hari tidak muat di satu VPS.
+
+  Optimasi yang menurunkan B menjadi D (urut dampak, belum dikerjakan kecuali disebut):
+  +----+-------------------------------------------------------------+-------------+-------------+
+  | #  | Tindakan                                                    | Request PHP | Usaha       |
+  |    |                                                             | per sesi    |             |
+  +----+-------------------------------------------------------------+-------------+-------------+
+  | O1 | Kirim bacaan + posisi berkelompok: satu POST tiap 30-60 dtk | 36 -> 18    | Rendah      |
+  |    | atau tiap 10 halaman dan saat tab ditutup (gabungkan        |             | (frontend + |
+  |    | /progress ke /reads). Aplikasi Android memakai cara sama    |             | 1 endpoint) |
+  | O2 | PDF TIDAK lewat PHP: URL bertanda tangan sekali per sesi,   | 18 -> 10    | Sedang      |
+  |    | berkas dilayani Nginx (X-Accel-Redirect) atau object        |             |             |
+  |    | storage + CDN; Range tidak menyentuh PHP                    |             |             |
+  | O3 | Cache publik: katalog, filter, paket (Nginx microcache 30   | 10 -> 7     | Rendah      |
+  |    | dtk atau Redis); cache /about di klien                      |             |             |
+  | O4 | Redis untuk cache, throttle, sesi, antrean (hapus 3 query   | CPU -20%    | Rendah      |
+  |    | database per request akibat throttle & cache)               |             |             |
+  | O5 | Octane (FrankenPHP/Swoole): tanpa boot per request          | CPU /2,5    | Sedang      |
+  | O6 | reader_page_reads: partisi per hari + simpan 35-90 hari;    | disk        | Sedang      |
+  |    | ringkasan harian/halaman sudah menyimpan agregatnya;        | terkendali  |             |
+  |    | hapus token Sanctum kedaluwarsa tiap hari                   |             |             |
+  +----+-------------------------------------------------------------+-------------+-------------+
+  Hitungan D: 41,7 sesi/dtk x 7 request = 290 request/dtk pada jam puncak.
+
+
+7. SPESIFIKASI VPS YANG DIREKOMENDASIKAN
+------------------------------------------------------------------------------------------------
+
+  +------+--------------------------------------+------------------------------------------------+
+  | Opsi | Beban                                | Spesifikasi minimal                            |
+  +------+--------------------------------------+------------------------------------------------+
+  | 1    | Press 10.000/hari + Book sampai      | 4 vCPU, 8 GB RAM, 160 GB SSD, 1 Gbps.          |
+  |      | +/- 20.000/hari (sekarang)           | PHP-FPM 16 worker, MariaDB buffer pool 3 GB.   |
+  | 2    | Press 10.000/hari + Book 100.000/hari| 8 vCPU, 16 GB RAM, 320 GB NVMe, Redis,         |
+  |      | (kode sekarang + O1, O3, O4)         | PDF via Nginx/CDN. FPM 32 worker, buffer 8 GB. |
+  | 3    | Press 10.000/hari + Book 1 juta/hari | SATU VPS: 16 vCPU, 32 GB RAM, 500 GB NVMe,     |
+  |      | (O1-O6 SEMUA terpasang)              | Redis 2 GB, FPM/Octane 32-48 worker, MariaDB   |
+  |      |                                      | buffer pool 12-16 GB; PDF di CDN/object storage|
+  |      |                                      | (bandwidth keluar ratusan Mbps).               |
+  | 3b   | Idem, disarankan (isolasi + cadangan)| APP: 8 vCPU / 16 GB (Nginx, PHP, Redis).       |
+  |      |                                      | DB : 8 vCPU / 32 GB / 500 GB NVMe (MariaDB,    |
+  |      |                                      | replika baca nanti). CDN untuk PDF + gambar.   |
+  | X    | Book 1 juta/hari dengan kode SEKARANG| 48-96 vCPU: lebih dari satu server (beberapa   |
+  |      |                                      | node API + DB terpisah). Tidak disarankan.     |
+  +------+--------------------------------------+------------------------------------------------+
+  Memori: worker PHP-FPM sekitar 40-60 MB (jalur Book ringan) tetapi endpoint admin keuangan butuh
+  sampai 480 MB: batasi dengan pool terpisah untuk /admin atau perbaiki T5. MariaDB perlu menampung
+  set data panas (pengguna 150 MB, token 350 MB, progres 550 MB, suka/simpan 600 MB, indeks bacaan
+  2,5 GB) = sekitar 6-8 GB di buffer pool. Disk: data uji 6,1 GB; tambah 2,2 GB/hari tanpa O6
+  (+800 GB/tahun) vs sekitar 80-200 GB dengan retensi 35-90 hari.
+  Jaringan: bandwidth PDF adalah biaya terbesar; jangan layani 2-5 TB/hari dari VPS.
+
+  Tahapan yang masuk akal: mulai Opsi 1 (sekarang), kerjakan O1+O3+O4 sebelum Book melewati 20.000
+  pengguna/hari, lalu O2+O5+O6 sebelum 100.000/hari. Pantau CPU, p95, antrean FPM, dan
+  Innodb_row_lock_waits setiap pekan.
+
+
+8. HASIL LAIN
+------------------------------------------------------------------------------------------------
+
+  - Login (bcrypt cost 12) rata-rata 31-48 ms; 15-30% sesi memulai dengan login (token bertahan).
+  - Press GET /editors hanya untuk pengguna masuk (401 untuk tamu) - sesuai desain.
+  - Kunci baris InnoDB: ~4.600 tunggu selama seluruh uji, maks 39 ms; tidak ada antrean kunci
+    berkepanjangan setelah perbaikan T3.
+  - Memori Apache/PHP 270-295 MB untuk 48 thread; MariaDB 0,9-1,2 GB (buffer pool ikut naik).
+
+
+9. CARA MENGULANG
+------------------------------------------------------------------------------------------------
+
+  1. Siapkan database KOSONG: php artisan migrate --force; php artisan db:seed --class=RoleSeeder.
+  2. mysql < deploy/loadtest/seed.sql (ganti __HASH__ dengan hash bcrypt cost 12 untuk "Perf@2026");
+     buat token Sanctum: INSERT ... SELECT seq, 'App\\Models\\User', seq, 'perf', SHA2(CONCAT('perf',
+     seq),256) ... (token = "{id}|perf{id}"); letakkan satu PDF uji 5 MB di storage/app/private/
+     ebooks/perf/sample.pdf; jalankan seed3.sql (komentar, aturan buka, pengaturan royalti).
+  3. Produksi-like: APP_DEBUG=false, config:cache, route:cache, OPcache, PHP-FPM 48 worker.
+  4. node deploy/loadtest/loadtest.mjs --base http://HOST --duration 60 --warmup 10 --book 4
+        --press 0.04 --admin 0.1 --think 0.1      (naikkan --book sampai CPU 60%).
+  5. Profil query per request: php deploy/loadtest/qprofile.php (sesuaikan jalur).
+  6. Bandingkan ms-CPU/request dengan bagian 6 lalu hitung ulang tabel kapasitas.
+  JANGAN jalankan terhadap database produksi: skrip menulis ribuan baris dan token.
+
+
+================================================================================================
+                                     -- AKHIR LAPORAN --
+================================================================================================

@@ -8,10 +8,10 @@
 #                          "Menata Ilmu, Menguatkan Peradaban."                                #
 #                                                                                              #
 #                                                                                              #
-#        Versi Dokumen   : 1.1                                                                 #
-#        Tanggal         : 6 Oktober 2026                                                      #
+#        Versi Dokumen   : 1.2                                                                 #
+#        Tanggal         : 12 Oktober 2026                                                     #
 #        Status          : Final Draft - untuk ditinjau pemilik sistem                         #
-#        Sistem          : backend Laravel 12 + frontend React 19                              #
+#        Sistem          : backend Laravel 12 + frontend React 19 (Tartila Press + Tartila Book)#
 #        Klasifikasi     : Internal - Rahasia Perusahaan                                       #
 #                                                                                              #
 #                                                                                              #
@@ -32,6 +32,10 @@ KONTROL DOKUMEN
   |         |                 | yang berjalan saat ini.                  |                     |
   | 1.1     | 6 Oktober 2026  | Perbaikan isu Lampiran E (I1, I3, I5,    | Tim Pengembang      |
   |         |                 | I7-I10); status tiap isu diperbarui.     | Tartila Press       |
+  | 1.2     | 12 Oktober 2026 | Tartila Book (Lampiran F), modul baru    | Tim Pengembang      |
+  |         |                 | sejak 1.1 (Lampiran G), uji performa &   | Tartila Press       |
+  |         |                 | kapasitas VPS (Lampiran H), isu baru I11-|                     |
+  |         |                 | I16, angka sistem diperbarui.            |                     |
   +---------+-----------------+------------------------------------------+---------------------+
 
   Cara Membaca Dokumen Ini
@@ -48,19 +52,22 @@ KONTROL DOKUMEN
   - Diagram dibuat dengan karakter teks (ASCII) agar dapat dibaca di editor apa pun dan disimpan
     di repositori tanpa perangkat tambahan.
 
-  Ringkasan Angka Sistem (per 6 Oktober 2026)
+  Ringkasan Angka Sistem (per 12 Oktober 2026)
   +------------------------------------------------------+------------------------------------+
   | Komponen                                             | Jumlah / Nilai                     |
   +------------------------------------------------------+------------------------------------+
-  | Tabel database aplikasi                              | 61 (di luar tabel migrations)      |
-  | Endpoint HTTP (route)                                | 268 (150 di antaranya khusus admin)|
-  | Halaman frontend (route React)                       | 91                                 |
+  | Tabel database aplikasi                              | 82 (di luar tabel migrations;      |
+  |                                                      |    15 di antaranya reader_*)       |
+  | Endpoint HTTP (route)                                | 342 (196 di antaranya khusus admin;|
+  |                                                      |    47 untuk Tartila Book)          |
+  | Halaman frontend (route React)                       | 94 (Tartila Press) + 20 (Tartila   |
+  |                                                      |    Book)                           |
   | Peran pengguna                                       | 5 (user, penulis, editor, admin,   |
   |                                                      |    owner)                          |
   | Bahasa antarmuka publik                              | 3 (Indonesia, Inggris, Melayu)     |
-  | Tes otomatis backend                                 | 641 tes, 3.580+ assertion, lulus   |
-  | File tes                                             | 56 (45 feature, 7 unit, 4 security)|
-  | Tugas terjadwal harian                               | 3                                  |
+  | Tes otomatis backend                                 | 686 tes, 4.130+ assertion, lulus   |
+  | File tes                                             | 61 (feature, unit, security)       |
+  | Tugas terjadwal                                      | 5 (3 harian, 2 tiap 10 menit)      |
   +------------------------------------------------------+------------------------------------+
 
 
@@ -142,6 +149,9 @@ DAFTAR ISI
           C. Variabel Lingkungan (.env)
           D. Inventaris Tes Otomatis
           E. Isu Diketahui & Roadmap
+          F. Tartila Book (situs baca buku)                       [baru di 1.2]
+          G. Modul yang ditambahkan setelah versi 1.1             [baru di 1.2]
+          H. Uji Performa & Kapasitas VPS                         [baru di 1.2]
 
 
 
@@ -4562,6 +4572,21 @@ LAMPIRAN E. ISU DIKETAHUI & ROADMAP
   |     |                                                    | staging VPS                          |
   | I10 | E-mail kantor bawaan "tartilapresofficial@"        | SELESAI. Bawaan kini e-mail kontak   |
   |     | mungkin salah ketik                                | halaman Tentang Kami                 |
+  | I11 | Keuangan, Ringkasan admin & HKI memuat SEMUA      | TERBUKA. Gagal (500) pada +/- 24.000 |
+  |     | pesanan lunas (45.000 pesanan = 9,5 dtk, 480 MB)   | pesanan lunas; arus kas & omzet      |
+  |     |                                                    | sudah ringan; ganti sisanya dengan   |
+  |     |                                                    | agregasi SQL (Lampiran H)            |
+  | I12 | Migrasi 2026_10_22 gagal di MySQL (nama indeks     | SELESAI. Nama indeks dipendekkan     |
+  |     | > 64 karakter)                                     |                                      |
+  | I13 | Penghitung suka/simpan/komentar & laporan royalti  | SELESAI. Kolom penghitung +          |
+  |     | Tartila Book lambat pada data besar                | reader_daily_reads                   |
+  | I14 | Pencatatan bacaan: deadlock InnoDB pada beban      | SELESAI. Urutan kunci + ulang 3x     |
+  |     | tinggi                                             |                                      |
+  | I15 | Kode sekarang tidak muat untuk 1 juta pengguna     | TERBUKA. Optimasi O1-O6 (kelompokkan |
+  |     | Tartila Book per hari (PDF lewat PHP, 36 request   | bacaan, PDF via Nginx/CDN, cache     |
+  |     | per sesi)                                          | publik, Redis, Octane, retensi)      |
+  | I16 | reader_page_reads tumbuh 2,2 GB per hari pada 1    | TERBUKA. Partisi per hari + retensi  |
+  |     | juta pengguna/hari; token Sanctum menumpuk         | 35-90 hari; sanctum:prune-expired    |
   +-----+----------------------------------------------------+--------------------------------------+
 
   E.2 Roadmap Rekomendasi
@@ -4593,6 +4618,275 @@ LAMPIRAN E. ISU DIKETAHUI & ROADMAP
       bersihkan datanya.
    5. Perbarui dokumen ini.
 
+
+
+################################################################################################
+LAMPIRAN F. TARTILA BOOK (SITUS BACA BUKU) - DITAMBAHKAN PADA VERSI 1.2
+################################################################################################
+
+F.1 RINGKASAN
+------------------------------------------------------------------------------------------------
+
+  Tartila Book adalah situs kedua (SPA React terpisah: folder tartila-book-frontend, port dev
+  5174) untuk MEMBACA buku yang sudah diterbitkan Tartila Press. Situs ini memakai backend
+  Laravel, database, dan akun yang SAMA dengan Tartila Press; hanya antarmukanya yang terpisah.
+  Akun pembaca = akun Tartila Press (daftar & lupa kata sandi dialihkan ke Tartila Press); token
+  login disimpan terpisah (kunci "tartila_book_token") sehingga masuk di satu situs tidak otomatis
+  masuk di situs lain.
+
+   +------------------+      +--------------------+      +------------------------------+
+   | Tartila Press    |      | Tartila Book       |      | Backend Laravel (satu)       |
+   | (SPA, :5173)     |----->| (SPA, :5174)       |----->| /api/v1/...      Tartila Press|
+   | toko, penulis,   |      | katalog, baca,     |      | /api/v1/reader/* Tartila Book |
+   | admin            |      | rak, langganan     |      | /api/v1/admin/reader/* admin  |
+   +------------------+      +--------------------+      +--------------+---------------+
+                                                                         |
+                                  MariaDB/MySQL (satu database)  <-------+--> storage/app/private
+                                  tabel reader_* + books + users           (ebook PDF, bukti bayar)
+
+F.2 KEBUTUHAN FUNGSIONAL (STATUS)
+------------------------------------------------------------------------------------------------
+
+  +------+-----------------------------------------------------------------------+----------+
+  | Kode | Kebutuhan                                                             | Status   |
+  +------+-----------------------------------------------------------------------+----------+
+  | TB1  | Pembaca masuk dengan akun Tartila Press; melihat katalog buku terbit  | [ADA]    |
+  |      | (cari, filter jenis pustaka, bidang, kategori, genre, usia, bahasa)   |          |
+  | TB2  | Jenis pustaka: Non fiksi (bidang pendidikan, kategori, bahasa) dan    | [ADA]    |
+  |      | Fiksi (kategori, genre, batas usia, bahasa); admin mengelola taksonomi|          |
+  | TB3  | Membaca ebook PDF di peramban dengan dua mode pilihan pembaca:        | [ADA]    |
+  |      | gulir (scroll) atau balik halaman (flipbook); PDF dimuat bertahap     |          |
+  |      | (HTTP Range) lewat PDF.js                                             |          |
+  | TB4  | Simpan buku (rak), suka, komentar, penanda halaman (bookmark) dengan  | [ADA]    |
+  |      | catatan, dan posisi terakhir dibaca (lanjut membaca)                  |          |
+  | TB5  | Notifikasi dalam aplikasi (kategori "reader"): pembayaran dikonfirmasi| [ADA]    |
+  |      | / ditolak; buku tersimpan mendapat versi baru; jendela gratis dibuka  |          |
+  | TB6  | Berlangganan (paket harian, mingguan, bulanan, tahunan) = semua buku  | [ADA]    |
+  |      | bisa dibaca selama langganan aktif                                    |          |
+  | TB7  | Beli buku satuan dengan batas waktu akses (hari) yang diatur admin    | [ADA]    |
+  | TB8  | Jadwal buka/kunci: admin menandai buku (atau semua buku) "terbuka"    | [ADA]    |
+  |      | (gratis) atau "terkunci" pada rentang waktu tertentu                  |          |
+  | TB9  | Penulis membaca bukunya sendiri gratis                                | [ADA]    |
+  | TB10 | Hitungan baca per halaman; angka publik = jumlah pembaca TERBANYAK    | [ADA]    |
+  |      | pada satu halaman; baca ulang hari yang sama dihitung 1, hari lain +1 |          |
+  | TB11 | Royalti dua sistem: persen dari pembelian + (jumlah bacaan x biaya per| [ADA]    |
+  |      | bacaan); diatur global dan bisa dikecualikan per buku                 |          |
+  | TB12 | Pembayaran: transfer ke rekening Metode Pembayaran Tartila Press,     | [ADA]    |
+  |      | unggah bukti, admin verifikasi, batas bayar 24 jam (otomatis batal)   |          |
+  | TB13 | EBOOK DIUNGGAH SEKALI di Tartila Press (Admin > Buku); Tartila Book   | [ADA]    |
+  |      | membaca berkas yang sama. Admin Tartila Book tidak mengunggah lagi    |          |
+  | TB14 | Tema visual sama dengan Tartila Press (palet, Lora, komponen)         | [ADA]    |
+  +------+-----------------------------------------------------------------------+----------+
+
+F.3 ATURAN AKSES BACA
+------------------------------------------------------------------------------------------------
+
+  Urutan pemeriksaan (ReaderAccessService); yang pertama cocok menang:
+   1. Penulis buku tersebut          -> boleh (bacaannya disimpan tetapi TIDAK dihitung royalti)
+   2. Langganan aktif                -> boleh
+   3. Pembelian satuan aktif         -> boleh (sampai access_days habis, kosong = selamanya)
+   4. Aturan jadwal "terbuka"        -> boleh (aturan per buku mengalahkan aturan "semua buku")
+   5. Selain itu                     -> terkunci (403 pada berkas & pencatatan bacaan)
+  Aturan "terkunci" hanya membatalkan jendela gratis; tidak pernah mencabut akses penulis,
+  pelanggan, atau pembeli. Berkas hanya diberikan lewat endpoint yang terautentikasi
+  (/reader/books/{id}/file, mendukung Range); pembaca yang sudah bisa membuka tetap secara teknis
+  dapat menyimpan PDF yang ditampilkan - tidak ada DRM.
+
+F.4 PENGHITUNGAN BACAAN
+------------------------------------------------------------------------------------------------
+
+  - Peramban melaporkan sebuah halaman setelah ditampilkan >= 3 detik (DWELL_MS), dikirim
+    berkelompok (maks 10 halaman atau 5 detik) ke POST /reader/books/{id}/reads
+    (throttle 240/menit/pengguna).
+  - Server membuang duplikat per (pengguna, halaman, tanggal WIB) lewat indeks unik
+    reader_page_reads (INSERT IGNORE). Bacaan penulis disimpan dengan counted = 0.
+  - Ringkasan per halaman: reader_page_stats (readers = pembaca berbeda, events = bacaan);
+    reader_books.read_events dan top_page_readers (angka publik) ikut diperbarui.
+  - Satu panggilan dibatasi 40 halaman. Posisi terakhir: PUT /reader/books/{id}/progress.
+  - Penulisan satu transaksi dengan urutan kunci tetap (halaman terurut -> buku -> ringkasan
+    harian) dan diulang sampai 3x bila terjadi deadlock InnoDB; reader_daily_reads dinaikkan
+    sekali per panggilan.
+
+F.5 MODEL DATA (15 TABEL reader_*)
+------------------------------------------------------------------------------------------------
+
+  +---------------------+------------------------------------------------------------------+
+  | Tabel               | Isi                                                              |
+  +---------------------+------------------------------------------------------------------+
+  | reader_terms        | taksonomi: education_field, category (pustaka fiksi/non_fiksi),  |
+  |                     | genre                                                            |
+  | reader_books        | 1:1 dengan books (book_id unik): is_published, pustaka,          |
+  |                     | klasifikasi, language, age_limit, price, access_days,            |
+  |                     | purchase_royalty_percent & read_fee (opsional, mengalahkan       |
+  |                     | pengaturan global), version, read_events, top_page_readers.      |
+  |                     | Berkas ebook TIDAK disimpan di sini: diambil dari books          |
+  |                     | (ebook_file, ebook_name, ebook_pages, ebook_uploaded_at).        |
+  |                     | Penghitung likes_count, saves_count, comments_count disimpan di  |
+  |                     | sini (bukan COUNT tiap tampilan).                                |
+  | reader_plans        | paket langganan (period: daily/weekly/monthly/yearly, price)     |
+  | reader_orders       | pesanan beli buku/langganan: status pending/confirmed/cancelled, |
+  |                     | bukti transfer (privat), payment_due_at, confirmed_at            |
+  | reader_entitlements | hak akses aktif hasil pesanan terkonfirmasi (kind book/plan,     |
+  |                     | starts_at, ends_at)                                              |
+  | reader_access_rules | jadwal open/lock (reader_book_id kosong = semua buku)            |
+  | reader_likes        | (user_id, reader_book_id) komposit                               |
+  | reader_saves        | (user_id, reader_book_id) komposit                               |
+  | reader_comments     | komentar per buku                                                |
+  | reader_bookmarks    | penanda halaman + catatan (unik per user/buku/halaman)           |
+  | reader_progress     | halaman terakhir dibaca per user/buku                            |
+  | reader_page_reads   | satu baris per (buku, pengguna, halaman, tanggal) - TABEL        |
+  |                     | TERBESAR; lihat Lampiran H untuk proyeksi ukuran                 |
+  | reader_page_stats   | agregat per (buku, halaman)                                      |
+  | reader_daily_reads  | bacaan terhitung per buku per hari (dasar laporan royalti per    |
+  |                     | rentang tanggal; reader_books.read_events = sepanjang waktu)     |
+  | reader_settings     | satu baris: purchase_royalty_percent, read_fee global            |
+  +---------------------+------------------------------------------------------------------+
+  Pesanan Tartila Book berada di tabel TERPISAH dari orders Tartila Press, tetapi sudah
+  tersambung ke Keuangan, Dompet, dan Royalti (F.7).
+
+F.6 ENDPOINT (47 RUTE reader)
+------------------------------------------------------------------------------------------------
+
+  Publik/pembaca (/api/v1/reader): books (katalog), books/{id}, books/{id}/file (Range),
+  books/{id}/comments, filters, plans; terautentikasi: books/{id}/like|save (POST/DELETE),
+  books/{id}/comments (POST), bookmarks (GET/POST), progress (PUT), reads (POST), me/shelf,
+  me/access, me/bookmarks, me/royalty, orders (GET/POST), orders/{id}/proof (POST).
+  Admin (/api/v1/admin/reader): books (CRUD, candidates), terms, plans, rules, settings, orders
+  (daftar, bukti, verify), royalties (laporan per rentang tanggal).
+  Penjadwalan: reader:cancel-unpaid setiap 10 menit (batal otomatis pesanan tanpa bukti > 24 jam).
+
+F.7 SAMBUNGAN KE TARTILA PRESS (ROYALTI, KEUANGAN, EBOOK)
+------------------------------------------------------------------------------------------------
+
+  F.7.1 Ebook sekali unggah
+    Admin mengunggah ebook di Admin > Buku (Tartila Press): PDF atau EPUB, maks 200 MB, privat.
+    Peramban membaca jumlah halaman PDF (PDF.js) dan mengirimnya (books.ebook_pages; cadangan di
+    server: App\Support\PdfPages untuk PDF klasik). Buku dengan ebook PDF yang jumlah halamannya
+    diketahui "siap" dipakai Tartila Book (EPUB tidak didukung). Mengganti ebook menaikkan
+    reader_books.version dan memberi notifikasi ke pembaca yang menyimpan buku itu. Admin Tartila
+    Book hanya memilih buku siap, mengisi klasifikasi/harga, lalu mempublikasikan.
+
+  F.7.2 Royalti penulis
+    Sumber ketiga di "Royalti Saya" (selain buku fisik di sistem dan penjualan luar sistem):
+    "Ebook Tartila Book" = pembelian terkonfirmasi x persen + bacaan terhitung x biaya per bacaan.
+    Dibagi antarpenerima menurut BOBOT royalti ebook di MOU (kalau tidak ada MOU: aturan lama;
+    bobot kosong: dibagi rata). Nominal dihitung ulang dari pengaturan yang berlaku saat ini.
+    Tampil juga di halaman Royalti admin dan menambah total royalti buku.
+
+  F.7.3 Dompet Saya
+    Jenis pemasukan baru "Royalti ebook" (ebook_royalty): satu baris per pembelian terkonfirmasi
+    + satu baris bacaan per buku. Ikut saldo, penarikan, dan kartu Ringkasan.
+
+  F.7.4 Keuangan admin
+    Pesanan Tartila Book terkonfirmasi = pemasukan "Tartila Book (Ebook & Langganan)" di arus
+    kas (rekening bisa dipindah), masuk saldo rekening, grafik omzet, dan omzet bulan ini.
+    Tab baru "Tartila Book": pendapatan per judul - royalti pembelian - royalti bacaan =
+    estimasi laba; langganan satu baris tersendiri (royalti bacaannya sudah dihitung di judul).
+
+F.8 KEAMANAN
+------------------------------------------------------------------------------------------------
+
+  - Berkas ebook & bukti bayar di disk privat; hanya lewat endpoint terautentikasi + pemeriksaan
+    akses (F.3). Unggah bukti: gambar/PDF tervalidasi.
+  - Endpoint pencatatan bacaan, progres, komentar, dan pesanan dibatasi (throttle).
+  - Rute admin dilindungi role:admin dan diuji sapuan akses (NewFeatureAccessSweepTest).
+  - Katalog dan detail publik tidak membuka e-mail pengguna (public.sanitize + tes).
+
+F.9 PENGUJIAN
+------------------------------------------------------------------------------------------------
+
+  tests/Feature/ReaderTest.php (akses, bacaan, royalti, interaksi, notifikasi, admin) dan
+  tests/Feature/ReaderPressConnectionTest.php (royalti ebook di Royalti Saya/Dompet/Keuangan,
+  satu kali unggah, penghitung halaman PDF). Total backend: 686 tes lulus. Diuji juga di
+  peramban: pesanan -> bukti -> verifikasi -> baca (gulir & balik halaman) -> hitungan -> royalti,
+  serta unggah di Tartila Press -> tampil di Tartila Book.
+
+
+################################################################################################
+LAMPIRAN G. MODUL YANG DITAMBAHKAN SETELAH VERSI 1.1
+################################################################################################
+
+  +----------------------------+--------------------------------------------------------------+
+  | Modul                      | Ringkasan                                                    |
+  +----------------------------+--------------------------------------------------------------+
+  | Invoice & batas bayar      | Nomor INV-YYYYMMDD-000ID; pembeli memilih rekening saat      |
+  |                            | checkout; halaman cetak/PDF /dashboard/pesanan/{id}/invoice; |
+  |                            | pesanan tanpa bukti > 24 jam dibatalkan otomatis             |
+  |                            | (orders:cancel-unpaid tiap 10 menit; butuh cron).            |
+  | MOU Distribusi Buku        | Templat per kategori (admin), satu MOU per judul, semua      |
+  |                            | penulis menandatangani sebelum terbit; royalti buku fisik &  |
+  |                            | ebook mengikuti MOU; unggah PDF bermeterai; addendum.        |
+  | Riwayat Status Proses      | Di Naskah Saya: ISBN (resi/ditolak/terbit), HAKI, dan buku   |
+  |                            | fisik sesuai paket; admin mengisi dari Terbitkan Naskah.     |
+  | Lampiran ISBN              | Surat permohonan & keaslian otomatis (tanda tangan canvas);  |
+  |                            | unduh sampul & dummy; berkas gabungan surat + sampul + dummy |
+  |                            | sampai Daftar Isi (pdf-lib, di peramban).                    |
+  | Buku Terbit + Ebook        | Halaman penulis: ebook privat, HKI, sertifikat penulis.      |
+  | Royalti otomatis           | Reguler 25%, Book Chapter 25% dibagi bab (editor +5%);       |
+  |                            | MOU mengalahkan aturan otomatis.                             |
+  | Konten Sosmed              | Poster "TERBIT" + caption dari buku terbit; poster promo     |
+  |                            | proyek Book Chapter.                                         |
+  | Sertifikat otomatis        | Templat dari gambar + kolom teks; sertifikat event, penulis, |
+  |                            | editor, HKI.                                                 |
+  | Template Naskah + Auto     | Editor templat berbasis skema, DocxLayout, hasil auto layout |
+  | Layout                     | dikirim ke editor setelah persetujuan admin.                 |
+  | Kompilasi Book Chapter     | Bab ditunggu -> admin menggabungkan semua .docx per BAB      |
+  |                            | menjadi satu naskah untuk editor; catatan revisi per bab.    |
+  | Tartila Book               | Lampiran F.                                                  |
+  +----------------------------+--------------------------------------------------------------+
+  Perbaikan penting saat uji kapasitas (Lampiran H): migrasi 2026_10_22_090000 gagal di MySQL/
+  MariaDB karena nama indeks > 64 karakter (sudah diberi nama pendek). Wajib dijalankan ulang
+  uji migrasi di MySQL setiap menambah migrasi.
+
+
+################################################################################################
+LAMPIRAN H. UJI PERFORMA & KAPASITAS VPS (TARTILA PRESS + TARTILA BOOK) - BARU DI 1.2
+################################################################################################
+
+  Laporan lengkap: docs/Laporan-Uji-Beban-Kapasitas-2026-10-13.txt. Alat: deploy/loadtest/.
+
+H.1 RINGKASAN HASIL
+------------------------------------------------------------------------------------------------
+
+  Lingkungan: laptop 4 core/8 thread, MariaDB 10.4, Apache+mod_php 48 worker (produksi-like:
+  OPcache, route/config cache). Data: 1,1 juta pengguna, 3.000 buku Tartila Book, 19,8 juta
+  bacaan-halaman, 400 ribu pesanan Tartila Book, 60 ribu pesanan Press (6,1 GB).
+  +--------------------------------+--------+--------+-------------+------------------------------+
+  | Skenario                       | req/dtk| error  | ms-CPU/req  | Catatan                      |
+  +--------------------------------+--------+--------+-------------+------------------------------+
+  | Press saja (4 sesi/dtk)        | 67     | 0%     | 15          | 22 sesi bersamaan, p50 < 100 |
+  | Book + Press 1:100             | 116    | 0%     | 40          | 104 sesi, p99 < 0,6 dtk      |
+  | Book + Press promo + admin     | 144    | 0,01%  | 45          | 194 sesi bersamaan           |
+  | Book jenuh (8 sesi/dtk)        | 150    | 0,04%  | 45          | batas mesin uji              |
+  +--------------------------------+--------+--------+-------------+------------------------------+
+
+H.2 PROYEKSI & SPESIFIKASI (asumsi: per hari = pengguna unik; jam puncak 15%)
+------------------------------------------------------------------------------------------------
+
+  - Tartila Press 10.000 pengguna/hari: puncak 10-31 req/dtk, < 1 core.
+  - Tartila Book 1 juta pengguna/hari: puncak 1.500-3.000 req/dtk, 15.000-30.000 pembaca
+    bersamaan, 36 juta request/hari, 12 juta baris bacaan/hari (2,2 GB/hari), 2-5 TB PDF/hari.
+  - Kode sekarang butuh 55-180 vCPU (ekstrapolasi, konservatif): tidak muat di satu VPS.
+  - Setelah O1-O6 (laporan bagian 6): 10-19 vCPU, atau 4-8 dengan Octane.
+  +------+----------------------------------------+----------------------------------------------+
+  | Opsi | Beban                                  | Spesifikasi minimal                          |
+  +------+----------------------------------------+----------------------------------------------+
+  | 1    | Press 10.000/hari + Book <= 20.000/hari| 4 vCPU, 8 GB RAM, 160 GB SSD                 |
+  | 2    | Press 10.000 + Book 100.000/hari       | 8 vCPU, 16 GB, 320 GB NVMe, Redis, PDF/CDN   |
+  | 3    | Press 10.000 + Book 1 juta/hari        | 16 vCPU, 32 GB, 500 GB NVMe + Redis + CDN    |
+  |      | (setelah optimasi O1-O6)               | (atau app 8 vCPU/16 GB + DB 8 vCPU/32 GB)    |
+  +------+----------------------------------------+----------------------------------------------+
+  Angka 1 juta pengguna adalah ekstrapolasi dari biaya per request yang diukur (bukan uji 1 juta
+  pengguna nyata); ulangi uji di VPS staging Linux (Nginx + PHP-FPM) sebelum membeli final.
+
+H.3 PERBAIKAN YANG DIHASILKAN UJI
+------------------------------------------------------------------------------------------------
+
+  Penghitung suka/simpan/komentar di reader_books (detail 130 -> 14 ms, urut disukai 12 dtk ->
+  0,1 dtk); reader_daily_reads (laporan royalti 58 dtk -> 0,4 dtk); pencatatan bacaan bebas
+  deadlock (urutan kunci + ulang); migrasi 2026_10_22 diperbaiki untuk MySQL; arus kas, grafik
+  omzet, dan omzet bulan ini di Keuangan diringkas (Tartila Book per hari per rekening).
+  Terbuka: Keuangan/Ringkasan admin/HKI memuat semua pesanan lunas (batas aman +/- 24.000).
 
 
 ================================================================================================
