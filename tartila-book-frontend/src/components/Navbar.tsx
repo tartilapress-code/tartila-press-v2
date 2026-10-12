@@ -1,3 +1,4 @@
+import { isApp } from '@/lib/platform';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import Button from '@/components/Button';
@@ -9,7 +10,8 @@ const PRESS_URL = import.meta.env.VITE_PRESS_URL as string;
 const LINKS = [
     { to: '/', label: 'Beranda', end: true },
     { to: '/katalog', label: 'Katalog' },
-    { to: '/langganan', label: 'Langganan' },
+    // Aplikasi hanya untuk masuk & membaca: langganan dikelola di situs web.
+    ...(isApp ? [] : [{ to: '/langganan', label: 'Langganan' }]),
 ];
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -86,13 +88,15 @@ function UserMenu() {
                     <Link to="/rak" role="menuitem" className={item}>
                         Rak Saya
                     </Link>
-                    <Link to="/pesanan" role="menuitem" className={item}>
-                        Pembelian & Langganan
-                    </Link>
+                    {!isApp && (
+                        <Link to="/pesanan" role="menuitem" className={item}>
+                            Pembelian & Langganan
+                        </Link>
+                    )}
                     <Link to="/royalti" role="menuitem" className={item}>
                         Royalti Baca (penulis)
                     </Link>
-                    {isAdmin && (
+                    {isAdmin && !isApp && (
                         <Link to="/admin" role="menuitem" className={item}>
                             Panel Admin
                         </Link>
@@ -282,13 +286,15 @@ function UserMenuInline() {
             <p className="px-3 text-xs font-semibold uppercase tracking-wider text-oxford-navy-900/60">
                 {user?.name}
             </p>
-            <Link to="/pesanan" className={item}>
-                Pembelian & Langganan
-            </Link>
+            {!isApp && (
+                <Link to="/pesanan" className={item}>
+                    Pembelian & Langganan
+                </Link>
+            )}
             <Link to="/royalti" className={item}>
                 Royalti Baca (penulis)
             </Link>
-            {isAdmin && (
+            {isAdmin && !isApp && (
                 <Link to="/admin" className={item}>
                     Panel Admin
                 </Link>

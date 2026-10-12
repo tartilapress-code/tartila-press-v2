@@ -12,6 +12,8 @@ import OrdersPage from '@/pages/OrdersPage';
 import PlansPage from '@/pages/PlansPage';
 import RoyaltyPage from '@/pages/RoyaltyPage';
 import ShelfPage from '@/pages/ShelfPage';
+import WebOnlyPage from '@/pages/WebOnlyPage';
+import { isApp } from '@/lib/platform';
 
 const router = createBrowserRouter([
     // Layar baca penuh (tanpa navbar/footer).
@@ -27,20 +29,42 @@ const router = createBrowserRouter([
             { index: true, element: <HomePage /> },
             { path: 'katalog', element: <CatalogPage /> },
             { path: 'buku/:id', element: <BookDetailPage /> },
-            { path: 'langganan', element: <PlansPage /> },
+            {
+                path: 'langganan',
+                element: isApp ? (
+                    <WebOnlyPage path="/langganan" />
+                ) : (
+                    <PlansPage />
+                ),
+            },
             { path: 'masuk', element: <LoginPage /> },
             {
                 element: <RequireAuth />,
                 children: [
                     { path: 'rak', element: <ShelfPage /> },
-                    { path: 'pesanan', element: <OrdersPage /> },
+                    {
+                        path: 'pesanan',
+                        element: isApp ? (
+                            <WebOnlyPage path="/pesanan" />
+                        ) : (
+                            <OrdersPage />
+                        ),
+                    },
                     {
                         path: 'beli/buku/:id',
-                        element: <CheckoutPage kind="book" />,
+                        element: isApp ? (
+                            <WebOnlyPage />
+                        ) : (
+                            <CheckoutPage kind="book" />
+                        ),
                     },
                     {
                         path: 'beli/langganan/:id',
-                        element: <CheckoutPage kind="plan" />,
+                        element: isApp ? (
+                            <WebOnlyPage />
+                        ) : (
+                            <CheckoutPage kind="plan" />
+                        ),
                     },
                     { path: 'notifikasi', element: <NotificationsPage /> },
                     { path: 'royalti', element: <RoyaltyPage /> },
@@ -48,7 +72,11 @@ const router = createBrowserRouter([
             },
             {
                 path: 'admin',
-                element: <RequireAuth admin />,
+                element: isApp ? (
+                    <WebOnlyPage path="/admin" />
+                ) : (
+                    <RequireAuth admin />
+                ),
                 children: [
                     {
                         lazy: async () => ({

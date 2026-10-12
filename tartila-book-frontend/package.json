@@ -7,9 +7,17 @@
         "dev": "vite --port 5174",
         "build": "tsc -b && vite build",
         "lint": "eslint .",
-        "preview": "vite preview --port 5174"
+        "preview": "vite preview --port 5174",
+        "app:sync": "vite build --mode app && cap sync android",
+        "app:open": "cap open android",
+        "app:run": "npm run app:sync && cap run android"
     },
     "dependencies": {
+        "@capacitor/app": "^8.1.2",
+        "@capacitor/browser": "^8.0.5",
+        "@capacitor/core": "^8.5.3",
+        "@capacitor/splash-screen": "^8.0.2",
+        "@capacitor/status-bar": "^8.0.4",
         "@tailwindcss/vite": "^4.3.3",
         "page-flip": "^2.0.7",
         "pdfjs-dist": "^6.3.289",
@@ -20,6 +28,9 @@
     },
     "devDependencies": {
         "@babel/core": "^7.29.7",
+        "@capacitor/android": "^8.5.3",
+        "@capacitor/assets": "^3.0.5",
+        "@capacitor/cli": "^8.5.3",
         "@eslint/js": "^10.0.1",
         "@rolldown/plugin-babel": "^0.2.3",
         "@types/babel__core": "^7.20.5",

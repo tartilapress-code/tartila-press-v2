@@ -6,6 +6,7 @@ import ListHero from '@/components/ui/ListHero';
 import * as api from '@/data/readerApi';
 import { useLoad } from '@/hooks/useLoad';
 import { formatRupiah } from '@/lib/format';
+import { isApp } from '@/lib/platform';
 
 function Shelf({
     title,
@@ -79,11 +80,13 @@ export default function HomePage() {
                         Jelajahi {total > 0 ? `${total} buku` : 'katalog'}
                     </Button>
                 </Link>
-                <Link to="/langganan">
-                    <Button variant="outline2" className="h-12">
-                        Lihat paket langganan
-                    </Button>
-                </Link>
+                {!isApp && (
+                    <Link to="/langganan">
+                        <Button variant="outline2" className="h-12">
+                            Lihat paket langganan
+                        </Button>
+                    </Link>
+                )}
             </div>
 
             <Shelf
@@ -111,7 +114,7 @@ export default function HomePage() {
                 </p>
             )}
 
-            {cheapest && (
+            {cheapest && !isApp && (
                 <section className="mx-auto mt-4 max-w-[1232px] px-6 sm:px-10">
                     <div className="flex flex-col items-start justify-between gap-4 rounded-3xl bg-oxford-navy-700 p-8 text-white sm:flex-row sm:items-center">
                         <div className="flex flex-col gap-1">

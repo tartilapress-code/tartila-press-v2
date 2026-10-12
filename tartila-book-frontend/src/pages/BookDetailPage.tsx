@@ -8,6 +8,7 @@ import * as api from '@/data/readerApi';
 import { useLoad } from '@/hooks/useLoad';
 import { describeApiError } from '@/lib/apiErrors';
 import { formatDate, formatDateTime, formatRupiah } from '@/lib/format';
+import { isApp } from '@/lib/platform';
 
 function Fact({
     label,
@@ -361,6 +362,15 @@ export default function BookDetailPage() {
                                     </Link>
                                 </div>
                             </>
+                        ) : isApp ? (
+                            <p className="flex items-center gap-2 text-sm font-medium text-oxford-navy-900">
+                                <i
+                                    aria-hidden
+                                    className="ri-lock-2-line text-lg text-oxford-navy-700"
+                                />
+                                Buku ini belum terbuka untuk akun Anda. Akses
+                                akun dikelola di situs Tartila Book.
+                            </p>
                         ) : (
                             <>
                                 <p className="flex items-center gap-2 text-sm font-medium text-oxford-navy-900">

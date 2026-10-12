@@ -1,3 +1,4 @@
+import { isApp } from '@/lib/platform';
 import { Link } from 'react-router-dom';
 import Logo from '@/components/Logo';
 
@@ -40,11 +41,13 @@ export default function Footer() {
                                     Katalog buku
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="/langganan" className={link}>
-                                    Paket langganan
-                                </Link>
-                            </li>
+                            {!isApp && (
+                                <li>
+                                    <Link to="/langganan" className={link}>
+                                        Paket langganan
+                                    </Link>
+                                </li>
+                            )}
                             <li>
                                 <Link to="/rak" className={link}>
                                     Rak saya

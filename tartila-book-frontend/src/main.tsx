@@ -5,6 +5,9 @@ import { RouterProvider } from 'react-router-dom';
 import './styles/index.css';
 import router from '@/router';
 import { AuthProvider } from '@/context/AuthProvider';
+import { initNativeApp } from '@/lib/platform';
+
+initNativeApp();
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
