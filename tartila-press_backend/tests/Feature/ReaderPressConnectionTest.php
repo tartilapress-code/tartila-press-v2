@@ -132,7 +132,7 @@ class ReaderPressConnectionTest extends TestCase
     public function test_reader_orders_enter_the_finance_ledger_balances_and_ebook_breakdown(): void
     {
         $readerBook = $this->readerBook();
-        $order = $this->sell($readerBook);
+        $this->sell($readerBook);
         // Pesanan yang belum dikonfirmasi tidak dihitung.
         ReaderOrder::create([
             'order_number' => 'RB-2', 'user_id' => $this->reader->id, 'kind' => 'book', 'reader_book_id' => $readerBook->id,
@@ -143,7 +143,9 @@ class ReaderPressConnectionTest extends TestCase
 
         $ledger = $this->getJson('/api/v1/admin/finance/transactions?type=ebook')->assertOk();
         $this->assertCount(1, $ledger->json('data.items'));
-        $this->assertSame('reader_order', $ledger->json('data.items.0.source'));
+        // Diringkas per hari per rekening (bukan satu baris per pesanan).
+        $this->assertSame('reader_day', $ledger->json('data.items.0.source'));
+        $this->assertStringContainsString('1 pesanan (1 buku, 0 langganan)', $ledger->json('data.items.0.description'));
         $this->assertEquals(100000, $ledger->json('data.items.0.amount'));
 
         $summary = $this->getJson('/api/v1/admin/finance/summary')->assertOk();
@@ -157,11 +159,6 @@ class ReaderPressConnectionTest extends TestCase
         $this->assertEquals(20000, $rows[0]['purchase_royalty']);
         $this->assertEquals(500, $rows[0]['read_royalty']);
         $this->assertEquals(79500, $rows[0]['profit']);
-
-        // Rekening bisa dipindahkan seperti pesanan Press.
-        $other = PaymentMethod::create(['bank_name' => 'BNI', 'account_number' => '9', 'account_holder_name' => 'Tartila', 'is_active' => true]);
-        $this->patchJson("/api/v1/admin/finance/accounts/reader_order/{$order->id}", ['payment_method_id' => $other->id])->assertOk();
-        $this->assertSame($other->id, $order->fresh()->payment_method_id);
     }
 
     public function test_subscription_revenue_is_a_separate_row_in_the_ebook_breakdown(): void

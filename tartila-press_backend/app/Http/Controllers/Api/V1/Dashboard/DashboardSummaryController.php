@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Ringkasan dashboard: angka penting dan hal yang perlu ditindaklanjuti dari
@@ -222,11 +223,14 @@ class DashboardSummaryController extends Controller
         $hkiWithoutCertificate = collect($this->hki->entries())->where('hki.has_certificate', false)->count();
 
         $monthStart = Carbon::now(FinanceService::TIMEZONE)->startOfMonth();
-        $monthRevenue = (float) $this->finance->paidOrders()
-            ->filter(fn (Order $order) => $this->finance->paidAt($order)->greaterThanOrEqualTo($monthStart))
+        // Dijumlahkan di database (tanggal bayar = konfirmasi pembayaran, kalau tidak ada: diubah terakhir).
+        $monthRevenue = (float) DB::table('orders')
+            ->whereIn('status', FinanceService::PAID_STATUSES)
+            ->whereRaw('COALESCE((SELECT MIN(h.created_at) FROM order_status_histories h WHERE h.order_id = orders.id AND h.event = ?), orders.updated_at, orders.created_at) >= ?', ['payment_confirmed', $monthStart->copy()->utc()->toDateTimeString()])
             ->sum('total')
-            + (float) $this->finance->paidReaderOrders()
-                ->filter(fn ($order) => $this->finance->readerPaidAt($order)->greaterThanOrEqualTo($monthStart))
+            + (float) DB::table('reader_orders')
+                ->where('status', 'confirmed')
+                ->where('confirmed_at', '>=', $monthStart->copy()->utc()->toDateTimeString())
                 ->sum('amount');
 
         return $this->section('admin', 'Admin', [

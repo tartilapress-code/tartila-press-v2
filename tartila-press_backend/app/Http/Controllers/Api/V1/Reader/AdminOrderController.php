@@ -72,8 +72,10 @@ class AdminOrderController extends Controller
 
         $from = $validated['from'] ?? now('Asia/Jakarta')->startOfMonth()->toDateString();
         $to = $validated['to'] ?? now('Asia/Jakarta')->toDateString();
-        $rows = $this->royalty->report($from, $to, $validated['search'] ?? null);
+        $rows = $this->royalty->report($from, $to, $validated['search'] ?? null, null, false);
         $page = $this->paginateCollection($rows, $request, 20);
+        // Pembagian penulis hanya dihitung untuk satu halaman yang ditampilkan.
+        $page->setCollection($this->royalty->attachAuthors(collect($page->items()))->values());
 
         return $this->pageResponse($page, 'Laporan royalti berhasil dihitung.', null, [
             'from' => $from,

@@ -1344,7 +1344,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/finance/transactions/{transaction}', [AdminFinanceController::class, 'updateTransaction']);
         Route::delete('/finance/transactions/{transaction}', [AdminFinanceController::class, 'destroyTransaction']);
         Route::patch('/finance/accounts/{source}/{id}', [AdminFinanceController::class, 'assignAccount'])
-            ->where(['source' => 'order|reader_order|withdrawal', 'id' => '[0-9]+']);
+            ->where(['source' => 'order|withdrawal', 'id' => '[0-9]+']);
         Route::get('/finance/packages', [AdminFinanceController::class, 'packages']);
         Route::get('/finance/books', [AdminFinanceController::class, 'books']);
         Route::get('/finance/ebooks', [AdminFinanceController::class, 'ebooks']);

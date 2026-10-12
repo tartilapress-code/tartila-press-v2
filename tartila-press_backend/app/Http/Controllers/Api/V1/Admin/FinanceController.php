@@ -10,7 +10,6 @@ use App\Models\FinanceSetting;
 use App\Models\FinanceTransaction;
 use App\Models\Order;
 use App\Models\PaymentMethod;
-use App\Models\Reader\ReaderOrder;
 use App\Models\WalletWithdrawal;
 use App\Services\FinanceService;
 use Illuminate\Http\JsonResponse;
@@ -116,7 +115,6 @@ class FinanceController extends Controller
 
         $model = match ($source) {
             'order' => Order::whereIn('status', FinanceService::PAID_STATUSES)->findOrFail($id),
-            'reader_order' => ReaderOrder::where('status', 'confirmed')->findOrFail($id),
             'withdrawal' => WalletWithdrawal::where('status', 'paid')->findOrFail($id),
             default => abort(404),
         };

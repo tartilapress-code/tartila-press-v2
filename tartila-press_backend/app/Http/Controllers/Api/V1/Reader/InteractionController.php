@@ -43,6 +43,7 @@ class InteractionController extends Controller
             'user_id' => $request->user()->id,
             'body' => trim($validated['body']),
         ]);
+        $this->bump($readerBook->id, 'comments_count', 1);
 
         return response()->json([
             'success' => true,
@@ -66,7 +67,9 @@ class InteractionController extends Controller
             'Anda tidak berwenang menghapus komentar ini.'
         );
 
-        $comment->delete();
+        if ($comment->delete()) {
+            $this->bump($comment->reader_book_id, 'comments_count', -1);
+        }
 
         return response()->json(['success' => true, 'message' => 'Komentar dihapus.']);
     }
@@ -77,17 +80,32 @@ class InteractionController extends Controller
 
         $keys = ['user_id' => $request->user()->id, 'reader_book_id' => $readerBook->id];
 
-        if ($on) {
-            DB::table($table)->insertOrIgnore($keys + ['created_at' => now()]);
-        } else {
-            DB::table($table)->where($keys)->delete();
+        $column = $table === 'reader_likes' ? 'likes_count' : 'saves_count';
+
+        // Penghitung di reader_books hanya berubah kalau barisnya benar-benar bertambah/berkurang.
+        $changed = $on
+            ? DB::table($table)->insertOrIgnore($keys + ['created_at' => now()])
+            : DB::table($table)->where($keys)->delete();
+
+        if ($changed > 0) {
+            $this->bump($readerBook->id, $column, $on ? 1 : -1);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Tersimpan.',
-            'data' => ['active' => $on, 'count' => DB::table($table)->where('reader_book_id', $readerBook->id)->count()],
+            'data' => ['active' => $on, 'count' => (int) DB::table('reader_books')->where('id', $readerBook->id)->value($column)],
         ]);
+    }
+
+    /** Ubah penghitung denormalisasi (tidak pernah di bawah 0). */
+    private function bump(int $readerBookId, string $column, int $by): void
+    {
+        $query = DB::table('reader_books')->where('id', $readerBookId);
+
+        $by > 0
+            ? $query->increment($column, $by)
+            : $query->where($column, '>', 0)->decrement($column, -$by);
     }
 
     private function ensureListed(ReaderBook $readerBook): void

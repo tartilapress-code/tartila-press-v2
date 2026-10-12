@@ -49,7 +49,7 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['publication_process_id', 'created_at']);
+            $table->index(['publication_process_id', 'created_at'], 'pub_process_events_process_created_index');
         });
     }
 

@@ -36,8 +36,7 @@ class MeController extends Controller
         abort_unless(in_array($tab, ['reading', 'saved', 'liked', 'purchased'], true), 422, 'Tab rak tidak dikenal.');
 
         $query = ReaderBook::listed()
-            ->with(ReaderPresenter::RELATIONS)
-            ->withCount(['likedBy as likes_count', 'savedBy as saves_count', 'comments as comments_count']);
+            ->with(ReaderPresenter::RELATIONS);
 
         match ($tab) {
             'saved' => $query->whereIn('id', DB::table('reader_saves')->where('user_id', $user->id)->select('reader_book_id')),
@@ -174,7 +173,7 @@ class MeController extends Controller
         $to = $validated['to'] ?? now('Asia/Jakarta')->toDateString();
         $user = $request->user();
 
-        $rows = $this->royalty->report($from, $to, null, $user->id)->map(function (array $row) use ($user) {
+        $rows = $this->royalty->reportForUser($user, $from, $to)->map(function (array $row) use ($user) {
             $mine = collect($row['authors'])->firstWhere('user_id', $user->id);
 
             return [

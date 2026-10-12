@@ -20,7 +20,6 @@ class AdminBookController extends Controller
     public function index(Request $request): JsonResponse
     {
         $page = ReaderBook::with(ReaderPresenter::RELATIONS)
-            ->withCount(['likedBy as likes_count', 'savedBy as saves_count', 'comments as comments_count'])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $term = '%'.mb_strtolower((string) $request->query('search')).'%';
                 $query->whereHas('book', fn ($book) => $book->whereRaw('LOWER(title) LIKE ?', [$term]));
@@ -61,8 +60,6 @@ class AdminBookController extends Controller
 
     public function show(ReaderBook $readerBook): JsonResponse
     {
-        $readerBook->loadCount(['likedBy as likes_count', 'savedBy as saves_count', 'comments as comments_count']);
-
         return response()->json(['success' => true, 'message' => 'Buku berhasil diambil.', 'data' => $this->row($readerBook)]);
     }
 

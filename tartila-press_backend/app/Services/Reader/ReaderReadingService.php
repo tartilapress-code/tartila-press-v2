@@ -39,6 +39,8 @@ class ReaderReadingService
             ->filter(fn (int $page) => $page >= 1 && $page <= $readerBook->page_count)
             ->unique()
             ->take(self::MAX_PAGES_PER_CALL)
+            // Urutan tetap: transaksi bersamaan mengunci baris dalam urutan yang sama (tanpa deadlock).
+            ->sort()
             ->values();
 
         if ($pages->isEmpty()) {
@@ -51,6 +53,10 @@ class ReaderReadingService
         $newEvents = 0;
 
         DB::transaction(function () use ($user, $readerBook, $pages, $counted, $today, &$recorded, &$newEvents) {
+            $recorded = 0;
+            $newEvents = 0;
+            $newPages = [];
+
             foreach ($pages as $page) {
                 $inserted = DB::table('reader_page_reads')->insertOrIgnore([
                     'reader_book_id' => $readerBook->id,
@@ -61,38 +67,57 @@ class ReaderReadingService
                     'created_at' => now(),
                 ]);
 
-                if ($inserted === 0) {
-                    continue;
+                if ($inserted > 0) {
+                    $recorded++;
+                    $newPages[] = $page;
                 }
-
-                $recorded++;
-
-                if (! $counted) {
-                    continue;
-                }
-
-                $newEvents++;
-                $firstTime = ! DB::table('reader_page_reads')
-                    ->where('reader_book_id', $readerBook->id)
-                    ->where('user_id', $user->id)
-                    ->where('page', $page)
-                    ->where('counted', true)
-                    ->where('read_date', '<>', $today)
-                    ->exists();
-
-                $this->bump($readerBook->id, $page, $firstTime);
             }
 
-            if ($newEvents > 0) {
-                DB::table('reader_books')->where('id', $readerBook->id)->increment('read_events', $newEvents);
+            if (! $counted || $newPages === []) {
+                return;
             }
-        });
+
+            $newEvents = count($newPages);
+
+            // Halaman yang sudah pernah dibaca pembaca ini di hari lain tidak menambah "pembaca berbeda".
+            $seenBefore = DB::table('reader_page_reads')
+                ->where('reader_book_id', $readerBook->id)
+                ->where('user_id', $user->id)
+                ->whereIn('page', $newPages)
+                ->where('counted', true)
+                ->where('read_date', '<>', $today)
+                ->pluck('page')
+                ->flip();
+
+            $maxReaders = 0;
+
+            foreach ($newPages as $page) {
+                $maxReaders = max($maxReaders, $this->bump($readerBook->id, $page, ! isset($seenBefore[$page])));
+            }
+
+            // Urutan kunci: ringkasan halaman -> buku -> ringkasan harian (sama di semua transaksi).
+            DB::table('reader_books')->where('id', $readerBook->id)->increment('read_events', $newEvents);
+
+            if ($maxReaders > 0) {
+                DB::table('reader_books')
+                    ->where('id', $readerBook->id)
+                    ->where('top_page_readers', '<', $maxReaders)
+                    ->update(['top_page_readers' => $maxReaders]);
+            }
+
+            // Ringkasan harian untuk laporan royalti per rentang tanggal.
+            DB::table('reader_daily_reads')->insertOrIgnore(['reader_book_id' => $readerBook->id, 'read_date' => $today, 'events' => 0]);
+            DB::table('reader_daily_reads')->where(['reader_book_id' => $readerBook->id, 'read_date' => $today])->increment('events', $newEvents);
+        }, 3); // deadlock InnoDB pada beban tinggi: ulangi sampai 3 kali
 
         return ['recorded' => $recorded, 'counted' => $newEvents];
     }
 
-    /** Tambah ringkasan satu halaman; naikkan angka publik bila ada rekor baru. */
-    private function bump(int $readerBookId, int $page, bool $newReader): void
+    /**
+     * Tambah ringkasan satu halaman. Mengembalikan jumlah pembaca berbeda halaman itu bila ada
+     * pembaca baru (untuk rekor angka publik), selain itu 0.
+     */
+    private function bump(int $readerBookId, int $page, bool $newReader): int
     {
         $where = ['reader_book_id' => $readerBookId, 'page' => $page];
 
@@ -103,13 +128,6 @@ class ReaderReadingService
             ...($newReader ? ['readers' => DB::raw('readers + 1')] : []),
         ]);
 
-        if ($newReader) {
-            $readers = (int) DB::table('reader_page_stats')->where($where)->value('readers');
-
-            DB::table('reader_books')
-                ->where('id', $readerBookId)
-                ->where('top_page_readers', '<', $readers)
-                ->update(['top_page_readers' => $readers]);
-        }
+        return $newReader ? (int) DB::table('reader_page_stats')->where($where)->value('readers') : 0;
     }
 }

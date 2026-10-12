@@ -51,7 +51,6 @@ class CatalogController extends Controller
 
         $query = ReaderBook::listed()
             ->with(ReaderPresenter::RELATIONS)
-            ->withCount(['likedBy as likes_count', 'savedBy as saves_count', 'comments as comments_count'])
             ->when($request->filled('pustaka'), fn ($q) => $q->where('pustaka', $request->query('pustaka')))
             ->when($request->filled('education_field_id'), fn ($q) => $q->where('education_field_id', (int) $request->query('education_field_id')))
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', (int) $request->query('category_id')))
@@ -98,8 +97,6 @@ class CatalogController extends Controller
     public function show(Request $request, ReaderBook $readerBook): JsonResponse
     {
         abort_unless(ReaderBook::listed()->whereKey($readerBook->id)->exists(), 404, 'Buku tidak ditemukan.');
-
-        $readerBook->loadCount(['likedBy as likes_count', 'savedBy as saves_count', 'comments as comments_count']);
 
         return response()->json([
             'success' => true,

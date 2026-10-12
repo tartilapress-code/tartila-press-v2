@@ -22,6 +22,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Keuangan admin: arus kas (pesanan dibayar, penarikan saldo, transaksi
@@ -103,28 +104,99 @@ class FinanceService
     }
 
     /**
-     * Pembelian buku & langganan di Tartila Book yang sudah dikonfirmasi admin.
-     * Tidak punya status "selesai": begitu dikonfirmasi, aksesnya langsung aktif.
+     * Pembelian buku & langganan Tartila Book yang sudah dikonfirmasi admin, DIRINGKAS per hari (WIB)
+     * per rekening di database. Tidak punya status "selesai": begitu dikonfirmasi, aksesnya aktif.
+     * (Satu baris per pesanan tidak muat di memori pada volume Tartila Book.)
      *
-     * @return Collection<int, ReaderOrder>
+     * @return Collection<int, object{day: string, payment_method_id: ?int, orders: int, books: int, amount: string}>
      */
-    public function paidReaderOrders(): Collection
+    public function readerOrderDays(): Collection
     {
         $attributes = request()->attributes;
 
-        if ($attributes->has('finance.paid_reader_orders')) {
-            return $attributes->get('finance.paid_reader_orders');
+        if ($attributes->has('finance.reader_order_days')) {
+            return $attributes->get('finance.reader_order_days');
         }
 
-        $orders = ReaderOrder::with(['user:id,name', 'paymentMethod'])->where('status', 'confirmed')->get();
-        $attributes->set('finance.paid_reader_orders', $orders);
+        // Asia/Jakarta = UTC+7 tanpa perubahan musim.
+        $day = match (DB::getDriverName()) {
+            'pgsql' => "((confirmed_at AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Jakarta')::date",
+            'sqlite' => "date(confirmed_at, '+7 hours')",
+            default => "DATE(CONVERT_TZ(confirmed_at, '+00:00', '+07:00'))",
+        };
 
-        return $orders;
+        $days = DB::table('reader_orders')
+            ->where('status', 'confirmed')
+            ->whereNotNull('confirmed_at')
+            ->selectRaw("{$day} as day, payment_method_id, COUNT(*) as orders, SUM(CASE WHEN kind = 'book' THEN 1 ELSE 0 END) as books, SUM(amount) as amount")
+            ->groupByRaw("{$day}, payment_method_id")
+            ->get()
+            ->map(function ($row) {
+                $row->day = (string) $row->day;
+                $row->orders = (int) $row->orders;
+                $row->books = (int) $row->books;
+
+                return $row;
+            });
+
+        $attributes->set('finance.reader_order_days', $days);
+
+        return $days;
     }
 
-    public function readerPaidAt(ReaderOrder $order): CarbonInterface
+    /**
+     * Versi RINGAN pesanan lunas untuk arus kas, saldo, dan grafik omzet: baris biasa (bukan model
+     * Eloquent) dengan hanya kolom yang dipakai. paidOrders() penuh memuat item + produk + user +
+     * voucher untuk SEMUA pesanan lunas: pada 45.000 pesanan lunas melewati memori 256 MB dan butuh
+     * 50 detik (uji beban, Lampiran H SRS).
+     *
+     * @return Collection<int, object{id: int, order_number: string, total: string, status: string, user_name: ?string, payment_method_id: ?int, account: ?string, paid_at: CarbonInterface, type: string, names: string}>
+     */
+    public function paidOrderRows(): Collection
     {
-        return Carbon::instance($order->confirmed_at ?? $order->updated_at ?? $order->created_at)->setTimezone(self::TIMEZONE);
+        $attributes = request()->attributes;
+
+        if ($attributes->has('finance.paid_order_rows')) {
+            return $attributes->get('finance.paid_order_rows');
+        }
+
+        $paidIds = DB::table('orders')->whereIn('status', self::PAID_STATUSES)->select('id');
+
+        $confirmedAt = DB::table('order_status_histories')
+            ->where('event', 'payment_confirmed')
+            ->whereIn('order_id', $paidIds)
+            ->groupBy('order_id')
+            ->pluck(DB::raw('MIN(created_at)'), 'order_id');
+
+        $items = DB::table('order_items')
+            ->whereIn('order_id', $paidIds)
+            ->orderBy('id')
+            ->get(['order_id', 'itemable_type', 'name'])
+            ->groupBy('order_id');
+
+        $rows = DB::table('orders')
+            ->leftJoin('users', 'users.id', '=', 'orders.user_id')
+            ->leftJoin('payment_methods', 'payment_methods.id', '=', 'orders.payment_method_id')
+            ->whereIn('orders.status', self::PAID_STATUSES)
+            ->get([
+                'orders.id', 'orders.order_number', 'orders.total', 'orders.status', 'orders.updated_at', 'orders.created_at',
+                'orders.payment_method_id', 'users.name as user_name', 'payment_methods.bank_name', 'payment_methods.account_number',
+            ])
+            ->map(function ($row) use ($confirmedAt, $items) {
+                $orderItems = $items->get($row->id, collect());
+                $time = $confirmedAt[$row->id] ?? $row->updated_at ?? $row->created_at;
+
+                $row->paid_at = Carbon::parse($time, 'UTC')->setTimezone(self::TIMEZONE);
+                $row->type = self::ITEMABLE_TYPES[$orderItems->first()?->itemable_type] ?? 'other_order';
+                $row->names = $orderItems->pluck('name')->filter()->take(3)->implode(', ');
+                $row->account = $row->payment_method_id ? $row->bank_name.' · '.$row->account_number : null;
+
+                return $row;
+            });
+
+        $attributes->set('finance.paid_order_rows', $rows);
+
+        return $rows;
     }
 
     public function orderType(Order $order): string
@@ -159,37 +231,39 @@ class FinanceService
         $labels = self::typeLabels();
         $entries = collect();
 
-        foreach ($this->paidOrders() as $order) {
-            $type = $this->orderType($order);
+        foreach ($this->paidOrderRows() as $order) {
             $entries->push([
                 'key' => "order:{$order->id}",
                 'source' => 'order',
                 'source_id' => $order->id,
-                'date' => $this->paidAt($order),
+                'date' => $order->paid_at,
                 'direction' => 'in',
-                'type' => $type,
-                'type_label' => $labels[$type],
-                'description' => $order->order_number.' · '.$order->items->pluck('name')->filter()->take(3)->implode(', '),
-                'party' => $order->user?->name,
-                'account' => $this->account($order->paymentMethod),
+                'type' => $order->type,
+                'type_label' => $labels[$order->type],
+                'description' => $order->order_number.' · '.$order->names,
+                'party' => $order->user_name,
+                'account' => $order->payment_method_id ? ['id' => (int) $order->payment_method_id, 'name' => $order->account] : null,
                 'amount' => round((float) $order->total, 2),
                 'status' => $order->status === 'completed' ? 'completed' : 'hold',
             ]);
         }
 
-        foreach ($this->paidReaderOrders() as $order) {
+        // Pesanan Tartila Book diringkas per hari per rekening (bisa puluhan ribu pesanan per hari).
+        $methods = PaymentMethod::get()->keyBy('id');
+
+        foreach ($this->readerOrderDays() as $day) {
             $entries->push([
-                'key' => "reader_order:{$order->id}",
-                'source' => 'reader_order',
-                'source_id' => $order->id,
-                'date' => $this->readerPaidAt($order),
+                'key' => "reader_day:{$day->day}:".($day->payment_method_id ?? 0),
+                'source' => 'reader_day',
+                'source_id' => 0,
+                'date' => Carbon::parse($day->day, self::TIMEZONE),
                 'direction' => 'in',
                 'type' => 'ebook',
                 'type_label' => $labels['ebook'],
-                'description' => $order->order_number.' · '.$order->title,
-                'party' => $order->user?->name,
-                'account' => $this->account($order->paymentMethod),
-                'amount' => round((float) $order->amount, 2),
+                'description' => "Tartila Book · {$day->orders} pesanan ({$day->books} buku, ".($day->orders - $day->books).' langganan)',
+                'party' => null,
+                'account' => $this->account($methods->get($day->payment_method_id)),
+                'amount' => round((float) $day->amount, 2),
                 'status' => 'completed',
             ]);
         }
@@ -301,40 +375,60 @@ class FinanceService
      */
     public function revenueSeries(int $year, int $month): array
     {
-        $paid = $this->paidOrders()
-            ->map(fn (Order $order) => ['date' => Carbon::instance($this->paidAt($order)), 'amount' => (float) $order->total])
-            ->concat($this->paidReaderOrders()->map(fn (ReaderOrder $order) => ['date' => Carbon::instance($this->readerPaidAt($order)), 'amount' => (float) $order->amount]));
-        $point = fn (string $label, string $period, Collection $rows) => [
+        // Satu kali jalan: jumlahkan ke ember hari/bulan/tahun (bukan menyaring semua baris untuk
+        // tiap titik grafik: 6,7 detik pada 45.000 pesanan lunas).
+        $days = [];
+        $months = [];
+        $years = [];
+        $add = function (array &$bucket, string $key, float $amount, int $count): void {
+            $bucket[$key] ??= ['amount' => 0.0, 'count' => 0];
+            $bucket[$key]['amount'] += $amount;
+            $bucket[$key]['count'] += $count;
+        };
+        $collect = function (CarbonInterface $date, float $amount, int $count) use (&$days, &$months, &$years, $add): void {
+            $add($days, $date->format('Y-m-d'), $amount, $count);
+            $add($months, $date->format('Y-m'), $amount, $count);
+            $add($years, $date->format('Y'), $amount, $count);
+        };
+
+        foreach ($this->paidOrderRows() as $order) {
+            $collect($order->paid_at, (float) $order->total, 1);
+        }
+
+        foreach ($this->readerOrderDays() as $day) {
+            $collect(Carbon::parse($day->day, self::TIMEZONE), (float) $day->amount, $day->orders);
+        }
+
+        $point = fn (string $label, string $period, ?array $bucket) => [
             'label' => $label,
             'period' => $period,
-            'amount' => round((float) $rows->sum('amount'), 2),
-            'count' => $rows->count(),
+            'amount' => round((float) ($bucket['amount'] ?? 0), 2),
+            'count' => (int) ($bucket['count'] ?? 0),
         ];
 
         $start = Carbon::create($year, $month, 1, 0, 0, 0, self::TIMEZONE);
         $daily = [];
 
         for ($day = 1; $day <= $start->daysInMonth; $day++) {
-            $date = $start->copy()->day($day);
-            $daily[] = $point((string) $day, $date->toDateString(), $paid->filter(fn ($row) => $row['date']->isSameDay($date)));
+            $key = $start->copy()->day($day)->toDateString();
+            $daily[] = $point((string) $day, $key, $days[$key] ?? null);
         }
 
         $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         $monthly = [];
 
         foreach ($monthNames as $index => $name) {
-            $monthly[] = $point($name, sprintf('%04d-%02d', $year, $index + 1), $paid->filter(
-                fn ($row) => $row['date']->year === $year && $row['date']->month === $index + 1
-            ));
+            $key = sprintf('%04d-%02d', $year, $index + 1);
+            $monthly[] = $point($name, $key, $months[$key] ?? null);
         }
 
         $thisYear = (int) now(self::TIMEZONE)->year;
-        $firstYear = min($year, (int) ($paid->min(fn ($row) => $row['date']->year) ?? $year), $thisYear);
+        $firstYear = min($year, $years === [] ? $year : (int) min(array_keys($years)), $thisYear);
         $lastYear = max($year, $thisYear);
         $yearly = [];
 
         for ($each = $firstYear; $each <= $lastYear; $each++) {
-            $yearly[] = $point((string) $each, (string) $each, $paid->filter(fn ($row) => $row['date']->year === $each));
+            $yearly[] = $point((string) $each, (string) $each, $years[(string) $each] ?? null);
         }
 
         return ['daily' => $daily, 'monthly' => $monthly, 'yearly' => $yearly];
@@ -572,7 +666,7 @@ class FinanceService
     public function ebookRows(?string $from = null, ?string $to = null): array
     {
         $rows = $this->readerRoyalty
-            ->report($from ?: '2000-01-01', $to ?: '2100-12-31')
+            ->report($from ?: '2000-01-01', $to ?: '2100-12-31', null, null, false)
             ->filter(fn (array $row) => $row['orders'] > 0 || $row['read_events'] > 0)
             ->map(function (array $row) {
                 $costs = $row['purchase_royalty'] + $row['read_royalty'];
@@ -583,7 +677,6 @@ class FinanceService
                     'title' => $row['title'],
                     'status' => 'completed',
                     'orders' => $row['orders'],
-                    'readers' => $row['readers'],
                     'read_events' => $row['read_events'],
                     'price' => round($row['revenue'], 2),
                     'purchase_percent' => (float) $row['purchase_percent'],
@@ -597,18 +690,20 @@ class FinanceService
             ->values()
             ->all();
 
-        $plans = $this->paidReaderOrders()
-            ->filter(fn (ReaderOrder $order) => $order->kind === 'plan' && $this->inRange($this->readerPaidAt($order), $from, $to));
+        $plans = ReaderOrder::where('kind', 'plan')->where('status', 'confirmed')
+            ->when($from, fn ($q) => $q->where('confirmed_at', '>=', Carbon::parse($from, self::TIMEZONE)->startOfDay()->utc()))
+            ->when($to, fn ($q) => $q->where('confirmed_at', '<=', Carbon::parse($to, self::TIMEZONE)->endOfDay()->utc()))
+            ->selectRaw('COUNT(*) as orders, COALESCE(SUM(amount), 0) as amount')
+            ->first();
 
-        if ($plans->isNotEmpty()) {
-            $revenue = round((float) $plans->sum('amount'), 2);
+        if ($plans && $plans->orders > 0) {
+            $revenue = round((float) $plans->amount, 2);
             $rows[] = [
                 'id' => 0,
                 'kind' => 'subscription',
                 'title' => 'Langganan Tartila Book',
                 'status' => 'completed',
-                'orders' => $plans->count(),
-                'readers' => 0,
+                'orders' => (int) $plans->orders,
                 'read_events' => 0,
                 'price' => $revenue,
                 'purchase_percent' => 0.0,
