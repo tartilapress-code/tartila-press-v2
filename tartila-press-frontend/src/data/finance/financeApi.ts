@@ -48,7 +48,7 @@ export type FinanceSummary = {
 
 export type LedgerEntry = {
     key: string;
-    source: 'order' | 'reader_order' | 'withdrawal' | 'manual';
+    source: 'order' | 'reader_day' | 'withdrawal' | 'manual';
     source_id: number;
     date: string;
     direction: 'in' | 'out';
@@ -184,7 +184,6 @@ export type EbookRow = {
     title: string;
     status: 'completed' | 'hold';
     orders: number;
-    readers: number;
     read_events: number;
     price: number;
     purchase_percent: number;
@@ -265,7 +264,7 @@ export const deleteTransaction = (id: number) =>
     http.delete(`/admin/finance/transactions/${id}`);
 
 export const assignAccount = (
-    source: 'order' | 'reader_order' | 'withdrawal',
+    source: 'order' | 'withdrawal',
     id: number,
     paymentMethodId: number | null
 ) =>

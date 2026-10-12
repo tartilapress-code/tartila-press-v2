@@ -468,7 +468,6 @@ export type RoyaltyRow = {
     revenue: number;
     purchase_percent: number;
     purchase_royalty: number;
-    readers: number;
     read_events: number;
     read_fee: number;
     read_royalty: number;

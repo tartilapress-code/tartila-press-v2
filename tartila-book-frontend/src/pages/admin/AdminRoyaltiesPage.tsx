@@ -236,7 +236,7 @@ export default function AdminRoyaltiesPage() {
                                 </td>
                                 <td className="p-3 text-right">
                                     {row.read_events.toLocaleString('id-ID')}{' '}
-                                    bacaan ({row.readers} pembaca)
+                                    bacaan
                                     <span className="block text-xs text-oxford-navy-900/60">
                                         × {formatRupiah(row.read_fee)} ={' '}
                                         {formatRupiah(row.read_royalty)}

@@ -51,7 +51,7 @@ export default function TransactionsTab() {
     ) {
         try {
             await financeApi.assignAccount(
-                entry.source as 'order' | 'reader_order' | 'withdrawal',
+                entry.source as 'order' | 'withdrawal',
                 entry.source_id,
                 accountId
             );
@@ -426,7 +426,8 @@ export default function TransactionsTab() {
                                     )}
                                 </td>
                                 <td className="p-3">
-                                    {entry.source === 'manual' ? (
+                                    {entry.source === 'manual' ||
+                                    entry.source === 'reader_day' ? (
                                         (entry.account?.name ?? (
                                             <span className="text-amber-800">
                                                 Belum ditentukan

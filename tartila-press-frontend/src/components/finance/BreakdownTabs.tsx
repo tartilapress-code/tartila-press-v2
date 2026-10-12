@@ -602,7 +602,7 @@ export function EbooksTab() {
                     <Hint>
                         {row.kind === 'subscription'
                             ? `${row.orders} langganan dibayar`
-                            : `${row.orders} pembelian · ${row.read_events} bacaan dari ${row.readers} pembaca`}
+                            : `${row.orders} pembelian · ${row.read_events} bacaan`}
                     </Hint>
                 </>
             ),
