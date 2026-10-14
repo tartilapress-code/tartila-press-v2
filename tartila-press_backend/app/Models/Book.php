@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Casts\LanguageList;
 use App\Models\Reader\ReaderBook;
+use App\Models\Scopes\ExcludePartnerBooks;
+use App\Services\Cover\CoverService;
 use App\Support\AuthorNames;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -26,9 +28,19 @@ class Book extends Model
 
     protected static function booted(): void
     {
+        // Buku mitra hanya untuk Tartila Book (lihat ExcludePartnerBooks).
+        static::addGlobalScope(new ExcludePartnerBooks);
+
         static::creating(function (Book $book) {
             if (! $book->slug) {
                 $book->slug = static::generateUniqueSlug($book->title);
+            }
+        });
+
+        // Buku aktif/terbit: pakai cover final dan jadwalkan penghapusan berkas cover/revisi (7 hari).
+        static::saved(function (Book $book) {
+            if ($book->is_active && ($book->wasRecentlyCreated || $book->wasChanged('is_active'))) {
+                app(CoverService::class)->bookPublished($book);
             }
         });
 
@@ -58,6 +70,7 @@ class Book extends Model
         'includes_hki',
         'includes_isbn_print',
         'includes_isbn_electronic',
+        'isbn_type',
         'book_category_id',
         'field_category_id',
         'price',
@@ -75,6 +88,14 @@ class Book extends Model
         'is_active',
         'created_by',
         'owner_editor_id',
+        // Buku mitra Tartila Book.
+        'partner_id',
+        'partner_status',
+        'partner_note',
+        'partner_submitted_at',
+        'partner_reviewed_at',
+        'partner_reviewed_by',
+        'partner_documents',
     ];
 
     // Sama dengan default kolom, supaya buku yang baru dibuat langsung memuat
@@ -90,6 +111,8 @@ class Book extends Model
         'final_price',
         'preview_url',
         'editor_name',
+        'sells_physical',
+        'sells_ebook',
     ];
 
     // Ebook lengkap hanya untuk penulis buku (unduh lewat endpoint khusus).
@@ -122,8 +145,27 @@ class Book extends Model
             'includes_isbn_electronic' => 'boolean',
             'is_active' => 'boolean',
             'ebook_uploaded_at' => 'datetime',
+            'partner_documents' => 'array',
+            'partner_submitted_at' => 'datetime',
+            'partner_reviewed_at' => 'datetime',
             'front_cover_updated_at' => 'datetime',
         ];
+    }
+
+    public function isPartnerBook(): bool
+    {
+        return $this->partner_id !== null;
+    }
+
+    /** Penulis buku mitra (akun terdaftar), urut. */
+    public function partnerAuthors(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'partner_book_authors', 'book_id', 'user_id')->withPivot('position')->orderByPivot('position');
+    }
+
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class);
     }
 
     public function hasEbook(): bool
@@ -299,7 +341,8 @@ class Book extends Model
         $slug = $baseSlug;
         $counter = 1;
 
-        while (static::where('slug', $slug)->exists()) {
+        // Termasuk buku mitra: slug harus unik di seluruh tabel.
+        while (static::withoutGlobalScope(ExcludePartnerBooks::class)->where('slug', $slug)->exists()) {
             $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
@@ -346,6 +389,30 @@ class Book extends Model
     public function ownerEditor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_editor_id');
+    }
+
+    /** Buku fisik dijual di Tartila Press: semua buku kecuali yang berjenis ISBN digital saja. */
+    protected function sellsPhysical(): Attribute
+    {
+        return Attribute::get(fn () => $this->isbn_type !== 'electronic');
+    }
+
+    /** Ebook dijual di Tartila Book: buku berjenis ISBN digital atau cetak + digital. */
+    protected function sellsEbook(): Attribute
+    {
+        return Attribute::get(fn () => in_array($this->isbn_type, ['electronic', 'both'], true));
+    }
+
+    /** Tautan beli/baca ebook di Tartila Book: alamat situs + judul buku (slug). */
+    public function ebookUrl(): string
+    {
+        return config('app.book_url').'/buku/'.$this->slug;
+    }
+
+    /** Ebook sudah bisa dibeli: ada di Tartila Book, dipublikasikan, dan berkas PDF-nya siap. */
+    public function isEbookAvailable(): bool
+    {
+        return $this->readerBook()->listed()->exists();
     }
 
     /** Entri buku ini di Tartila Book (situs baca), bila ada. */

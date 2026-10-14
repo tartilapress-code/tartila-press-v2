@@ -1,12 +1,18 @@
 import { http } from '@/lib/http';
+import type { IsbnType } from '@/lib/isbnTypes';
 
 export type CreateOrderPayload = {
     type: 'package' | 'custom' | 'book_chapter' | 'book';
     package_id?: number;
+    // Jenis ISBN paket yang dipilih pembeli (wajib bila paket menawarkan lebih dari satu).
+    isbn_type?: IsbnType;
     custom_item_ids?: number[];
     book_chapter_id?: number;
     book_ids?: number[];
     editor_id?: number;
+    // Layanan co-author (paket penerbitan): minta co-author, opsional memilih sendiri.
+    wants_coauthor?: boolean;
+    coauthor_id?: number;
     voucher_code?: string;
     notes?: string;
     recipient_name?: string;
@@ -21,7 +27,12 @@ export const create = (payload: CreateOrderPayload) =>
 
 export type CheckVoucherPayload = Pick<
     CreateOrderPayload,
-    'type' | 'package_id' | 'custom_item_ids' | 'book_chapter_id' | 'book_ids'
+    | 'type'
+    | 'package_id'
+    | 'isbn_type'
+    | 'custom_item_ids'
+    | 'book_chapter_id'
+    | 'book_ids'
 > & { voucher_code: string };
 
 export const checkVoucher = (payload: CheckVoucherPayload) =>
@@ -84,6 +95,7 @@ export type Invoice = {
     voucher_code: string | null;
     voucher_discount: number;
     editor: { name: string; fee: number } | null;
+    coauthor?: { name: string | null; fee: number } | null;
     total: number;
     payment_method: {
         bank_name: string;

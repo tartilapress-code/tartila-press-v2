@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import {
     RiArrowLeftLine,
     RiBarcodeLine,
+    RiBookOpenLine,
     RiCalendarLine,
     RiCheckLine,
     RiFilePdf2Line,
@@ -55,12 +56,17 @@ export default function BookDetailHero({
     inCart,
     onBuy,
     onAddToCart,
+    onBuyEbook,
+    ebookMessage,
     onSeeReviews,
 }: {
     book: BookDetail;
     inCart: boolean;
     onBuy: () => void;
     onAddToCart: () => void;
+    // Beli ebook = diarahkan ke Tartila Book; pesan galat bila ebook belum tersedia.
+    onBuyEbook: () => void;
+    ebookMessage: string;
     onSeeReviews: () => void;
 }) {
     const { t } = useTranslation();
@@ -240,39 +246,74 @@ export default function BookDetailHero({
                     </div>
 
                     {/* Tombol selebar penuh di mobile, berjajar mulai sm */}
+                    {book.sells_ebook && (
+                        <p className="text-sm text-oxford-navy-900/70">
+                            {book.sells_physical
+                                ? t('books.detail.hero.bothFormats')
+                                : t('books.detail.hero.ebookOnly')}
+                        </p>
+                    )}
+
                     <div className="mt-1 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
-                        <button
-                            type="button"
-                            onClick={onBuy}
-                            className={primaryButton}
-                        >
-                            {t('books.detail.hero.buy')}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onAddToCart}
-                            disabled={inCart}
-                            className={tonalButton}
-                        >
-                            {inCart ? (
-                                <>
-                                    <RiCheckLine
-                                        aria-hidden
-                                        className="size-[18px]"
-                                    />
-                                    {t('books.detail.hero.inCart')}
-                                </>
-                            ) : (
-                                <>
-                                    <RiShoppingCartLine
-                                        aria-hidden
-                                        className="size-[18px]"
-                                    />
-                                    {t('books.detail.hero.addToCart')}
-                                </>
-                            )}
-                        </button>
+                        {book.sells_physical && (
+                            <button
+                                type="button"
+                                onClick={onBuy}
+                                className={primaryButton}
+                            >
+                                {t('books.detail.hero.buy')}
+                            </button>
+                        )}
+                        {book.sells_ebook && (
+                            <button
+                                type="button"
+                                onClick={onBuyEbook}
+                                className={
+                                    book.sells_physical
+                                        ? tonalButton
+                                        : primaryButton
+                                }
+                            >
+                                <RiBookOpenLine
+                                    aria-hidden
+                                    className="size-[18px]"
+                                />
+                                {t('books.detail.hero.buyEbook')}
+                            </button>
+                        )}
+                        {book.sells_physical && (
+                            <button
+                                type="button"
+                                onClick={onAddToCart}
+                                disabled={inCart}
+                                className={tonalButton}
+                            >
+                                {inCart ? (
+                                    <>
+                                        <RiCheckLine
+                                            aria-hidden
+                                            className="size-[18px]"
+                                        />
+                                        {t('books.detail.hero.inCart')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <RiShoppingCartLine
+                                            aria-hidden
+                                            className="size-[18px]"
+                                        />
+                                        {t('books.detail.hero.addToCart')}
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
+
+                    {ebookMessage && (
+                        <p role="alert" className="text-sm text-red-600">
+                            {ebookMessage}
+                        </p>
+                    )}
 
                     {(book.preview_url || scholarUrl) && (
                         <div className="flex flex-wrap justify-center gap-2 sm:justify-start">

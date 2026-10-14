@@ -32,6 +32,10 @@ export type BookSummary = {
     category: BookCategoryItem | null;
     field_category: BookCategoryItem | null;
     reviews_avg_rating: number | string | null;
+    // Jenis ISBN buku: cetak -> dijual sebagai buku fisik; digital -> ebook di Tartila Book; keduanya -> pilih.
+    isbn_type: 'print' | 'electronic' | 'both' | null;
+    sells_physical: boolean;
+    sells_ebook: boolean;
 };
 
 export type BookChapterEntry = {
@@ -61,6 +65,9 @@ export type BookReviewEntry = {
 // Bentuk `GET /books/{slug}`: ringkasan buku + rincian, daftar bab (buku
 // kompilasi Book Chapter), dan ulasan.
 export type BookDetail = BookSummary & {
+    // Hanya ada bila ebook dijual: tautan Tartila Book (alamat situs + judul) dan kesiapan ebook.
+    ebook_url?: string;
+    ebook_available?: boolean;
     isbn: string | null;
     // Nama penulis untuk sitasi, sudah dibersihkan server (tanpa gelar).
     citation_authors: string[];

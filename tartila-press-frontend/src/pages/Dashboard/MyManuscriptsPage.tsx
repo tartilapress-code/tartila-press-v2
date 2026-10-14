@@ -27,6 +27,12 @@ type ManuscriptItem = {
 const statusLabels: Record<string, string> = {
     submitted: 'Menunggu Review Admin',
     revision_requested: 'Perlu Revisi',
+    pending_coauthor_assignment: 'Menunggu Penugasan Co-author',
+    in_coauthoring: 'Sedang Disusun Co-author',
+    pending_admin_review_coauthor: 'Menunggu Review Admin (Co-author)',
+    coauthor_revision_requested: 'Co-author Sedang Revisi',
+    pending_author_review_coauthor:
+        'Menunggu Persetujuan Anda (Susunan Co-author)',
     pending_editor_assignment: 'Menunggu Penugasan Editor',
     in_editing: 'Sedang Diedit Editor',
     pending_admin_review_editor: 'Menunggu Review Admin (Editor)',

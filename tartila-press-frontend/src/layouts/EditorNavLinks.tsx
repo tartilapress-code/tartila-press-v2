@@ -17,6 +17,16 @@ export default function EditorNavLinks() {
                     Naskah Ditugaskan
                 </NavLabel>
             </NavLink>
+            <NavLink to="/dashboard/pool-coauthor" className={linkClass}>
+                <NavLabel categories={['coauthor_pool']}>
+                    Pool Co-author
+                </NavLabel>
+            </NavLink>
+            <NavLink to="/dashboard/naskah-coauthor" className={linkClass}>
+                <NavLabel categories={['coauthor_manuscript']}>
+                    Naskah Co-author
+                </NavLabel>
+            </NavLink>
             <NavLink to="/dashboard/fee-saya" className={linkClass}>
                 Fee Saya
             </NavLink>

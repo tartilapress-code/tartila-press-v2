@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import type { IsbnOption, IsbnType } from '@/lib/isbnTypes';
 
 /** Paket di katalog publik: cukup untuk kartu, perbandingan, dan hitungan hemat. */
 export type PackageSummary = {
@@ -11,6 +12,9 @@ export type PackageSummary = {
     final_price: number;
     facilities: string[] | null;
     services: string[] | null;
+    // Harga per jenis ISBN; `price`/`final_price` = harga bawaan (ISBN cetak bila ditawarkan).
+    isbn_options: IsbnOption[];
+    default_isbn_type: IsbnType;
 };
 
 export const list = () => http.get('/packages');

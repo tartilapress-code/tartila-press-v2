@@ -13,7 +13,8 @@ return new class extends Migration
             $table->string('slug')->nullable()->unique()->after('title');
         });
 
-        Book::whereNull('slug')->each(function (Book $book) {
+        // Tanpa saringan buku mitra: kolom partner_id baru ada di migrasi yang lebih baru.
+        Book::withoutGlobalScopes()->whereNull('slug')->each(function (Book $book) {
             $book->update(['slug' => Book::generateUniqueSlug($book->title)]);
         });
     }

@@ -110,7 +110,8 @@ class MouRenderer
             $details = $row->signed_at
                 ? 'NIK '.($identity['nik'] ?? '-').', alamat '.($identity['address'] ?? '-')
                 : 'data diri tercantum setelah penandatanganan';
-            $this->paragraph(chr(97 + ($index % 26)).'.  '.($identity['name'] ?? $row->user?->name ?? '-').' ('.$details.')', 24);
+            $label = $row->is_coauthor ? ' [Co-author]' : '';
+            $this->paragraph(chr(97 + ($index % 26)).'.  '.($identity['name'] ?? $row->user?->name ?? '-').$label.' ('.$details.')', 24);
         }
 
         $this->gap(6);
@@ -126,10 +127,33 @@ class MouRenderer
         $this->articleHeading('Objek Perjanjian');
         $this->row('Judul buku', $this->mou->title);
         $this->row('Jenis paket', $this->mou->type === Mou::TYPE_CHAPTER ? 'Book Chapter' : 'Paket penerbitan biasa');
-        $this->row('Layanan ISBN', collect([
+        $rights = $content['package_rights'] ?? null;
+
+        if (filled($rights['package'] ?? null)) {
+            $this->row('Paket yang diambil', $rights['package']);
+        }
+
+        $this->row('Layanan ISBN', ($rights['isbn_label'] ?? null) ?: collect([
             $types['physical'] ? 'Buku cetak' : null,
             $types['ebook'] ? 'Buku elektronik (ebook)' : null,
         ])->filter()->implode(' dan '));
+
+        // Hak penulis atas fasilitas dan layanan paket
+        if ($rights && (($rights['facilities'] ?? []) !== [] || ($rights['services'] ?? []) !== [])) {
+            $this->articleHeading('Hak Pihak Kedua atas Fasilitas dan Layanan Paket');
+            $this->paragraph('Selain royalti, Pihak Kedua berhak memperoleh fasilitas dan layanan dari paket'
+                .(filled($rights['package'] ?? null) ? ' '.$rights['package'] : '').' yang diambilnya, sebagai berikut:');
+
+            foreach (['facilities' => 'Fasilitas', 'services' => 'Layanan'] as $key => $label) {
+                if (($rights[$key] ?? []) === []) {
+                    continue;
+                }
+
+                $this->gap(3);
+                $this->paragraph($label.':');
+                $this->bullets($rights[$key]);
+            }
+        }
 
         // Hak distribusi
         $this->articleHeading('Hak Distribusi');
@@ -140,7 +164,20 @@ class MouRenderer
             $this->paragraph('Hak distribusi dipilih Pihak Kedua pada saat penandatanganan.');
         } else {
             $this->paragraph('Pihak Kedua memberikan hak distribusi buku kepada Pihak Pertama melalui:');
-            $this->numbered($options->map(fn ($option) => $option['name'].(filled($option['description']) ? ' — '.$option['description'] : ''))->all());
+
+            foreach ($options->values() as $index => $option) {
+                $this->ensure(self::LINE * 3);
+                $y = $this->pdf->GetY();
+                $this->text(($index + 1).'.', self::LEFT, $y, 20);
+                $this->text($option['name'], self::LEFT + 20, $y, self::RIGHT - self::LEFT - 20, 'L', true);
+
+                // Rincian hak berupa daftar poin; teks paragraf lama tetap tampil bila belum ada poin.
+                if (! empty($option['points'])) {
+                    $this->bullets($option['points'], 36);
+                } elseif (filled($option['description'] ?? null)) {
+                    $this->paragraph($option['description'], 20);
+                }
+            }
         }
 
         // Royalti
@@ -150,6 +187,9 @@ class MouRenderer
                 ? ($this->mou->type === Mou::TYPE_CHAPTER
                     ? 'Nilai royalti dibagi per bab yang ditulis masing-masing penulis.'
                     : 'Nilai royalti dibagi rata antar-penulis.')
+                : '')
+            .($this->mou->signatories->contains('is_coauthor', true)
+                ? ' Co-author tercatat sebagai penulis terakhir dan menerima jatah royalti tetap yang tercantum pada tabel, di luar pembagian antar-penulis lainnya.'
                 : '')
             .' Jenis royalti mengikuti layanan ISBN yang diambil.');
         $this->gap(4);
@@ -246,8 +286,11 @@ class MouRenderer
 
             foreach ($pair->values() as $i => $row) {
                 /** @var MouSignatory $row */
-                $x = self::LEFT + $i * $columnWidth;
-                $this->text('Penulis '.$row->position, $x, $top, $columnWidth, 'C', false, 10);
+                // Penulis tunggal pada satu baris (jumlah ganjil) tepat di tengah halaman, bukan di kolom kiri.
+                $x = $pair->count() === 1
+                    ? self::LEFT + $columnWidth / 2
+                    : self::LEFT + $i * $columnWidth;
+                $this->text('Penulis '.$row->position.($row->is_coauthor ? ' (Co-author)' : ''), $x, $top, $columnWidth, 'C', false, 10);
 
                 if ($row->signed_at && ($path = $this->imagePath($row->signature_path))) {
                     $this->pdf->Image($path, $x + $columnWidth / 2 - 55, $top + 14, 110, 44);
@@ -318,6 +361,17 @@ class MouRenderer
             $y = $this->pdf->GetY();
             $this->text(($index + 1).'.', self::LEFT, $y, 20);
             $this->text($item, self::LEFT + 20, $y, self::RIGHT - self::LEFT - 20);
+        }
+    }
+
+    /** @param  list<string>  $items */
+    private function bullets(array $items, float $indent = 20): void
+    {
+        foreach (array_values($items) as $item) {
+            $this->ensure(self::LINE * 2);
+            $y = $this->pdf->GetY();
+            $this->text('-', self::LEFT + $indent, $y, 12);
+            $this->text($item, self::LEFT + $indent + 14, $y, self::RIGHT - self::LEFT - $indent - 14);
         }
     }
 

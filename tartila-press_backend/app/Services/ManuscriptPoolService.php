@@ -61,6 +61,7 @@ class ManuscriptPoolService
     public function eligibleEditors(Manuscript $manuscript): Collection
     {
         return User::whereHas('roles', fn ($query) => $query->where('name', 'editor'))
+            ->whereDoesntHave('editorProfile', fn ($query) => $query->where('is_banned', true))
             ->with('editorProfile')
             ->get()
             ->filter(fn (User $editor) => $this->matches($manuscript, $this->editorFieldIds($editor)))

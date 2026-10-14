@@ -7,6 +7,7 @@ use App\Models\ChapterRevisionRequest;
 use App\Models\EditorProfile;
 use App\Models\Manuscript;
 use App\Models\ManuscriptRevision;
+use App\Models\ManuscriptTemplate;
 use App\Models\Mou;
 use App\Models\PersonalProfile;
 use App\Models\Role;
@@ -83,6 +84,7 @@ class BookChapterCompilationTest extends TestCase
             'title' => 'Buku Bersama IoT',
             'price' => 100000,
             'discount' => 0,
+            'includes_isbn_print' => false,
             'owner_editor_id' => $this->editor->id,
             'chapters' => array_map(fn ($n) => ['title' => "Topik $n"], range(1, $count)),
         ])->assertCreated()->json('data.id');
@@ -103,7 +105,7 @@ class BookChapterCompilationTest extends TestCase
         $this->patchJson("/api/v1/admin/orders/{$order['id']}/status", ['status' => 'confirmed'])->assertOk();
 
         Sanctum::actingAs($author);
-        $manuscript = $this->postJson('/api/v1/manuscripts', ['order_id' => $order['id'], 'file' => $this->chapterFile($marker)])
+        $manuscript = $this->postJson('/api/v1/manuscripts', ['manuscript_template_id' => ManuscriptTemplate::default()?->id, 'order_id' => $order['id'], 'file' => $this->chapterFile($marker)])
             ->assertCreated()->json('data');
 
         return [Manuscript::findOrFail($manuscript['id']), $author];

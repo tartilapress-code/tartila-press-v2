@@ -216,7 +216,7 @@ export default function BookDetailPage() {
         if (!book) return;
 
         if (!user) {
-            navigate(`/masuk?next=${encodeURIComponent(`/buku/${book.id}`)}`);
+            navigate(`/masuk?next=${encodeURIComponent(`/buku/${book.slug}`)}`);
 
             return;
         }
@@ -264,7 +264,7 @@ export default function BookDetailPage() {
         book.pustaka === 'fiksi'
             ? [book.category, book.genre]
             : [book.education_field, book.category];
-    const loginNext = `/masuk?next=${encodeURIComponent(`/buku/${book.id}`)}`;
+    const loginNext = `/masuk?next=${encodeURIComponent(`/buku/${book.slug}`)}`;
 
     return (
         <div className="mx-auto flex max-w-[1232px] flex-col gap-10 px-6 py-8 sm:px-10">

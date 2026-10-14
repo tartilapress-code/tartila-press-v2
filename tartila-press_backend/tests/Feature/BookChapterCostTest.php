@@ -87,6 +87,7 @@ class BookChapterCostTest extends TestCase
             'title' => 'Antologi Cerita',
             'price' => 300000,
             'discount' => 0,
+            'includes_isbn_print' => false,
             'chapters' => [
                 ['title' => 'Bab 1'],
                 ['title' => 'Bab 2'],

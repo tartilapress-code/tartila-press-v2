@@ -11,6 +11,8 @@ export type AuthContextValue = {
     user: AuthUser | null;
     isLoading: boolean;
     isAdmin: boolean;
+    // Akun mitra (penerbit mitra): dashboard unggah ebook sendiri.
+    isPartner: boolean;
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     // Notifikasi Tartila Book belum dibaca.

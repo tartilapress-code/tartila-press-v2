@@ -24,8 +24,14 @@ return new class extends Migration
             $table->index('read_date');
         });
 
-        DB::statement('INSERT INTO reader_daily_reads (reader_book_id, read_date, events)
-            SELECT reader_book_id, read_date, COUNT(*) FROM reader_page_reads WHERE counted = 1 GROUP BY reader_book_id, read_date');
+        // Lintas database (MySQL/MariaDB, PostgreSQL, SQLite): jangan bandingkan boolean dengan angka.
+        DB::table('reader_daily_reads')->insertUsing(
+            ['reader_book_id', 'read_date', 'events'],
+            DB::table('reader_page_reads')
+                ->where('counted', true)
+                ->select('reader_book_id', 'read_date', DB::raw('COUNT(*)'))
+                ->groupBy('reader_book_id', 'read_date')
+        );
 
         Schema::table('reader_orders', function (Blueprint $table) {
             $table->index(['reader_book_id', 'kind', 'status', 'confirmed_at', 'amount'], 'reader_orders_book_kind_status_amount_index');

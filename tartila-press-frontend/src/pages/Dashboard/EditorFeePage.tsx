@@ -44,6 +44,11 @@ type ProjectFeeSummary = {
 };
 
 const statusLabels: Record<string, string> = {
+    in_coauthoring: 'Perlu Disusun',
+    coauthor_revision_requested: 'Susunan Perlu Revisi',
+    pending_admin_review_coauthor: 'Susunan Direview Admin',
+    pending_author_review_coauthor: 'Susunan Ditinjau Penulis',
+    pending_editor_assignment: 'Menunggu Editor',
     in_editing: 'Sedang Diedit',
     pending_admin_review_editor: 'Menunggu Review Admin',
     editor_revision_requested: 'Perlu Revisi',
@@ -92,6 +97,10 @@ function SummaryStat({
 export default function EditorFeePage() {
     const [summary, setSummary] = useState<FeeSummary | null>(null);
     const [items, setItems] = useState<FeeItem[]>([]);
+    const [coauthorSummary, setCoauthorSummary] = useState<FeeSummary | null>(
+        null
+    );
+    const [coauthorItems, setCoauthorItems] = useState<FeeItem[]>([]);
     const [projects, setProjects] = useState<ProjectFee[]>([]);
     const [projectSummary, setProjectSummary] =
         useState<ProjectFeeSummary | null>(null);
@@ -103,6 +112,8 @@ export default function EditorFeePage() {
             .then((response) => {
                 setSummary(response.data.summary);
                 setItems(response.data.items);
+                setCoauthorItems(response.data.coauthor_items ?? []);
+                setCoauthorSummary(response.data.coauthor_summary ?? null);
                 setProjects(response.data.projects ?? []);
                 setProjectSummary(response.data.project_summary ?? null);
             })
@@ -235,6 +246,105 @@ export default function EditorFeePage() {
                                     )}
                                 </Link>
                             ))}
+                        </div>
+                    )}
+
+                    {coauthorItems.length > 0 && (
+                        <div className="flex flex-col gap-3 pt-2">
+                            <h6 className="font-display text-oxford-navy-700 text-lg font-bold">
+                                Fee sebagai Co-author
+                            </h6>
+
+                            <p className="text-oxford-navy-900/65 text-sm">
+                                Fee menyusun naskah penulis sebagai co-author
+                                (terpisah dari royalti tetap Anda sebagai
+                                penulis terakhir). Dianggap selesai setelah
+                                naskahnya berstatus Selesai.
+                            </p>
+
+                            {coauthorSummary && (
+                                <div className="flex flex-row flex-wrap gap-8 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4">
+                                    <SummaryStat
+                                        label="Total Fee Co-author"
+                                        value={coauthorSummary.total}
+                                        highlight
+                                    />
+                                    <SummaryStat
+                                        label="Naskah Selesai"
+                                        value={coauthorSummary.completed}
+                                    />
+                                    <SummaryStat
+                                        label="Sedang Dikerjakan"
+                                        value={coauthorSummary.in_progress}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="flex flex-col gap-3">
+                                {coauthorItems.map((item) => (
+                                    <Link
+                                        key={item.id}
+                                        to={`/dashboard/naskah/${item.id}`}
+                                        className="flex flex-col gap-2 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4 hover:bg-forest-moss-50"
+                                    >
+                                        <div className="flex flex-row items-start justify-between gap-4">
+                                            <div>
+                                                <p className="text-oxford-navy-900 font-semibold">
+                                                    {item.title}
+                                                </p>
+                                                {item.author && (
+                                                    <p className="text-oxford-navy-900/65 text-sm">
+                                                        Diajukan oleh{' '}
+                                                        {item.author}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <span className="text-forest-moss-700 text-sm shrink-0">
+                                                {statusLabels[item.status] ??
+                                                    item.status}
+                                            </span>
+                                        </div>
+
+                                        {item.source && (
+                                            <Badge variant="accent">
+                                                {sourceLabels[item.source]}
+                                            </Badge>
+                                        )}
+
+                                        {item.source === 'author' &&
+                                        item.requested_fee !== null ? (
+                                            <p className="text-oxford-navy-900/80 text-sm">
+                                                Fee permintaan Anda{' '}
+                                                {rupiahFormatter.format(
+                                                    item.requested_fee
+                                                )}{' '}
+                                                + fee dari admin{' '}
+                                                {rupiahFormatter.format(
+                                                    item.admin_fee
+                                                )}{' '}
+                                                ={' '}
+                                                <strong className="text-forest-moss-700 text-base">
+                                                    {rupiahFormatter.format(
+                                                        item.total_fee
+                                                    )}
+                                                </strong>
+                                            </p>
+                                        ) : (
+                                            <p className="text-forest-moss-700 font-semibold">
+                                                {rupiahFormatter.format(
+                                                    item.total_fee
+                                                )}
+                                            </p>
+                                        )}
+
+                                        {item.deadline && (
+                                            <p className="text-oxford-navy-900/55 text-xs">
+                                                Deadline: {item.deadline}
+                                            </p>
+                                        )}
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
                     )}
 

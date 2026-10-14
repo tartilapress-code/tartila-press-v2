@@ -125,9 +125,10 @@ class BookChapterProjectController extends Controller
             'title' => ['required', 'string', 'max:255'],
             ...self::PROJECT_FIELD_RULES,
             ...self::CHAPTER_RULES,
-            ...$this->bookChapterOptionRules(),
+            ...$this->bookChapterOptionRules(creating: true),
             ...Languages::rules(),
         ]);
+        $validated = $this->normalizeIsbnType($validated);
 
         $settings = BookChapterSetting::current();
         $packageItemIds = $validated['package_item_ids'] ?? [];
@@ -181,7 +182,7 @@ class BookChapterProjectController extends Controller
         $rules['price'] = ['sometimes', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT];
         $rules['title'] = ['sometimes', 'required', 'string', 'max:255'];
 
-        $validated = $request->validate($rules);
+        $validated = $this->normalizeIsbnType($request->validate($rules));
 
         $settings = BookChapterSetting::current();
 

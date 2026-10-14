@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\UserNotification;
+use App\Services\Cover\CoverService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -18,6 +19,14 @@ Schedule::command('book-shipments:auto-confirm-delivery')->daily();
 Schedule::command('orders:cancel-unpaid')->everyTenMinutes()->withoutOverlapping();
 // Tartila Book: pesanan beli/langganan tanpa bukti transfer dibatalkan setelah 1×24 jam.
 Schedule::command('reader:cancel-unpaid')->everyTenMinutes()->withoutOverlapping();
+
+// Cover: tutup voting yang sudah 24 jam; ingatkan lalu hapus berkas cover/revisi 7 hari setelah buku terbit.
+Schedule::call(fn () => app(CoverService::class)->tickAll())->everyTenMinutes()->name('covers-close-voting');
+Schedule::call(function () {
+    $covers = app(CoverService::class);
+    $covers->warnDue();
+    $covers->purgeDue();
+})->daily()->name('covers-purge');
 
 // Notifikasi lama dibersihkan: yang sudah dibaca > 90 hari, semua > 1 tahun.
 Schedule::call(function () {

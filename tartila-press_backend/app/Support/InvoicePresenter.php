@@ -65,6 +65,10 @@ class InvoicePresenter
                 'name' => $order->editor?->name,
                 'fee' => (float) $order->editor_fee,
             ] : null,
+            'coauthor' => $order->coauthor_id ? [
+                'name' => $order->coauthor?->name,
+                'fee' => (float) $order->coauthor_fee,
+            ] : null,
             'total' => (float) $order->total,
             'payment_method' => $order->paymentMethod ? [
                 'bank_name' => $order->paymentMethod->bank_name,

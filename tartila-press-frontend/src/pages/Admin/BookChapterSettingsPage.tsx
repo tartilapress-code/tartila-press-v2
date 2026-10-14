@@ -14,6 +14,9 @@ export default function BookChapterSettingsPage() {
     const [isbnPrintCost, setIsbnPrintCost] = useState<string>('0');
     const [isbnElectronicCost, setIsbnElectronicCost] = useState<string>('0');
     const [minBookCost, setMinBookCost] = useState<string>('0');
+    const [minPrint, setMinPrint] = useState<string>('');
+    const [minElectronic, setMinElectronic] = useState<string>('');
+    const [minBoth, setMinBoth] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
@@ -35,6 +38,21 @@ export default function BookChapterSettingsPage() {
                     String(Number(data.isbn_electronic_cost ?? 0))
                 );
                 setMinBookCost(String(Number(data.min_book_cost ?? 0)));
+                setMinPrint(
+                    data.min_book_cost_print == null
+                        ? ''
+                        : String(Number(data.min_book_cost_print))
+                );
+                setMinElectronic(
+                    data.min_book_cost_electronic == null
+                        ? ''
+                        : String(Number(data.min_book_cost_electronic))
+                );
+                setMinBoth(
+                    data.min_book_cost_both == null
+                        ? ''
+                        : String(Number(data.min_book_cost_both))
+                );
             })
             .finally(() => setIsLoading(false));
     }, []);
@@ -53,6 +71,10 @@ export default function BookChapterSettingsPage() {
                 isbn_print_cost: isbnPrintCost || 0,
                 isbn_electronic_cost: isbnElectronicCost || 0,
                 min_book_cost: minBookCost || 0,
+                min_book_cost_print: minPrint === '' ? null : minPrint,
+                min_book_cost_electronic:
+                    minElectronic === '' ? null : minElectronic,
+                min_book_cost_both: minBoth === '' ? null : minBoth,
             });
             setStatusMessage('Pengaturan berhasil disimpan.');
         } catch (error) {
@@ -154,12 +176,43 @@ export default function BookChapterSettingsPage() {
                     onChange={(e) => setIsbnElectronicCost(e.target.value)}
                 />
                 <Input
-                    label="Minimal Biaya Total 1 Buku (Rp)"
+                    label="Minimal Biaya Total 1 Buku (Rp) — umum"
                     type="number"
                     min="0"
                     value={minBookCost}
                     onChange={(e) => setMinBookCost(e.target.value)}
                 />
+                <fieldset className="flex flex-col gap-3 rounded-xl bg-forest-moss-50/60 p-4 ring-1 ring-forest-moss-100">
+                    <legend className="px-1 text-sm font-semibold text-oxford-navy-900">
+                        Minimal biaya 1 buku per jenis ISBN
+                    </legend>
+                    <p className="text-xs text-oxford-navy-900/65">
+                        Editor memilih jenis ISBN proyek dan sisa biaya harus
+                        memenuhi minimal jenis itu. Kosong = ikut nilai umum di
+                        atas.
+                    </p>
+                    <Input
+                        label="ISBN Cetak (Rp)"
+                        type="number"
+                        min="0"
+                        value={minPrint}
+                        onChange={(e) => setMinPrint(e.target.value)}
+                    />
+                    <Input
+                        label="ISBN Digital (Rp)"
+                        type="number"
+                        min="0"
+                        value={minElectronic}
+                        onChange={(e) => setMinElectronic(e.target.value)}
+                    />
+                    <Input
+                        label="ISBN Cetak + Digital (Rp)"
+                        type="number"
+                        min="0"
+                        value={minBoth}
+                        onChange={(e) => setMinBoth(e.target.value)}
+                    />
+                </fieldset>
                 <small className="text-oxford-navy-900/65 -mt-2">
                     Biaya fasilitas &amp; layanan lain diatur di menu{' '}
                     <Link

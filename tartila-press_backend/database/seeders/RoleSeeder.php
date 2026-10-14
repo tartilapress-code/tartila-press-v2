@@ -26,6 +26,11 @@ class RoleSeeder extends Seeder
                 'description' => 'Pengguna dengan akses editor.',
             ],
             [
+                'name' => 'mitra',
+                'display_name' => 'Mitra',
+                'description' => 'Penerbit mitra Tartila Book (unggah ebook sendiri).',
+            ],
+            [
                 'name' => 'admin',
                 'display_name' => 'Administrator',
                 'description' => 'Administrator sistem.',

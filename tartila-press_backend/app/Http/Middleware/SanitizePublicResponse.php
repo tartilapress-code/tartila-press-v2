@@ -44,10 +44,26 @@ class SanitizePublicResponse
         'editor_requested_fee',
         'editor_assignment_note',
         'editor_deadline',
+        'editor_admin_fee_pending',
+
+        // Status pemantauan editor (hanya admin).
+        'is_banned',
+        'banned_at',
+        'ban_note',
+
+        // Data fee dan penugasan co-author.
+        'coauthor_fee',
+        'coauthor_admin_fee',
+        'coauthor_requested_fee',
+        'coauthor_assignment_note',
+        'coauthor_deadline',
+        'coauthor_source',
+        'coauthor_open_for_claim',
 
         // Id internal yang menunjuk akun, pesanan, dan pembuat data.
         'user_id',
         'editor_id',
+        'coauthor_id',
         'owner_editor_id',
         'order_id',
         'created_by',

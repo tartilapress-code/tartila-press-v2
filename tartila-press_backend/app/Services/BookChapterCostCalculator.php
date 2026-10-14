@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Book;
 use App\Models\BookChapter;
 use App\Models\BookChapterSetting;
+use App\Support\IsbnTypes;
 
 /**
  * Hitungan biaya & fee proyek Book Chapter — satu-satunya sumber rumus
@@ -27,6 +28,7 @@ class BookChapterCostCalculator
      *     includes_hki?: bool,
      *     includes_isbn_print?: bool,
      *     includes_isbn_electronic?: bool,
+     *     isbn_type?: string|null,
      *     item_costs?: array<int, mixed>
      * }  $input  Harga/diskon bab yang kosong ikut harga/diskon proyek.
      * @return array<string, mixed>
@@ -68,13 +70,16 @@ class BookChapterCostCalculator
 
         $chaptersTotal = round($chaptersTotal, 2);
         $net = round($chaptersTotal - $deductions['total'], 2);
-        $minimum = (float) $settings->min_book_cost;
+        // Biaya minimal mengikuti jenis ISBN (cetak / digital / keduanya).
+        $isbnType = $input['isbn_type'] ?? IsbnTypes::fromFlags(! empty($input['includes_isbn_print']), ! empty($input['includes_isbn_electronic']));
+        $minimum = $settings->minimumFor($isbnType);
 
         return [
             'chapter_count' => count($chapters),
             'chapters_total' => $chaptersTotal,
             'deductions' => $deductions,
             'net' => $net,
+            'isbn_type' => $isbnType,
             'min_book_cost' => $minimum,
             'meets_minimum' => $net + 0.005 >= $minimum,
             'shortfall' => round(max(0, $minimum - $net), 2),
@@ -104,6 +109,7 @@ class BookChapterCostCalculator
             'includes_hki' => (bool) $book->includes_hki,
             'includes_isbn_print' => (bool) $book->includes_isbn_print,
             'includes_isbn_electronic' => (bool) $book->includes_isbn_electronic,
+            'isbn_type' => $book->isbn_type ?? IsbnTypes::fromFlags((bool) $book->includes_isbn_print, (bool) $book->includes_isbn_electronic),
             'item_costs' => $book->packageItems->pluck('book_chapter_cost')->all(),
         ];
     }

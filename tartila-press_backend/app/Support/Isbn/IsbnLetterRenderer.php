@@ -76,7 +76,6 @@ class IsbnLetterRenderer
         $y = 114.0;
 
         $y = $this->row('No.', $a->letter_number, self::LEFT, 40, $y);
-        $this->text($s->city.', '.self::formatDate($a->letter_date), self::RIGHT - 150, $y - self::LINE, 150, 'R');
         $y = $this->row('Lamp.', '-', self::LEFT, 40, $y);
         $y = $this->row('Perihal', $s->subject, self::LEFT, 40, $y, 330);
 
@@ -106,10 +105,13 @@ class IsbnLetterRenderer
         $y += 4;
         $y = $this->paragraph($this->fill($s->application_closing), self::LEFT, $y, self::RIGHT - self::LEFT);
 
+        // Tempat & tanggal sejajar (satu sumbu tengah) dengan blok penanggung jawab di bawahnya.
         $centre = 420.0;
         $y += 26;
-        $this->text('Hormat kami,', $centre - 90, $y, 180, 'C');
-        $this->text('Pimpinan Penerbit', $centre - 90, $y + self::LINE, 180, 'C');
+        $this->text($s->city.', '.self::formatDate($a->letter_date), $centre - 100, $y, 200, 'C');
+        $y += 22;
+        $this->text('Hormat kami,', $centre - 100, $y, 200, 'C');
+        $this->text('Pimpinan Penerbit', $centre - 100, $y + self::LINE, 200, 'C');
 
         $nameY = $y + 110;
         $this->publisherSeal($sealed, $centre, $nameY);
@@ -149,11 +151,13 @@ class IsbnLetterRenderer
         $y = $this->paragraph($this->fill($s->statement_closing), self::LEFT, $y, $width);
 
         $y += 26;
-        $this->text($s->city.', '.self::formatDate($a->letter_date), self::LEFT, $y, 250);
-        $y += 22;
 
         $leftCentre = self::LEFT + 95;
         $rightCentre = self::RIGHT - 95;
+
+        // Tempat & tanggal sejajar (satu sumbu tengah) dengan kolom penanggung jawab.
+        $this->text($s->city.', '.self::formatDate($a->letter_date), $leftCentre - 100, $y, 200, 'C');
+        $y += 22;
 
         $this->text('Penanggungjawab Penerbit', $leftCentre - 100, $y, 200, 'C');
         $this->text($a->signer_role, $rightCentre - 100, $y, 200, 'C');

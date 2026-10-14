@@ -5,7 +5,12 @@ import { describeApiError } from '@/lib/apiErrors';
 
 export type VoucherSelection = Pick<
     orderApi.CreateOrderPayload,
-    'type' | 'package_id' | 'custom_item_ids' | 'book_chapter_id' | 'book_ids'
+    | 'type'
+    | 'package_id'
+    | 'isbn_type'
+    | 'custom_item_ids'
+    | 'book_chapter_id'
+    | 'book_ids'
 >;
 
 /**

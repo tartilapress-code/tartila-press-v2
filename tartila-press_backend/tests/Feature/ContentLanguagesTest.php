@@ -72,6 +72,7 @@ class ContentLanguagesTest extends TestCase
             'title' => 'Antologi Dua Bahasa',
             'price' => 100000,
             'discount' => 0,
+            'includes_isbn_print' => false,
             'chapters' => [
                 ['title' => 'Bab 1'],
                 ['title' => 'Bab 2'],

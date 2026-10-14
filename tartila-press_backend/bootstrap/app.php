@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureHasRole;
+use App\Http\Middleware\RestrictPartnerAccount;
 use App\Http\Middleware\SanitizePublicResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         //
     })->withMiddleware(function (Middleware $middleware): void {
+        // Akun mitra: di Tartila Press hanya boleh membeli buku fisik.
+        $middleware->api(prepend: [RestrictPartnerAccount::class]);
+
         $middleware->alias([
             'email.verified' => EnsureEmailIsVerified::class,
             'role' => EnsureHasRole::class,

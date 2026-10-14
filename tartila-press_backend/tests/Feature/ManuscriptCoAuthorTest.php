@@ -7,6 +7,7 @@ use App\Models\BookChapter;
 use App\Models\EditorProfile;
 use App\Models\Manuscript;
 use App\Models\ManuscriptRevision;
+use App\Models\ManuscriptTemplate;
 use App\Models\Order;
 use App\Models\Package;
 use App\Models\Role;
@@ -135,7 +136,7 @@ class ManuscriptCoAuthorTest extends TestCase
     ): array {
         Sanctum::actingAs($submitter);
 
-        $payload = ['order_id' => $order->id, 'file' => $this->manuscriptFile()];
+        $payload = ['order_id' => $order->id, 'file' => $this->manuscriptFile(), 'manuscript_template_id' => ManuscriptTemplate::default()?->id];
 
         if ($title !== null) {
             $payload['title'] = $title;
@@ -241,6 +242,7 @@ class ManuscriptCoAuthorTest extends TestCase
 
         Sanctum::actingAs($penulis);
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'file' => $this->manuscriptFile(),
         ]);
@@ -262,6 +264,7 @@ class ManuscriptCoAuthorTest extends TestCase
 
         Sanctum::actingAs($penulis);
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Yang Seharusnya Diabaikan',
             'author_user_ids' => [$intruder->id],

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\EditorProfile;
 use App\Models\Manuscript;
+use App\Models\ManuscriptTemplate;
 use App\Models\Order;
 use App\Models\Package;
 use App\Models\Role;
@@ -144,7 +145,7 @@ class NotificationTest extends TestCase
 
         // Penulis mengirim naskah → admin (app) + penulis pendamping (app + email).
         Sanctum::actingAs($author);
-        $id = $this->post('/api/v1/manuscripts', ['order_id' => $order->id, 'title' => 'Sistem Tertanam', 'author_user_ids' => [$coAuthor->id], 'file' => $pdf()], ['Accept' => 'application/json'])
+        $id = $this->post('/api/v1/manuscripts', ['manuscript_template_id' => ManuscriptTemplate::default()?->id, 'order_id' => $order->id, 'title' => 'Sistem Tertanam', 'author_user_ids' => [$coAuthor->id], 'file' => $pdf()], ['Accept' => 'application/json'])
             ->assertCreated()->json('data.id');
         $manuscript = Manuscript::findOrFail($id);
         $review = fn (string $decision, ?string $note = null) => $this->postJson(

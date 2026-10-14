@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\EditorProfile;
 use App\Models\Manuscript;
+use App\Models\ManuscriptTemplate;
 use App\Models\Order;
 use App\Models\Package;
 use App\Models\Role;
@@ -87,6 +88,7 @@ class EditorFeeTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],

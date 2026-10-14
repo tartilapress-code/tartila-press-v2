@@ -6,9 +6,11 @@ use App\Models\Book;
 use App\Models\Reader\ReaderBook;
 use App\Models\Reader\ReaderOrder;
 use App\Models\Reader\ReaderSetting;
+use App\Models\Scopes\ExcludePartnerBooks;
 use App\Models\User;
 use App\Services\BookRoyaltyService;
 use App\Services\VoucherService;
+use App\Support\PartnerSplit;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -38,11 +40,16 @@ class ReaderRoyaltyService
 
     /**
      * Bobot pembagian royalti ebook per penerima (jumlah semua bobot = 1).
+     * Buku mitra: bobot tetap penulis/mitra menurut sistem ('purchase' atau 'read', lihat PartnerSplit).
      *
      * @return list<array{user_id: int, name: string, weight: float}>
      */
-    public function weights(Book $book): array
+    public function weights(Book $book, string $system = 'purchase'): array
     {
+        if ($book->isPartnerBook()) {
+            return $this->partnerWeights($book, $system);
+        }
+
         $byUser = [];
 
         foreach ($this->royalty->shares($book) as $share) {
@@ -82,7 +89,7 @@ class ReaderRoyaltyService
     public function report(string $from, string $to, ?string $search = null, ?array $onlyBookIds = null, bool $withAuthors = true): Collection
     {
         $query = ReaderBook::query()
-            ->with($withAuthors ? ['book' => fn ($q) => $q->with(BookRoyaltyService::SHARE_RELATIONS)] : ['book:id,title'])
+            ->with($withAuthors ? ['book' => fn ($q) => $q->with(BookRoyaltyService::SHARE_RELATIONS)] : ['book:id,title,partner_id'])
             ->whereHas('book')
             ->when($onlyBookIds !== null, fn ($q) => $q->whereIn('book_id', $onlyBookIds))
             ->when($search, function ($query) use ($search) {
@@ -135,14 +142,14 @@ class ReaderRoyaltyService
             return $rows;
         }
 
-        $books = Book::with(BookRoyaltyService::SHARE_RELATIONS)
+        $books = Book::withoutGlobalScope(ExcludePartnerBooks::class)->with(BookRoyaltyService::SHARE_RELATIONS)
             ->whereIn('id', $rows->pluck('book_id'))
             ->get()
             ->keyBy('id');
 
         return $rows->map(function (array $row) use ($books) {
             $book = $books->get($row['book_id']);
-            $row['authors'] = $book ? $this->authorRows($book, (float) $row['total']) : [];
+            $row['authors'] = $book ? $this->authorRows($book, (float) $row['total'], $row) : [];
 
             return $row;
         });
@@ -168,15 +175,25 @@ class ReaderRoyaltyService
                 continue;
             }
 
-            $weight = collect($this->weights($book))->firstWhere('user_id', $user->id)['weight'] ?? 0;
+            $isPartner = $book->isPartnerBook();
+            $weight = collect($this->weights($book, 'purchase'))->firstWhere('user_id', $user->id)['weight'] ?? 0;
+            $readWeight = collect($this->weights($book, 'read'))->firstWhere('user_id', $user->id)['weight'] ?? 0;
 
-            if ($weight <= 0) {
+            if ($weight <= 0 && $readWeight <= 0) {
                 continue;
             }
 
-            $percent = (float) ($readerBook->purchase_royalty_percent ?? $settings->purchase_royalty_percent);
+            // Buku mitra: kolam penulis + mitra tetap (80% pembelian, 90% bacaan); sisanya bagian Tartila.
+            $percent = $isPartner
+                ? PartnerSplit::pool('purchase')
+                : (float) ($readerBook->purchase_royalty_percent ?? $settings->purchase_royalty_percent);
             $fee = (float) ($readerBook->read_fee ?? $settings->read_fee);
-            $label = $row['role'] === 'editor' ? 'Royalti ebook editor' : 'Royalti ebook penulis';
+            $readFee = $isPartner ? $fee * PartnerSplit::pool('read') / 100 : $fee;
+            $label = match (true) {
+                $row['role'] === 'partner' => 'Bagi hasil mitra ebook',
+                $row['role'] === 'editor' => 'Royalti ebook editor',
+                default => 'Royalti ebook penulis',
+            };
 
             ReaderOrder::where('reader_book_id', $readerBook->id)->where('kind', 'book')->where('status', 'confirmed')
                 ->get()
@@ -200,8 +217,8 @@ class ReaderRoyaltyService
                     'type' => 'ebook_royalty',
                     'label' => $label,
                     'title' => $book->title,
-                    'detail' => "{$events} bacaan di Tartila Book × Rp ".number_format($fee, 0, ',', '.'),
-                    'amount' => round($events * $fee * $weight, 2),
+                    'detail' => "{$events} bacaan di Tartila Book × Rp ".number_format($readFee, 0, ',', '.'),
+                    'amount' => round($events * $readFee * $readWeight, 2),
                     'date' => $last ? Carbon::parse($last, 'Asia/Jakarta') : $readerBook->updated_at,
                 ]);
             }
@@ -243,12 +260,14 @@ class ReaderRoyaltyService
             : $readerBooks->pluck('read_events', 'id');
 
         return $readerBooks->map(function (ReaderBook $readerBook) use ($settings, $purchases, $events, $withAuthors) {
-            $percent = $readerBook->purchase_royalty_percent ?? $settings->purchase_royalty_percent;
+            $isPartner = $readerBook->book->isPartnerBook();
+            $percent = $isPartner ? PartnerSplit::pool('purchase') : ($readerBook->purchase_royalty_percent ?? $settings->purchase_royalty_percent);
             $fee = $readerBook->read_fee ?? $settings->read_fee;
             $revenue = (float) ($purchases[$readerBook->id]->revenue ?? 0);
             $count = (int) ($events[$readerBook->id] ?? 0);
             $purchaseRoyalty = round($revenue * $percent / 100, 2);
-            $readRoyalty = round($count * $fee, 2);
+            // Buku mitra: 90% dari nilai bacaan dibagikan (penulis 75 + mitra 15), 10% bagian Tartila.
+            $readRoyalty = round($count * $fee * ($isPartner ? PartnerSplit::pool('read') / 100 : 1), 2);
             $total = round($purchaseRoyalty + $readRoyalty, 2);
 
             $row = [
@@ -266,16 +285,58 @@ class ReaderRoyaltyService
             ];
 
             if ($withAuthors) {
-                $row['authors'] = $this->authorRows($readerBook->book, $total);
+                $row['authors'] = $this->authorRows($readerBook->book, $total, $row);
             }
 
             return $row;
         })->values();
     }
 
-    /** @return list<array{user_id: int, name: string, weight: float, amount: float}> */
-    private function authorRows(Book $book, float $total): array
+    /**
+     * Bobot buku mitra: penulis (akun, dibagi rata) + mitra, menurut sistem.
+     *
+     * @return list<array{user_id: int, name: string, weight: float}>
+     */
+    private function partnerWeights(Book $book, string $system): array
     {
+        $book->loadMissing(['partner.user', 'partnerAuthors']);
+
+        if (! $book->partner) {
+            return [];
+        }
+
+        $names = $book->partnerAuthors->pluck('name', 'id')->all() + [$book->partner->user_id => $book->partner->company_name];
+
+        return array_map(fn (array $row) => [
+            'user_id' => $row['user_id'],
+            'name' => $row['role'] === 'partner' ? 'Mitra: '.($names[$row['user_id']] ?? '-') : ($names[$row['user_id']] ?? '-'),
+            'weight' => $row['weight'],
+        ], PartnerSplit::weights($system, $book->partnerAuthors->pluck('id')->all(), $book->partner->user_id));
+    }
+
+    /**
+     * @param  array<string, mixed>  $summary  baris laporan (purchase_royalty / read_royalty) untuk buku mitra
+     * @return list<array{user_id: int, name: string, weight: float, amount: float}>
+     */
+    private function authorRows(Book $book, float $total, array $summary = []): array
+    {
+        if ($book->isPartnerBook() && isset($summary['purchase_royalty'], $summary['read_royalty'])) {
+            $purchase = collect($this->weights($book, 'purchase'))->keyBy('user_id');
+            $read = collect($this->weights($book, 'read'))->keyBy('user_id');
+
+            return collect($purchase->keys()->merge($read->keys())->unique())->map(function ($userId) use ($purchase, $read, $summary, $total) {
+                $amount = (float) $summary['purchase_royalty'] * ($purchase[$userId]['weight'] ?? 0)
+                    + (float) $summary['read_royalty'] * ($read[$userId]['weight'] ?? 0);
+
+                return [
+                    'user_id' => $userId,
+                    'name' => ($purchase[$userId] ?? $read[$userId])['name'],
+                    'weight' => $total > 0 ? round($amount / $total, 4) : 0.0,
+                    'amount' => round($amount, 2),
+                ];
+            })->values()->all();
+        }
+
         return array_map(fn (array $weight) => [
             'user_id' => $weight['user_id'],
             'name' => $weight['name'],

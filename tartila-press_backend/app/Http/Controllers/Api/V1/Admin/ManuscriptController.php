@@ -8,6 +8,8 @@ use App\Models\Manuscript;
 use App\Models\ManuscriptRevision;
 use App\Models\ManuscriptTemplate;
 use App\Services\BookChapterCompilationService;
+use App\Services\Cover\CoverService;
+use App\Services\ManuscriptAssignmentService;
 use App\Services\ManuscriptAutoLayoutService;
 use App\Services\ManuscriptPoolService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +24,7 @@ class ManuscriptController extends Controller
     public function __construct(
         private readonly ManuscriptAutoLayoutService $autoLayout,
         private readonly BookChapterCompilationService $compilation,
+        private readonly ManuscriptAssignmentService $assignment,
     ) {}
 
     /*
@@ -92,11 +95,24 @@ class ManuscriptController extends Controller
             && $revision->role === 'penulis'
             && $manuscript->order?->editor_id !== null;
 
+        // Penulis memilih co-author sendiri: fee dari admin untuk co-author juga wajib diisi.
+        $needsCoauthorFee = $request->input('decision') === 'approve'
+            && $revision->role === 'penulis'
+            && $manuscript->wants_coauthor
+            && $manuscript->order?->coauthor_id !== null;
+
         $validated = $request->validate([
             'decision' => ['required', Rule::in(['approve', 'reject'])],
             'note' => ['nullable', 'string', 'max:2000'],
             'fee' => [
                 Rule::requiredIf($needsAdminFee),
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:'.self::MAX_MONEY_AMOUNT,
+            ],
+            'coauthor_fee' => [
+                Rule::requiredIf($needsCoauthorFee),
                 'nullable',
                 'numeric',
                 'min:0',
@@ -108,6 +124,7 @@ class ManuscriptController extends Controller
             ...ManuscriptPoolService::difficultyRules(),
         ], [
             'fee.required' => 'Fee dari admin wajib diisi karena penulis memilih editor secara langsung. Total fee editor = fee permintaan editor + fee dari admin.',
+            'coauthor_fee.required' => 'Fee co-author dari admin wajib diisi karena penulis memilih co-author secara langsung. Total fee co-author = fee permintaan co-author + fee dari admin.',
         ]);
 
         $approve = $validated['decision'] === 'approve';
@@ -116,7 +133,8 @@ class ManuscriptController extends Controller
         // sendiri; menunggu digabung dengan bab lain menjadi satu buku.
         $isChapter = $revision->role === 'penulis' && $this->compilation->chapterOf($manuscript) !== null;
 
-        if ($isChapter) {
+        // Layanan co-author: naskah masih disusun co-author dulu, jadi tidak di-auto layout di sini.
+        if ($isChapter || $manuscript->wants_coauthor) {
             $validated['auto_layout'] = false;
         }
 
@@ -127,9 +145,10 @@ class ManuscriptController extends Controller
         $template = null;
 
         if ($approve && $revision->role === 'penulis' && ! empty($validated['auto_layout'])) {
+            // Template: pilihan admin > pilihan penulis saat submit > template bawaan.
             $template = isset($validated['manuscript_template_id'])
                 ? ManuscriptTemplate::find($validated['manuscript_template_id'])
-                : ManuscriptTemplate::default();
+                : (ManuscriptTemplate::where('is_active', true)->find($manuscript->manuscript_template_id) ?? ManuscriptTemplate::default());
 
             abort_unless($template, 422, 'Belum ada template naskah. Buat template di menu Template Naskah.');
             abort_unless($this->autoLayout->supports($revision), 422, 'Auto layout hanya bisa untuk naskah Word (.docx). Matikan auto layout atau minta penulis mengunggah .docx.');
@@ -161,16 +180,28 @@ class ManuscriptController extends Controller
                         $this->autoLayout->storeRevision($manuscript, $template, $layout, $request->user());
                     }
 
-                    $this->assignEditorFromOrder($manuscript, $validated['fee'] ?? null);
+                    // Layanan co-author: ke co-author dulu; tanpa layanan itu langsung ke editor.
+                    $this->assignment->afterAuthorApproved($manuscript, $validated['fee'] ?? null, $validated['coauthor_fee'] ?? null);
+                } elseif ($revision->role === 'coauthor') {
+                    // Susunan co-author disetujui admin: dikirim ke penulis untuk disetujui / direvisi.
+                    $manuscript->update(['status' => ManuscriptAssignmentService::STATUS_PENDING_AUTHOR_REVIEW_COAUTHOR]);
+                    $manuscript->authorLinks()->where('is_coauthor', false)->update(['approved_at' => null]);
                 } else {
                     $manuscript->update(['status' => 'pending_penulis_review']);
-                    $manuscript->authorLinks()->update(['approved_at' => null]);
+                    $manuscript->authorLinks()->where('is_coauthor', false)->update(['approved_at' => null]);
+
+                    // Hasil editing disetujui: naskah masuk tagihan cover (cover paket).
+                    if ($revision->role === 'editor') {
+                        app(CoverService::class)->openForManuscript($manuscript);
+                    }
                 }
             } else {
                 $manuscript->update([
-                    'status' => $revision->role === 'penulis'
-                        ? 'revision_requested'
-                        : 'editor_revision_requested',
+                    'status' => match ($revision->role) {
+                        'penulis' => 'revision_requested',
+                        'coauthor' => ManuscriptAssignmentService::STATUS_COAUTHOR_REVISION_REQUESTED,
+                        default => 'editor_revision_requested',
+                    },
                 ]);
             }
         });
@@ -250,6 +281,13 @@ class ManuscriptController extends Controller
         $editorProfile = EditorProfile::where('user_id', $validated['editor_id'])->first();
 
         abort_unless($editorProfile, 422, 'User yang dipilih bukan Editor.');
+
+        // Co-author dan editor satu naskah harus orang yang berbeda.
+        abort_if(
+            $manuscript->coauthor_id !== null && $manuscript->coauthor_id === (int) $validated['editor_id'],
+            422,
+            'Co-author naskah ini tidak bisa menjadi editornya. Pilih editor lain.'
+        );
 
         $manuscript->update([
             'editor_id' => $validated['editor_id'],
@@ -355,49 +393,79 @@ class ManuscriptController extends Controller
 
     /*
     |--------------------------------------------------------------------------
-    | Tentukan editor setelah revisi penulis di-approve
+    | Assign Co-author - Admin menunjuk co-author langsung
     |--------------------------------------------------------------------------
-    |
-    | - Penulis memilih editor langsung → editor itu; total fee = fee
-    |   permintaan editor (dari order) + fee dari admin.
-    | - Pemilik proyek Book Chapter → editor itu; fee 0.
-    | - Selain itu → menunggu penugasan admin (tunjuk / buka pool).
-    |
     */
 
-    private function assignEditorFromOrder(Manuscript $manuscript, mixed $adminFee): void
+    public function assignCoauthor(Request $request, Manuscript $manuscript): JsonResponse
     {
-        $order = $manuscript->order;
-        $authorChosen = $order?->editor_id !== null;
-        $projectOwnerEditorId = $order?->bookChapterSlot?->book?->owner_editor_id;
-        $editorId = $order?->editor_id ?? $projectOwnerEditorId;
+        abort_unless(
+            $manuscript->status === ManuscriptAssignmentService::STATUS_PENDING_COAUTHOR_ASSIGNMENT,
+            422,
+            'Naskah tidak sedang menunggu penugasan co-author.'
+        );
 
-        if (! $editorId) {
-            $manuscript->update(['status' => 'pending_editor_assignment']);
+        $validated = $request->validate([
+            'coauthor_id' => ['required', 'integer'],
+            'fee' => ['required', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
+            'deadline' => ['nullable', 'date'],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
 
-            return;
-        }
+        $coauthor = $this->assignment->assertAssignable($manuscript, (int) $validated['coauthor_id']);
 
-        if ($authorChosen) {
-            $requestedFee = (float) $order->editor_fee;
+        $this->assignment->attach(
+            $manuscript,
+            $coauthor,
+            Manuscript::EDITOR_SOURCE_ADMIN,
+            (float) $validated['fee'],
+            null,
+            $validated['deadline'] ?? null,
+            $validated['note'] ?? null
+        );
 
-            $manuscript->update([
-                'status' => 'in_editing',
-                'editor_id' => $editorId,
-                'editor_source' => Manuscript::EDITOR_SOURCE_AUTHOR,
-                'editor_requested_fee' => $requestedFee,
-                'editor_fee' => round($requestedFee + (float) $adminFee, 2),
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Co-author berhasil ditugaskan.',
+            'data' => $manuscript->fresh(['coauthor']),
+        ]);
+    }
 
-            return;
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | Open Coauthor Pool - Admin membuka naskah untuk diambil co-author
+    |--------------------------------------------------------------------------
+    */
+
+    public function openCoauthorPool(Request $request, Manuscript $manuscript): JsonResponse
+    {
+        abort_unless(
+            $manuscript->status === ManuscriptAssignmentService::STATUS_PENDING_COAUTHOR_ASSIGNMENT,
+            422,
+            'Naskah tidak sedang menunggu penugasan co-author.'
+        );
+
+        $validated = $request->validate([
+            'fee' => ['required', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
+            'deadline' => ['nullable', 'date'],
+            'note' => ['nullable', 'string', 'max:2000'],
+            ...ManuscriptPoolService::difficultyRules(),
+            ...ManuscriptPoolService::fieldRules('pool_field_category_ids'),
+        ]);
 
         $manuscript->update([
-            'status' => 'in_editing',
-            'editor_id' => $editorId,
-            'editor_source' => Manuscript::EDITOR_SOURCE_PROJECT_OWNER,
-            'editor_requested_fee' => null,
-            'editor_fee' => 0,
+            'coauthor_fee' => $validated['fee'],
+            'coauthor_deadline' => $validated['deadline'] ?? null,
+            'coauthor_assignment_note' => $validated['note'] ?? null,
+            'difficulty' => $validated['difficulty'] ?? $manuscript->difficulty,
+            'pool_field_category_ids' => ManuscriptPoolService::ids($validated['pool_field_category_ids'] ?? []) ?: null,
+            'coauthor_open_for_claim' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Naskah berhasil dibuka untuk diambil co-author.',
+            'data' => $manuscript->fresh(),
         ]);
     }
 }

@@ -3,6 +3,16 @@ import { http } from '@/lib/http';
 export const submit = (formData: FormData) =>
     http.upload('/manuscripts', formData);
 
+// Template naskah yang bisa dipilih penulis saat mengirim naskah.
+export type TemplateOption = {
+    id: number;
+    name: string;
+    description: string | null;
+    is_default: boolean;
+};
+
+export const templateOptions = () => http.get('/manuscripts/template-options');
+
 export const mine = () => http.get('/manuscripts/mine');
 
 export const show = (id: number | string) => http.get(`/manuscripts/${id}`);
@@ -20,6 +30,12 @@ export const finalReview = (
         signature?: string;
     }
 ) => http.post(`/manuscripts/${id}/final-review`, payload);
+
+// Layanan co-author: penulis menyetujui / meminta revisi susunan co-author.
+export const coauthorReview = (
+    id: number | string,
+    payload: { decision: 'approve' | 'revise'; note?: string }
+) => http.post(`/manuscripts/${id}/coauthor-review`, payload);
 
 // --- Book Chapter: naskah gabungan --------------------------------------------
 

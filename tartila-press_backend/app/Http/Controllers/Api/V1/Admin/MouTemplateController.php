@@ -43,6 +43,8 @@ class MouTemplateController extends Controller
         $validated = $this->validatedMouContent($request, [
             'physical_royalty' => ['required', 'numeric', 'min:0', 'max:100'],
             'ebook_royalty' => ['required', 'numeric', 'min:0', 'max:100'],
+            // Jatah tetap co-author (layanan co-author), untuk buku fisik dan ebook.
+            'coauthor_royalty' => ['sometimes', 'required', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $template = MouTemplate::current($category);

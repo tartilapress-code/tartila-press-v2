@@ -16,6 +16,9 @@ use App\Models\User;
 use App\Services\OrderStatusService;
 use App\Services\VoucherService;
 use App\Support\InvoicePresenter;
+use App\Support\IsbnTypes;
+use App\Support\OrderNumber;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -37,6 +40,13 @@ class OrderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // Akun mitra Tartila Book: di Tartila Press hanya boleh membeli buku fisik.
+        abort_if(
+            $request->user()->isPartner() && $request->input('type') !== 'book',
+            403,
+            'Akun mitra hanya bisa membeli buku fisik di Tartila Press.'
+        );
+
         $validated = $request->validate([
             ...$this->selectionRules(),
 
@@ -50,6 +60,11 @@ class OrderController extends Controller
                 'nullable',
                 'integer',
             ],
+
+            // Layanan co-author (opsional): penulis boleh memilih co-author sendiri (editor yang
+            // mencentang co-author); kalau tidak, admin yang menentukan.
+            'wants_coauthor' => ['nullable', 'boolean'],
+            'coauthor_id' => ['nullable', 'integer'],
 
             'notes' => [
                 'nullable',
@@ -100,7 +115,34 @@ class OrderController extends Controller
             $editorFee = $editorProfile->fee;
         }
 
-        $order = DB::transaction(function () use ($request, $validated, $editorFee) {
+        $wantsCoauthor = (bool) ($validated['wants_coauthor'] ?? false) || ! empty($validated['coauthor_id']);
+        $coauthorFee = 0;
+
+        if (! empty($validated['coauthor_id'])) {
+            abort_unless(
+                in_array($validated['type'], ['package', 'custom'], true),
+                422,
+                'Layanan co-author hanya untuk paket penerbitan.'
+            );
+
+            $coauthor = User::with('editorProfile')->find($validated['coauthor_id']);
+
+            abort_unless(
+                $coauthor && $coauthor->editorProfile?->is_coauthor && $coauthor->editorProfile->is_available,
+                422,
+                'Co-author yang dipilih tidak tersedia.'
+            );
+
+            abort_if(
+                $coauthor->id === $request->user()->id || $coauthor->id === (int) ($validated['editor_id'] ?? 0),
+                422,
+                'Co-author harus orang yang berbeda dari Anda dan dari editor pilihan Anda.'
+            );
+
+            $coauthorFee = $coauthor->editorProfile->coauthor_fee;
+        }
+
+        $order = DB::transaction(function () use ($request, $validated, $editorFee, $wantsCoauthor, $coauthorFee) {
 
             $user = $request->user();
             [$items, $subtotal, $discountTotal, $reservedChapter] = $this->buildItems($validated);
@@ -122,7 +164,7 @@ class OrderController extends Controller
             }
 
             $order = Order::create([
-                'order_number' => Order::generateOrderNumber(),
+                'order_number' => Order::generateOrderNumber(OrderNumber::codeForOrderType($validated['type'])),
                 'user_id' => $user->id,
                 'status' => 'pending',
                 'subtotal' => $subtotal,
@@ -133,7 +175,10 @@ class OrderController extends Controller
                 'voucher_fee' => $voucherQuote['fee'],
                 'editor_id' => $validated['editor_id'] ?? null,
                 'editor_fee' => $editorFee,
-                'total' => $subtotal - $discountTotal - $voucherQuote['discount'] + $editorFee,
+                'wants_coauthor' => $wantsCoauthor,
+                'coauthor_id' => $validated['coauthor_id'] ?? null,
+                'coauthor_fee' => $coauthorFee,
+                'total' => $subtotal - $discountTotal - $voucherQuote['discount'] + $editorFee + $coauthorFee,
                 'notes' => $validated['notes'] ?? null,
                 'payment_method_id' => $validated['payment_method_id'] ?? null,
             ]);
@@ -154,7 +199,7 @@ class OrderController extends Controller
                 $this->createBookShipment($user, $order, $validated);
             }
 
-            return $order->load(['items', 'editor', 'bookShipment', 'paymentMethod']);
+            return $order->load(['items', 'editor', 'coauthor', 'bookShipment', 'paymentMethod']);
         });
 
         return response()->json([
@@ -231,6 +276,9 @@ class OrderController extends Controller
                 'integer',
             ],
 
+            // Jenis ISBN paket yang dipilih (print / electronic / both); wajib bila paket menawarkan lebih dari satu.
+            'isbn_type' => ['nullable', Rule::in(IsbnTypes::ALL)],
+
             'custom_item_ids' => [
                 'required_if:type,custom',
                 'array',
@@ -273,7 +321,7 @@ class OrderController extends Controller
 
         return [
             ...($validated['type'] === 'package'
-                ? $this->buildPackageItems($validated['package_id'])
+                ? $this->buildPackageItems($validated['package_id'], $validated['isbn_type'] ?? null)
                 : $this->buildCustomItems($validated['custom_item_ids'])),
             null,
         ];
@@ -289,7 +337,7 @@ class OrderController extends Controller
     {
         $orders = $request->user()
             ->orders()
-            ->with(['items', 'editor', 'manuscript', 'bookShipment', 'eventRegistration', 'statusHistories', 'paymentMethod'])
+            ->with(['items', 'editor', 'coauthor', 'manuscript', 'bookShipment', 'eventRegistration', 'statusHistories', 'paymentMethod'])
             ->latest()
             ->get();
 
@@ -326,7 +374,7 @@ class OrderController extends Controller
             fn ($item) => $item->whereIn('itemable_type', self::ADMIN_CATEGORIES[$key])
         );
 
-        $query = Order::with(['user', 'items', 'editor', 'bookShipment', 'eventRegistration', 'paymentMethod'])
+        $query = Order::with(['user', 'items', 'editor', 'coauthor', 'bookShipment', 'eventRegistration', 'paymentMethod'])
             ->where($inCategory($category))
             ->when(
                 in_array($request->query('status'), ['pending', 'confirmed', 'completed', 'cancelled'], true),
@@ -540,7 +588,7 @@ class OrderController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    private function buildPackageItems(int $packageId): array
+    private function buildPackageItems(int $packageId, ?string $isbnType = null): array
     {
         $package = Package::where('is_active', true)
             ->find($packageId);
@@ -551,24 +599,43 @@ class OrderController extends Controller
             'Paket tidak ditemukan.'
         );
 
-        $discountTotal = round(
-            $package->price * $package->discount / 100,
-            2
-        );
+        $offered = array_keys($package->isbn_prices ?? []);
+
+        // Satu jenis saja: otomatis. Lebih dari satu: pembeli harus memilih (frontend menampilkan pilihan).
+        if ($isbnType === null && count($offered) === 1) {
+            $isbnType = $offered[0];
+        }
+
+        if ($isbnType === null || ! in_array($isbnType, $offered, true)) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'code' => 'isbn_type_required',
+                'message' => $isbnType === null
+                    ? 'Pilih jenis ISBN (cetak, digital, atau keduanya) terlebih dulu.'
+                    : 'Jenis ISBN yang dipilih tidak tersedia untuk paket ini.',
+                'errors' => ['isbn_type' => ['Pilih jenis ISBN untuk paket ini.']],
+                'isbn_options' => $package->isbn_options,
+            ], 422));
+        }
+
+        $price = (float) $package->priceFor($isbnType);
+        $discountTotal = round($price * $package->discount / 100, 2);
 
         $items = [[
             'itemable_type' => Package::class,
             'itemable_id' => $package->id,
-            'name' => $package->name,
+            // Paket dengan beberapa jenis ISBN: jenis yang dipilih ikut tampil di invoice.
+            'name' => count($offered) > 1 ? $package->name.' ('.IsbnTypes::label($isbnType).')' : $package->name,
+            'isbn_type' => $isbnType,
             'quantity' => 1,
-            'unit_price' => $package->price,
-            'subtotal' => $package->price,
+            'unit_price' => $price,
+            'subtotal' => $price,
             'discount' => $discountTotal,
             'target_type' => 'package',
             'target_id' => $package->id,
         ]];
 
-        return [$items, (float) $package->price, $discountTotal];
+        return [$items, $price, $discountTotal];
     }
 
     /*
@@ -635,6 +702,13 @@ class OrderController extends Controller
             422,
             'Salah satu buku yang dipilih tidak ditemukan atau sudah tidak tersedia.'
         );
+
+        // Buku berjenis ISBN digital hanya dijual sebagai ebook di Tartila Book.
+        $ebookOnly = $books->first(fn (Book $book) => ! $book->sells_physical);
+
+        if ($ebookOnly) {
+            abort(422, "\"{$ebookOnly->title}\" hanya tersedia sebagai ebook. Beli ebook-nya di Tartila Book: {$ebookOnly->ebookUrl()}");
+        }
 
         $items = $books->map(function (Book $book) {
             $unitPrice = (float) $book->price;

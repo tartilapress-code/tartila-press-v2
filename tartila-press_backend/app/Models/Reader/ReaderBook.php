@@ -3,6 +3,7 @@
 namespace App\Models\Reader;
 
 use App\Models\Book;
+use App\Models\Scopes\ExcludePartnerBooks;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -62,9 +63,23 @@ class ReaderBook extends Model
         ];
     }
 
+    /**
+     * Tautan Tartila Book memakai judul buku (slug) atau nomor; ebook yang belum ada memberi
+     * pesan yang jelas, bukan "tidak ditemukan".
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        $query = $field === null && ! ctype_digit((string) $value)
+            ? static::whereHas('book', fn ($book) => $book->where('slug', (string) $value))
+            : static::where($field ?? $this->getRouteKeyName(), $value);
+
+        return $query->first() ?? abort(404, 'Ebook belum tersedia, coba lagi di lain waktu.');
+    }
+
+    /** Buku induk, termasuk buku mitra (yang disembunyikan dari Tartila Press). */
     public function book(): BelongsTo
     {
-        return $this->belongsTo(Book::class);
+        return $this->belongsTo(Book::class)->withoutGlobalScope(ExcludePartnerBooks::class);
     }
 
     public function educationField(): BelongsTo
@@ -130,11 +145,15 @@ class ReaderBook extends Model
         return Attribute::get(fn (): ?Carbon => $this->hasFile() ? $this->book->ebook_uploaded_at : null);
     }
 
-    /** Terlihat di katalog publik: dipublikasikan, ebook PDF ada di bukunya, dan bukunya aktif. */
+    /**
+     * Terlihat di katalog publik: dipublikasikan, ebook PDF ada di bukunya, dan bukunya aktif.
+     * Buku mitra hanya tampil setelah disetujui admin (partner_status = approved).
+     */
     public function scopeListed(Builder $query): Builder
     {
         return $query->where('is_published', true)
             ->whereHas('book', fn ($book) => $book->where('is_active', true)
+                ->where(fn ($partner) => $partner->whereNull('partner_id')->orWhere('partner_status', 'approved'))
                 ->whereNotNull('ebook_file')
                 ->where('ebook_file', 'like', '%.pdf')
                 ->where('ebook_pages', '>', 0));

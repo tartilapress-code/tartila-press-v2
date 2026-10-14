@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Book;
+use App\Models\CoverProject;
 use App\Models\CustomPackageItem;
 use App\Models\IsbnApplication;
 use App\Models\IsbnLetterSetting;
@@ -13,6 +14,7 @@ use App\Models\MouTemplate;
 use App\Models\OrderItem;
 use App\Models\Package;
 use App\Models\User;
+use App\Support\IsbnTypes;
 use App\Support\Mou\MouRenderer;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Carbon;
@@ -179,6 +181,9 @@ class MouService
                 $mou->distribution_choice = [$keys[0]];
             }
 
+            // Hak penulis atas fasilitas & layanan paket selalu mengikuti paket yang diambil (sebelum ada tanda tangan).
+            $mou->content = [...$mou->content, 'package_rights' => $this->packageRights($mou)];
+
             $mou->title = $this->subjectTitle($mou) ?? $mou->title;
             $mou->save();
 
@@ -195,6 +200,7 @@ class MouService
         $types = $mou ? $this->royaltyTypes($mou) : ['physical' => true, 'ebook' => true];
 
         $content['royalty_types'] = $types;
+        $content['package_rights'] = $mou ? $this->packageRights($mou) : null;
         $content['royalty'] = [
             'physical' => $types['physical'] ? $content['royalty']['physical'] : null,
             'ebook' => $types['ebook'] ? $content['royalty']['ebook'] : null,
@@ -208,19 +214,26 @@ class MouService
         $authors = $this->authorsFor($mou);
         $royalty = $mou->content['royalty'];
         $existing = $mou->signatories()->get()->keyBy('user_id');
+        $coauthorRate = (float) ($mou->content['coauthor_royalty'] ?? app(ManuscriptAssignmentService::class)->royaltyPercent());
 
         $mou->signatories()->whereNotIn('user_id', $authors->pluck('user.id'))->delete();
 
         foreach ($authors->values() as $index => $author) {
             $current = $existing->get($author['user']->id);
-            $computed = [
-                'royalty_physical' => $royalty['physical'] === null ? null : round($royalty['physical'] * $author['share'], 4),
-                'royalty_ebook' => $royalty['ebook'] === null ? null : round($royalty['ebook'] * $author['share'], 4),
-            ];
+            // Co-author: jatah tetap (bukan bagian dari pembagian rata penulis), untuk buku fisik dan ebook.
+            $computed = $author['coauthor']
+                ? [
+                    'royalty_physical' => $royalty['physical'] === null ? null : $coauthorRate,
+                    'royalty_ebook' => $royalty['ebook'] === null ? null : $coauthorRate,
+                ]
+                : [
+                    'royalty_physical' => $royalty['physical'] === null ? null : round($royalty['physical'] * $author['share'], 4),
+                    'royalty_ebook' => $royalty['ebook'] === null ? null : round($royalty['ebook'] * $author['share'], 4),
+                ];
 
             MouSignatory::updateOrCreate(
                 ['mou_id' => $mou->id, 'user_id' => $author['user']->id],
-                ['position' => $index + 1, 'chapters' => $author['chapters']]
+                ['position' => $index + 1, 'chapters' => $author['chapters'], 'is_coauthor' => $author['coauthor']]
                     // MOU yang disesuaikan admin: royalti penulis lama tetap.
                     + ($mou->customized && $current ? [] : $computed)
             );
@@ -232,15 +245,26 @@ class MouService
      * Paket biasa: dibagi rata. Book Chapter: tiap bab bernilai 1/jumlah bab,
      * dibagi rata antar-penulis bab itu.
      *
-     * @return Collection<int, array{user: User, share: float, chapters: ?int}>
+     * Co-author (layanan co-author) selalu penulis terakhir dengan jatah tetap; ia tidak ikut
+     * pembagian rata ('coauthor' => true).
+     *
+     * @return Collection<int, array{user: User, share: float, chapters: ?int, coauthor: bool}>
      */
     public function authorsFor(Mou $mou): Collection
     {
         if ($mou->type === Mou::TYPE_REGULAR) {
             $manuscript = $mou->manuscript()->with(['authorLinks.user', 'user'])->first();
             $users = $manuscript ? $this->manuscriptAuthors($manuscript) : collect();
+            $coauthorIds = $manuscript?->authorLinks->where('is_coauthor', true)->pluck('user_id')->all() ?? [];
+            $main = $users->reject(fn (User $user) => in_array($user->id, $coauthorIds, true));
+            $coauthors = $users->filter(fn (User $user) => in_array($user->id, $coauthorIds, true));
 
-            return $users->map(fn (User $user) => ['user' => $user, 'share' => 1 / max(1, $users->count()), 'chapters' => null])->values();
+            return $main->concat($coauthors)->map(fn (User $user) => [
+                'user' => $user,
+                'share' => 1 / max(1, $main->count()),
+                'chapters' => null,
+                'coauthor' => in_array($user->id, $coauthorIds, true),
+            ])->values();
         }
 
         $book = Book::with(['chapters.manuscript.authorLinks.user', 'chapters.manuscript.user'])->find($mou->book_id);
@@ -256,7 +280,7 @@ class MouService
             $writers = $this->manuscriptAuthors($chapter->manuscript);
 
             foreach ($writers as $writer) {
-                $rows[$writer->id] ??= ['user' => $writer, 'share' => 0.0, 'chapters' => 0];
+                $rows[$writer->id] ??= ['user' => $writer, 'share' => 0.0, 'chapters' => 0, 'coauthor' => false];
                 $rows[$writer->id]['share'] += 1 / $total / $writers->count();
                 $rows[$writer->id]['chapters']++;
             }
@@ -276,6 +300,15 @@ class MouService
         $book = $mou->type === Mou::TYPE_CHAPTER
             ? Book::find($mou->book_id)
             : $mou->manuscript?->book;
+
+        // Jenis ISBN yang dipilih pembeli paket / ditetapkan proyek: cetak -> buku fisik, digital -> ebook.
+        $isbnType = $this->isbnTypeFor($mou, $book);
+
+        if ($isbnType) {
+            $flags = IsbnTypes::flags($isbnType);
+
+            return ['physical' => $flags['print'], 'ebook' => $flags['electronic']];
+        }
 
         if ($book && ($book->includes_isbn_print || $book->includes_isbn_electronic)) {
             return ['physical' => (bool) $book->includes_isbn_print, 'ebook' => (bool) $book->includes_isbn_electronic];
@@ -317,6 +350,77 @@ class MouService
         }
 
         return ['physical' => $physical || ! $ebook, 'ebook' => $ebook];
+    }
+
+    /**
+     * Jenis ISBN MOU ini: dari buku/proyek (isbn_type) atau dari paket yang dibeli pada pesanan naskah.
+     * Null untuk data lama yang belum punya jenis ISBN.
+     */
+    public function isbnTypeFor(Mou $mou, ?Book $book = null): ?string
+    {
+        $book ??= $mou->type === Mou::TYPE_CHAPTER ? Book::find($mou->book_id) : $mou->manuscript?->book;
+
+        if ($book?->isbn_type) {
+            return $book->isbn_type;
+        }
+
+        return $mou->type === Mou::TYPE_REGULAR && $mou->manuscript ? $this->isbnTypeForManuscript($mou->manuscript) : null;
+    }
+
+    /** Jenis ISBN paket biasa yang dibeli untuk naskah ini (null bila tidak tercatat). */
+    public function isbnTypeForManuscript(Manuscript $manuscript): ?string
+    {
+        return $manuscript->order?->items()->whereNotNull('isbn_type')->value('isbn_type');
+    }
+
+    /**
+     * Hak penulis atas fasilitas dan layanan dari paket yang diambil (tercantum di MOU).
+     *
+     * @return array{package: ?string, isbn_type: ?string, isbn_label: ?string, facilities: list<string>, services: list<string>}
+     */
+    public function packageRights(Mou $mou): array
+    {
+        $facilities = [];
+        $services = [];
+        $name = null;
+        $book = $mou->type === Mou::TYPE_CHAPTER ? Book::with('packageItems')->find($mou->book_id) : $mou->manuscript?->book;
+
+        if ($mou->type === Mou::TYPE_REGULAR) {
+            $items = $mou->manuscript?->order?->items()->with('itemable')->get() ?? collect();
+
+            foreach ($items as $item) {
+                /** @var OrderItem $item */
+                $itemable = $item->itemable;
+
+                if ($itemable instanceof Package) {
+                    $name = $itemable->name;
+                    array_push($facilities, ...array_map('strval', (array) $itemable->facilities));
+                    array_push($services, ...array_map('strval', (array) $itemable->services));
+                } elseif ($itemable instanceof CustomPackageItem) {
+                    $name = 'Paket Custom';
+                    // Item paket custom bertipe facility (fasilitas) atau service (layanan).
+                    $itemable->type === 'facility' ? $facilities[] = $itemable->name : $services[] = $itemable->name;
+                }
+            }
+        } elseif ($book) {
+            $name = 'Book Chapter';
+            array_push($facilities, ...array_map('strval', (array) $book->facilities));
+            array_push($services, ...array_map('strval', (array) $book->services), ...$book->packageItems->pluck('name')->all());
+
+            if ($book->includes_hki) {
+                $services[] = 'HKI (Hak Kekayaan Intelektual)';
+            }
+        }
+
+        $isbnType = $this->isbnTypeFor($mou, $book);
+
+        return [
+            'package' => $name,
+            'isbn_type' => $isbnType,
+            'isbn_label' => IsbnTypes::label($isbnType),
+            'facilities' => array_values(array_unique(array_filter($facilities))),
+            'services' => array_values(array_unique(array_filter($services))),
+        ];
     }
 
     // =====================================================================
@@ -532,6 +636,14 @@ class MouService
             422,
             'Semua penulis bab harus menyetujui MOU distribusi buku (saat menyetujui naskah akhir) sebelum buku diterbitkan.'
         );
+
+        $cover = CoverProject::where('book_id', $book->id)->first();
+
+        abort_if(
+            $cover && $cover->stage === 'urgent' && $cover->status !== 'approved',
+            422,
+            'Cover buku belum disetujui penulis. Selesaikan dulu di menu Cover.'
+        );
     }
 
     // =====================================================================
@@ -574,6 +686,7 @@ class MouService
                 'user_id' => $row->user_id,
                 'name' => $row->identity['name'] ?? $row->user?->name,
                 'position' => $row->position,
+                'is_coauthor' => (bool) $row->is_coauthor,
                 'chapters' => $row->chapters,
                 'royalty_physical' => $row->royalty_physical,
                 'royalty_ebook' => $row->royalty_ebook,
@@ -616,9 +729,19 @@ class MouService
         }
 
         $content['distribution_options'] = array_map(
-            fn (array $option) => ['key' => $option['key'], 'name' => $fill($option['name']), 'description' => $fill($option['description'] ?? '')],
+            fn (array $option) => [
+                'key' => $option['key'],
+                'name' => $fill($option['name']),
+                'description' => $fill($option['description'] ?? ''),
+                'points' => array_map($fill, (array) ($option['points'] ?? [])),
+            ],
             $content['distribution_options'] ?? []
         );
+
+        // MOU yang belum ditandatangani selalu menampilkan hak paket terbaru.
+        if ($mou->status === Mou::STATUS_PENDING && ! $mou->signatories->whereNotNull('signed_at')->count()) {
+            $content['package_rights'] = $this->packageRights($mou);
+        }
 
         return $content;
     }

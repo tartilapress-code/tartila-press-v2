@@ -44,6 +44,8 @@ export type ChapterProject = {
     includes_hki?: boolean;
     includes_isbn_print?: boolean;
     includes_isbn_electronic?: boolean;
+    // Jenis ISBN proyek (cetak / digital / keduanya).
+    isbn_type?: 'print' | 'electronic' | 'both' | null;
     price: string;
     discount: number;
     final_price: number;

@@ -413,6 +413,16 @@ export default function InvoicePage() {
                                 </dd>
                             </>
                         )}
+                        {invoice.coauthor && (
+                            <>
+                                <dt className="text-oxford-navy-900/65">
+                                    Fee co-author ({invoice.coauthor.name})
+                                </dt>
+                                <dd className="text-right">
+                                    {rupiah.format(invoice.coauthor.fee)}
+                                </dd>
+                            </>
+                        )}
                         <dt className="border-t border-forest-moss-200 pt-2 font-semibold text-oxford-navy-900">
                             Total bayar
                         </dt>

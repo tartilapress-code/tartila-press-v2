@@ -4,7 +4,8 @@
         "editor": "Editor:",
         "inCart": "Di Keranjang",
         "cartShort": "Keranjang",
-        "addToCart": "Tambah ke Keranjang"
+        "addToCart": "Tambah ke Keranjang",
+        "buyEbook": "Beli Ebook"
     },
     "cartFab": "Keranjang ({{count}})",
     "catalog": {
@@ -81,7 +82,11 @@
             "inCart": "Sudah di Keranjang",
             "addToCart": "Tambah ke Keranjang",
             "previewPdf": "Lihat Preview PDF",
-            "scholar": "Google Scholar"
+            "scholar": "Google Scholar",
+            "buyEbook": "Beli Ebook di Tartila Book",
+            "bothFormats": "Tersedia dalam dua format: buku fisik dan ebook.",
+            "ebookOnly": "Buku ini hanya tersedia sebagai ebook di Tartila Book.",
+            "ebookUnavailable": "Ebook belum tersedia, coba di lain waktu."
         },
         "chapterRow": {
             "srChapter": "Bab {{number}}:",

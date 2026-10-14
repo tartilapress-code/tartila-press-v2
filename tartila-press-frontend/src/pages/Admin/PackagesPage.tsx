@@ -4,6 +4,21 @@ import ImageInput from '@/components/Input/ImageInput';
 import Button from '@/components/Button/Button';
 import * as adminApi from '@/data/admin/adminApi';
 import { ApiError } from '@/lib/http';
+import { ISBN_TYPES, type IsbnType } from '@/lib/isbnTypes';
+
+const ISBN_LABEL: Record<IsbnType, string> = {
+    print: 'ISBN Cetak',
+    electronic: 'ISBN Digital',
+    both: 'ISBN Cetak + Digital',
+};
+
+type IsbnPriceForm = Record<IsbnType, { on: boolean; price: string }>;
+
+const emptyIsbn = (): IsbnPriceForm => ({
+    print: { on: true, price: '' },
+    electronic: { on: false, price: '' },
+    both: { on: false, price: '' },
+});
 
 type PackageItem = {
     id: number;
@@ -11,6 +26,7 @@ type PackageItem = {
     photo: string | null;
     category: string | null;
     price: string;
+    isbn_prices: Partial<Record<IsbnType, number>> | null;
     discount: number;
     description: string | null;
     facilities: string[] | null;
@@ -24,7 +40,7 @@ type FormState = {
     name: string;
     photo: string;
     category: string;
-    price: string;
+    isbn: IsbnPriceForm;
     discount: string;
     description: string;
     facilities: string[];
@@ -37,7 +53,7 @@ const emptyForm: FormState = {
     name: '',
     photo: '',
     category: '',
-    price: '',
+    isbn: emptyIsbn(),
     discount: '0',
     description: '',
     facilities: [],
@@ -129,7 +145,16 @@ export default function PackagesPage() {
             name: pkg.name,
             photo: pkg.photo ?? '',
             category: pkg.category ?? '',
-            price: pkg.price,
+            isbn: ISBN_TYPES.reduce((form, type) => {
+                const price = pkg.isbn_prices?.[type];
+
+                form[type] = {
+                    on: price !== undefined,
+                    price: price !== undefined ? String(price) : '',
+                };
+
+                return form;
+            }, emptyIsbn()),
             discount: String(pkg.discount),
             description: pkg.description ?? '',
             facilities: pkg.facilities ?? [],
@@ -141,18 +166,38 @@ export default function PackagesPage() {
 
     function resetForm() {
         setEditingId(null);
-        setForm(emptyForm);
+        setForm({ ...emptyForm, isbn: emptyIsbn() });
     }
 
     async function handleSubmit() {
-        setIsSubmitting(true);
         setStatusMessage('');
+
+        // Admin wajib memilih minimal satu jenis ISBN beserta harganya.
+        const chosen = ISBN_TYPES.filter((type) => form.isbn[type].on);
+
+        if (chosen.length === 0) {
+            setStatusMessage('Pilih minimal satu jenis ISBN untuk paket ini.');
+            return;
+        }
+
+        const missing = chosen.find(
+            (type) => form.isbn[type].price.trim() === ''
+        );
+
+        if (missing) {
+            setStatusMessage(`Isi harga untuk ${ISBN_LABEL[missing]}.`);
+            return;
+        }
+
+        setIsSubmitting(true);
 
         const payload = {
             name: form.name,
             photo: form.photo || undefined,
             category: form.category || undefined,
-            price: form.price,
+            isbn_prices: Object.fromEntries(
+                chosen.map((type) => [type, Number(form.isbn[type].price)])
+            ),
             discount: Number(form.discount) || 0,
             description: form.description || undefined,
             facilities: form.facilities,
@@ -216,14 +261,65 @@ export default function PackagesPage() {
                         setForm({ ...form, category: e.target.value })
                     }
                 />
-                <Input
-                    label="Harga"
-                    value={form.price}
-                    onChange={(e) =>
-                        setForm({ ...form, price: e.target.value })
-                    }
-                    required
-                />
+                <fieldset className="flex flex-col gap-3 rounded-xl bg-forest-moss-50/60 p-4 ring-1 ring-forest-moss-100">
+                    <legend className="px-1 text-sm font-semibold text-oxford-navy-900">
+                        Jenis ISBN & harga (wajib pilih minimal satu)
+                    </legend>
+                    <p className="text-xs text-oxford-navy-900/65">
+                        Centang jenis ISBN yang ditawarkan paket ini dan isi
+                        harga tiap jenis. Harga ISBN Cetak adalah harga yang
+                        tampil bawaan; pembeli memilih jenis ISBN saat memesan.
+                        Jenis ISBN menentukan MOU dan jenis royalti (cetak =
+                        buku fisik, digital = ebook).
+                    </p>
+                    {ISBN_TYPES.map((type) => (
+                        <div
+                            key={type}
+                            className="flex flex-row flex-wrap items-center gap-3"
+                        >
+                            <label className="flex w-52 items-center gap-2 text-sm font-medium text-oxford-navy-900">
+                                <input
+                                    type="checkbox"
+                                    checked={form.isbn[type].on}
+                                    onChange={(e) =>
+                                        setForm({
+                                            ...form,
+                                            isbn: {
+                                                ...form.isbn,
+                                                [type]: {
+                                                    ...form.isbn[type],
+                                                    on: e.target.checked,
+                                                },
+                                            },
+                                        })
+                                    }
+                                />
+                                {ISBN_LABEL[type]}
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                aria-label={`Harga ${ISBN_LABEL[type]}`}
+                                disabled={!form.isbn[type].on}
+                                value={form.isbn[type].price}
+                                onChange={(e) =>
+                                    setForm({
+                                        ...form,
+                                        isbn: {
+                                            ...form.isbn,
+                                            [type]: {
+                                                ...form.isbn[type],
+                                                price: e.target.value,
+                                            },
+                                        },
+                                    })
+                                }
+                                placeholder="Harga (Rp)"
+                                className="w-48 rounded-lg bg-transparent p-2 text-oxford-navy-900 outline-none ring-1 ring-forest-moss-200 disabled:opacity-40"
+                            />
+                        </div>
+                    ))}
+                </fieldset>
                 <Input
                     label="Diskon (%)"
                     value={form.discount}
@@ -318,7 +414,18 @@ export default function PackagesPage() {
                                         )}
                                     </p>
                                     <p className="text-oxford-navy-900/65 text-sm">
-                                        Rp {pkg.price} — diskon {pkg.discount}%
+                                        {ISBN_TYPES.filter(
+                                            (type) =>
+                                                pkg.isbn_prices?.[type] !==
+                                                undefined
+                                        )
+                                            .map(
+                                                (type) =>
+                                                    `${ISBN_LABEL[type]} Rp ${pkg.isbn_prices?.[type]}`
+                                            )
+                                            .join(' · ') ||
+                                            `Rp ${pkg.price}`}{' '}
+                                        — diskon {pkg.discount}%
                                     </p>
                                 </div>
                                 <div className="flex flex-row gap-2 shrink-0">

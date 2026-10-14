@@ -9,6 +9,7 @@ use App\Models\Manuscript;
 use App\Models\ManuscriptRevision;
 use App\Models\ManuscriptTemplate;
 use App\Models\User;
+use App\Services\Cover\CoverService;
 use App\Support\ManuscriptTemplates\DocxMerger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -142,7 +143,7 @@ class BookChapterCompilationService
             }
         }
 
-        return DB::transaction(function () use ($book, $admin, $template, $filled, $compilation, $docx) {
+        $result = DB::transaction(function () use ($book, $admin, $template, $filled, $compilation, $docx) {
             $authors = $filled->map(fn (BookChapter $chapter) => $chapter->manuscript->user)->filter()->unique('id')->values();
             $isNew = $compilation === null;
 
@@ -207,6 +208,11 @@ class BookChapterCompilationService
 
             return $compilation->fresh(['revisions', 'editor', 'authorLinks.user']);
         });
+
+        // Cover Book Chapter pindah ke daftar cover paket dan menjadi mendesak.
+        app(CoverService::class)->chapterCompiled($book, $result);
+
+        return $result;
     }
 
     /**

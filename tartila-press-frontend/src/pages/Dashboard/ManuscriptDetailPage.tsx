@@ -17,6 +17,7 @@ import AutoLayoutOption, {
     type AutoLayoutValue,
 } from '@/components/manuscriptTemplate/AutoLayoutOption';
 import CompilationChaptersPanel from '@/components/bookChapter/CompilationChaptersPanel';
+import CoverChoiceCard from '@/components/cover/CoverChoiceCard';
 import DifficultyBadge from '@/components/manuscript/DifficultyBadge';
 import FieldCategoryPicker from '@/components/manuscript/FieldCategoryPicker';
 import {
@@ -34,11 +35,13 @@ type Category = { id: number; name: string };
 type Revision = {
     id: number;
     revision_number: number;
-    role: 'penulis' | 'editor' | 'layout' | 'compilation';
+    role: 'penulis' | 'coauthor' | 'editor' | 'layout' | 'compilation';
     original_filename: string;
     note: string | null;
     admin_status: 'pending' | 'approved' | 'rejected';
     admin_note: string | null;
+    // Catatan penulis saat meminta revisi lagi (terpisah dari catatan admin).
+    author_note?: string | null;
     uploader: { id: number; name: string };
 };
 
@@ -46,8 +49,31 @@ type ManuscriptDetail = {
     id: number;
     title: string;
     authors: string[];
-    co_authors: { id: number; name: string; has_approved: boolean }[];
+    co_authors: {
+        id: number;
+        name: string;
+        has_approved: boolean;
+        // Co-author layanan paket (penulis terakhir, bukan penulis asli).
+        is_coauthor?: boolean;
+    }[];
     status: string;
+    wants_coauthor?: boolean;
+    // Template naskah pilihan penulis saat mengirim naskah.
+    manuscript_template_id?: number | null;
+    coauthor: { id: number; name: string } | null;
+    coauthor_fee: string | null;
+    coauthor_source: 'admin' | 'pool' | 'author' | null;
+    coauthor_requested_fee: string | null;
+    coauthor_admin_fee: number | null;
+    coauthor_deadline: string | null;
+    coauthor_assignment_note: string | null;
+    coauthor_open_for_claim: boolean;
+    // Hanya dikirim ke admin: penulis memilih co-author langsung saat memesan.
+    author_chosen_coauthor?: {
+        id: number;
+        name: string | null;
+        requested_fee: number;
+    } | null;
     editor_fee: string | null;
     editor_source: 'admin' | 'pool' | 'author' | 'project_owner' | null;
     editor_requested_fee: string | null;
@@ -96,11 +122,21 @@ type EditorItem = {
     user_id: number;
     name: string;
     fee: string;
+    is_promoted?: boolean;
+    under_monitoring?: boolean;
 };
+
+type CoauthorItem = EditorItem & { bio?: string | null };
 
 const statusLabels: Record<string, string> = {
     submitted: 'Menunggu Review Admin (Naskah Penulis)',
     revision_requested: 'Perlu Revisi dari Penulis',
+    pending_coauthor_assignment: 'Menunggu Penugasan Co-author',
+    in_coauthoring: 'Sedang Disusun Co-author',
+    pending_admin_review_coauthor: 'Menunggu Review Admin (Hasil Co-author)',
+    coauthor_revision_requested: 'Perlu Revisi dari Co-author',
+    pending_author_review_coauthor:
+        'Menunggu Persetujuan Penulis (Susunan Co-author)',
     pending_editor_assignment: 'Menunggu Penugasan Editor',
     in_editing: 'Sedang Diedit Editor',
     pending_admin_review_editor: 'Menunggu Review Admin (Hasil Editor)',
@@ -174,6 +210,11 @@ export default function ManuscriptDetailPage() {
     const [poolFields, setPoolFields] = useState<number[] | null>(null);
     const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
+    // Layanan co-author (admin): daftar co-author + fee dari admin untuk pilihan penulis.
+    const [coauthors, setCoauthors] = useState<CoauthorItem[]>([]);
+    const [selectedCoauthorId, setSelectedCoauthorId] = useState<string>('');
+    const [approveCoauthorFee, setApproveCoauthorFee] = useState<string>('');
+
     const [showPublishForm, setShowPublishForm] = useState<boolean>(false);
     const [bookCategories, setBookCategories] = useState<Category[]>([]);
     const [fieldCategories, setFieldCategories] = useState<Category[]>([]);
@@ -208,6 +249,15 @@ export default function ManuscriptDetailPage() {
                 .listFieldCategoriesAdmin()
                 .then((response) => setFieldCategories(response.data));
         }
+
+        if (isAdmin && manuscript?.status === 'pending_coauthor_assignment') {
+            editorApi
+                .coauthorDirectory()
+                .then((response) => setCoauthors(response.data));
+            adminApi
+                .listFieldCategoriesAdmin()
+                .then((response) => setFieldCategories(response.data));
+        }
     }, [isAdmin, manuscript?.status]);
 
     useEffect(() => {
@@ -230,10 +280,14 @@ export default function ManuscriptDetailPage() {
         return <p className="text-oxford-navy-900">Naskah tidak ditemukan.</p>;
     }
 
-    const isCoAuthor = manuscript.co_authors.some((a) => a.id === user?.id);
-    const myCoAuthorEntry = manuscript.co_authors.find(
-        (a) => a.id === user?.id
+    // "Penulis" = penulis asli naskah; co-author layanan paket punya tahapnya sendiri.
+    const isCoAuthor = manuscript.co_authors.some(
+        (a) => a.id === user?.id && !a.is_coauthor
     );
+    const myCoAuthorEntry = manuscript.co_authors.find(
+        (a) => a.id === user?.id && !a.is_coauthor
+    );
+    const isServiceCoauthor = manuscript.coauthor?.id === user?.id;
     const isAssignedEditor = manuscript.editor?.id === user?.id;
     const latestRevision =
         manuscript.revisions[manuscript.revisions.length - 1];
@@ -306,6 +360,10 @@ export default function ManuscriptDetailPage() {
                         decision === 'approve' && needsAdminFee
                             ? approveFee
                             : undefined,
+                    coauthor_fee:
+                        decision === 'approve' && needsCoauthorFee
+                            ? approveCoauthorFee
+                            : undefined,
                     auto_layout:
                         decision === 'approve' &&
                         canAutoLayout &&
@@ -324,6 +382,7 @@ export default function ManuscriptDetailPage() {
             );
             setReviewNote('');
             setApproveFee('');
+            setApproveCoauthorFee('');
             setApproveDifficulty('');
             load();
         } catch (error) {
@@ -387,6 +446,80 @@ export default function ManuscriptDetailPage() {
         }
     }
 
+    async function handleAssignCoauthor() {
+        setIsAssigning(true);
+        setStatusMessage('');
+
+        try {
+            await adminApi.assignManuscriptCoauthor(manuscript!.id, {
+                coauthor_id: Number(selectedCoauthorId),
+                fee: assignFee,
+                deadline: assignDeadline || undefined,
+                note: assignNote || undefined,
+            });
+            setAssignFee('');
+            setAssignDeadline('');
+            setAssignNote('');
+            load();
+        } catch (error) {
+            setStatusMessage(
+                error instanceof ApiError
+                    ? error.message
+                    : 'Terjadi kesalahan. Silakan coba lagi.'
+            );
+        } finally {
+            setIsAssigning(false);
+        }
+    }
+
+    async function handleOpenCoauthorPool() {
+        setIsAssigning(true);
+        setStatusMessage('');
+
+        try {
+            await adminApi.openCoauthorPool(manuscript!.id, {
+                fee: assignFee,
+                deadline: assignDeadline || undefined,
+                note: assignNote || undefined,
+                difficulty: effectiveAssignDifficulty || undefined,
+                pool_field_category_ids: effectivePoolFields,
+            });
+            setPoolFields(null);
+            setAssignFee('');
+            load();
+        } catch (error) {
+            setStatusMessage(
+                error instanceof ApiError
+                    ? error.message
+                    : 'Terjadi kesalahan. Silakan coba lagi.'
+            );
+        } finally {
+            setIsAssigning(false);
+        }
+    }
+
+    async function handleCoauthorReview(decision: 'approve' | 'revise') {
+        setIsReviewing(true);
+        setStatusMessage('');
+
+        try {
+            await manuscriptApi.coauthorReview(manuscript!.id, {
+                decision,
+                note: reviewNote || undefined,
+            });
+            setReviewNote('');
+            load();
+        } catch (error) {
+            setStatusMessage(
+                error instanceof ApiError
+                    ? error.message
+                    : 'Terjadi kesalahan. Silakan coba lagi.'
+            );
+        } finally {
+            setIsReviewing(false);
+        }
+    }
+
     async function handleOpenPool() {
         setIsAssigning(true);
         setStatusMessage('');
@@ -442,12 +575,18 @@ export default function ManuscriptDetailPage() {
     const canEditorUpload =
         isAssignedEditor &&
         ['in_editing', 'editor_revision_requested'].includes(manuscript.status);
+    const canCoauthorUpload =
+        isServiceCoauthor &&
+        ['in_coauthoring', 'coauthor_revision_requested'].includes(
+            manuscript.status
+        );
     const canAdminReview =
         isAdmin && latestRevision && latestRevision.admin_status === 'pending';
     // Auto layout hanya untuk naskah Word milik penulis.
     const canAutoLayout =
         Boolean(canAdminReview) &&
         !isChapter &&
+        !manuscript.wants_coauthor &&
         latestRevision?.role === 'penulis' &&
         latestRevision.original_filename.toLowerCase().endsWith('.docx');
 
@@ -458,6 +597,22 @@ export default function ManuscriptDetailPage() {
         Boolean(canAdminReview) &&
         latestRevision?.role === 'penulis' &&
         chosenEditor !== null;
+    // Penulis memilih co-author langsung: admin juga wajib mengisi fee co-author.
+    const chosenCoauthor = manuscript.author_chosen_coauthor ?? null;
+    const needsCoauthorFee =
+        Boolean(canAdminReview) &&
+        latestRevision?.role === 'penulis' &&
+        Boolean(manuscript.wants_coauthor) &&
+        chosenCoauthor !== null;
+    const approveCoauthorFeeAmount = Number(approveCoauthorFee);
+    const isApproveCoauthorFeeValid =
+        approveCoauthorFee.trim() !== '' &&
+        Number.isFinite(approveCoauthorFeeAmount) &&
+        approveCoauthorFeeAmount >= 0;
+    const canAdminAssignCoauthor =
+        isAdmin && manuscript.status === 'pending_coauthor_assignment';
+    const canAuthorCoauthorReview =
+        isCoAuthor && manuscript.status === 'pending_author_review_coauthor';
     const approveFeeAmount = Number(approveFee);
     const isApproveFeeValid =
         approveFee.trim() !== '' &&
@@ -635,38 +790,113 @@ export default function ManuscriptDetailPage() {
                                 {editorSourceLabels[manuscript.editor_source]}
                             </p>
                         )}
-                        {manuscript.editor_fee !== null && (
-                            <p>
-                                Fee editor:{' '}
-                                {rupiahFormatter.format(
-                                    Number(manuscript.editor_fee)
-                                )}
-                                {manuscript.editor_source === 'author' &&
-                                    manuscript.editor_requested_fee !==
-                                        null && (
-                                        <>
-                                            {' '}
-                                            (fee permintaan editor{' '}
-                                            {rupiahFormatter.format(
-                                                Number(
-                                                    manuscript.editor_requested_fee
-                                                )
-                                            )}{' '}
-                                            + fee dari admin{' '}
-                                            {rupiahFormatter.format(
-                                                manuscript.editor_admin_fee ?? 0
-                                            )}
-                                            )
-                                        </>
+                        {/* Fee editor hanya untuk admin dan editor itu sendiri (server tidak mengirimnya ke penulis). */}
+                        {(isAdmin || isAssignedEditor) &&
+                            manuscript.editor_fee != null && (
+                                <p>
+                                    Fee editor:{' '}
+                                    {rupiahFormatter.format(
+                                        Number(manuscript.editor_fee)
                                     )}
-                            </p>
-                        )}
+                                    {manuscript.editor_source === 'author' &&
+                                        manuscript.editor_requested_fee !==
+                                            null && (
+                                            <>
+                                                {' '}
+                                                (fee permintaan editor{' '}
+                                                {rupiahFormatter.format(
+                                                    Number(
+                                                        manuscript.editor_requested_fee
+                                                    )
+                                                )}{' '}
+                                                + fee dari admin{' '}
+                                                {rupiahFormatter.format(
+                                                    manuscript.editor_admin_fee ??
+                                                        0
+                                                )}
+                                                )
+                                            </>
+                                        )}
+                                </p>
+                            )}
                         {manuscript.editor_deadline && (
                             <p>Deadline: {manuscript.editor_deadline}</p>
                         )}
-                        {manuscript.editor_assignment_note && (
-                            <p>Catatan: {manuscript.editor_assignment_note}</p>
+                        {(isAdmin || isAssignedEditor) &&
+                            manuscript.editor_assignment_note && (
+                                <p>
+                                    Catatan: {manuscript.editor_assignment_note}
+                                </p>
+                            )}
+                    </div>
+                )}
+                {manuscript.wants_coauthor && (
+                    <div className="text-oxford-navy-900/70 text-sm">
+                        <p>
+                            Co-author:{' '}
+                            {manuscript.coauthor?.name ??
+                                'belum ditentukan (admin menentukan atau dibuka ke pool co-author)'}
+                        </p>
+                        {manuscript.coauthor_open_for_claim && (
+                            <p className="text-forest-moss-800">
+                                Terbuka di pool co-author
+                            </p>
                         )}
+                        {manuscript.coauthor &&
+                            (isAdmin || isServiceCoauthor) &&
+                            manuscript.coauthor_fee !== null && (
+                                <>
+                                    {manuscript.coauthor_source && (
+                                        <p>
+                                            Sumber:{' '}
+                                            {
+                                                editorSourceLabels[
+                                                    manuscript.coauthor_source
+                                                ]
+                                            }
+                                        </p>
+                                    )}
+                                    <p>
+                                        Fee co-author:{' '}
+                                        {rupiahFormatter.format(
+                                            Number(manuscript.coauthor_fee)
+                                        )}
+                                        {manuscript.coauthor_source ===
+                                            'author' &&
+                                            manuscript.coauthor_requested_fee !==
+                                                null && (
+                                                <>
+                                                    {' '}
+                                                    (fee permintaan co-author{' '}
+                                                    {rupiahFormatter.format(
+                                                        Number(
+                                                            manuscript.coauthor_requested_fee
+                                                        )
+                                                    )}{' '}
+                                                    + fee dari admin{' '}
+                                                    {rupiahFormatter.format(
+                                                        manuscript.coauthor_admin_fee ??
+                                                            0
+                                                    )}
+                                                    )
+                                                </>
+                                            )}
+                                    </p>
+                                </>
+                            )}
+                        {manuscript.coauthor_deadline && (
+                            <p>
+                                Deadline co-author:{' '}
+                                {manuscript.coauthor_deadline}
+                            </p>
+                        )}
+                        {(isAdmin || isServiceCoauthor) &&
+                            manuscript.coauthor_assignment_note && (
+                                <p>
+                                    Catatan co-author:{' '}
+                                    {manuscript.coauthor_assignment_note}
+                                </p>
+                            )}
                     </div>
                 )}
             </div>
@@ -717,6 +947,11 @@ export default function ManuscriptDetailPage() {
                 </div>
             )}
 
+            {/* Cover buku: pilihan dari admin, voting penulis, hasil (admin juga melihat). */}
+            {(isCoAuthor || isServiceCoauthor || isAdmin) && (
+                <CoverChoiceCard manuscriptId={manuscript.id} />
+            )}
+
             <ManuscriptPublicationCard
                 key={`${manuscript.id}-${manuscript.status}`}
                 manuscriptId={manuscript.id}
@@ -734,18 +969,29 @@ export default function ManuscriptDetailPage() {
                         >
                             <span className="text-oxford-navy-900/80">
                                 {index + 1}. {author.name}
+                                {author.is_coauthor && (
+                                    <span className="ml-2 rounded-full bg-forest-moss-50 px-2 py-0.5 text-xs font-medium text-forest-moss-800 ring-1 ring-forest-moss-200">
+                                        Co-author
+                                    </span>
+                                )}
                             </span>
-                            <span
-                                className={
-                                    author.has_approved
-                                        ? 'text-forest-moss-700'
-                                        : 'text-oxford-navy-900/55'
-                                }
-                            >
-                                {author.has_approved
-                                    ? 'Sudah ACC'
-                                    : 'Belum ACC'}
-                            </span>
+                            {author.is_coauthor ? (
+                                <span className="text-oxford-navy-900/55">
+                                    Tidak ikut ACC tinjauan
+                                </span>
+                            ) : (
+                                <span
+                                    className={
+                                        author.has_approved
+                                            ? 'text-forest-moss-700'
+                                            : 'text-oxford-navy-900/55'
+                                    }
+                                >
+                                    {author.has_approved
+                                        ? 'Sudah ACC'
+                                        : 'Belum ACC'}
+                                </span>
+                            )}
                         </li>
                     ))}
                 </ul>
@@ -766,11 +1012,13 @@ export default function ManuscriptDetailPage() {
                                     Revisi {revision.revision_number} —{' '}
                                     {revision.role === 'penulis'
                                         ? 'Penulis'
-                                        : revision.role === 'layout'
-                                          ? 'Auto layout'
-                                          : revision.role === 'compilation'
-                                            ? 'Gabungan semua bab'
-                                            : 'Editor'}{' '}
+                                        : revision.role === 'coauthor'
+                                          ? 'Co-author'
+                                          : revision.role === 'layout'
+                                            ? 'Auto layout'
+                                            : revision.role === 'compilation'
+                                              ? 'Gabungan semua bab'
+                                              : 'Editor'}{' '}
                                     ({revision.uploader.name})
                                 </p>
                                 <button
@@ -806,6 +1054,11 @@ export default function ManuscriptDetailPage() {
                             {revision.admin_note && (
                                 <p className="text-oxford-navy-900/70 text-sm">
                                     Catatan admin: {revision.admin_note}
+                                </p>
+                            )}
+                            {revision.author_note && (
+                                <p className="text-oxford-navy-900/70 text-sm">
+                                    Catatan penulis: {revision.author_note}
                                 </p>
                             )}
                         </div>
@@ -897,10 +1150,12 @@ export default function ManuscriptDetailPage() {
                 <p className="text-red-600 text-sm">{statusMessage}</p>
             )}
 
-            {(canPenulisUpload || canEditorUpload) && (
+            {(canPenulisUpload || canEditorUpload || canCoauthorUpload) && (
                 <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                     <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
-                        Unggah Revisi
+                        {canCoauthorUpload
+                            ? 'Unggah Hasil Susunan Co-author'
+                            : 'Unggah Revisi'}
                     </h5>
                     <input
                         type="file"
@@ -984,6 +1239,71 @@ export default function ManuscriptDetailPage() {
                         </div>
                     )}
 
+                    {needsCoauthorFee && chosenCoauthor && (
+                        <div className="flex flex-col gap-3 bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-4">
+                            <p className="text-oxford-navy-900 text-sm">
+                                Penulis memilih co-author{' '}
+                                <strong>{chosenCoauthor.name}</strong> secara
+                                langsung. Fee permintaan co-author{' '}
+                                {rupiahFormatter.format(
+                                    chosenCoauthor.requested_fee
+                                )}{' '}
+                                sudah dibayar penulis di pesanan. Fee dari admin
+                                tetap wajib diisi saat approve.
+                            </p>
+                            <Input
+                                label="Fee dari admin untuk co-author (Rp)"
+                                type="number"
+                                min="0"
+                                value={approveCoauthorFee}
+                                onChange={(e) =>
+                                    setApproveCoauthorFee(e.target.value)
+                                }
+                                required
+                            />
+                            <p className="text-oxford-navy-900/70 text-sm">
+                                Total fee co-author ={' '}
+                                {rupiahFormatter.format(
+                                    chosenCoauthor.requested_fee
+                                )}{' '}
+                                +{' '}
+                                {rupiahFormatter.format(
+                                    isApproveCoauthorFeeValid
+                                        ? approveCoauthorFeeAmount
+                                        : 0
+                                )}{' '}
+                                ={' '}
+                                <strong className="text-forest-moss-700">
+                                    {rupiahFormatter.format(
+                                        chosenCoauthor.requested_fee +
+                                            (isApproveCoauthorFeeValid
+                                                ? approveCoauthorFeeAmount
+                                                : 0)
+                                    )}
+                                </strong>
+                            </p>
+                        </div>
+                    )}
+
+                    {latestRevision.role === 'penulis' &&
+                        manuscript.wants_coauthor && (
+                            <p className="rounded-lg bg-forest-moss-50 ring-1 ring-forest-moss-100 p-3 text-oxford-navy-900 text-sm">
+                                Penulis memakai layanan co-author: setelah
+                                disetujui, naskah dikirim ke co-author (bukan
+                                langsung ke editor), lalu kembali ke penulis
+                                untuk disetujui sebelum dikerjakan editor.
+                            </p>
+                        )}
+
+                    {latestRevision.role === 'coauthor' && (
+                        <p className="rounded-lg bg-forest-moss-50 ring-1 ring-forest-moss-100 p-3 text-oxford-navy-900 text-sm">
+                            Hasil susunan co-author: setelah disetujui, naskah
+                            dikirim ke penulis untuk disetujui atau diminta
+                            revisi. Baru setelah penulis setuju, naskah masuk ke
+                            tahap editor.
+                        </p>
+                    )}
+
                     {latestRevision.role === 'penulis' && isChapter && (
                         <p className="rounded-lg bg-forest-moss-50 ring-1 ring-forest-moss-100 p-3 text-oxford-navy-900 text-sm">
                             Naskah bab Book Chapter: setelah disetujui, bab ini
@@ -993,15 +1313,20 @@ export default function ManuscriptDetailPage() {
                         </p>
                     )}
 
-                    {latestRevision.role === 'penulis' && !isChapter && (
-                        <AutoLayoutOption
-                            manuscriptId={manuscript.id}
-                            revisionId={latestRevision.id}
-                            filename={latestRevision.original_filename}
-                            value={autoLayout}
-                            onChange={setAutoLayout}
-                        />
-                    )}
+                    {latestRevision.role === 'penulis' &&
+                        !isChapter &&
+                        !manuscript.wants_coauthor && (
+                            <AutoLayoutOption
+                                manuscriptId={manuscript.id}
+                                revisionId={latestRevision.id}
+                                filename={latestRevision.original_filename}
+                                value={autoLayout}
+                                onChange={setAutoLayout}
+                                preferredTemplateId={
+                                    manuscript.manuscript_template_id ?? null
+                                }
+                            />
+                        )}
 
                     {needsDifficulty && (
                         <div className="flex flex-col gap-1">
@@ -1042,6 +1367,8 @@ export default function ManuscriptDetailPage() {
                             disabled={
                                 isReviewing ||
                                 (needsAdminFee && !isApproveFeeValid) ||
+                                (needsCoauthorFee &&
+                                    !isApproveCoauthorFeeValid) ||
                                 (needsDifficulty && !effectiveApproveDifficulty)
                             }
                         >
@@ -1069,11 +1396,22 @@ export default function ManuscriptDetailPage() {
                         label="Pilih Editor"
                         option_data={editors.map((editor) => ({
                             value: String(editor.user_id),
-                            label: `${editor.name} (Rp ${editor.fee})`,
+                            label: `${editor.is_promoted ? '★ ' : ''}${editor.name} (Rp ${editor.fee})${editor.under_monitoring ? ' — dalam pemantauan' : ''}`,
                         }))}
                         value={selectedEditorId}
                         onChange={(e) => setSelectedEditorId(e.target.value)}
                     />
+                    {editors.find(
+                        (editor) => String(editor.user_id) === selectedEditorId
+                    )?.under_monitoring && (
+                        <p
+                            role="note"
+                            className="-mt-2 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200"
+                        >
+                            Editor ini dalam pemantauan. Disarankan memilih
+                            editor lain.
+                        </p>
+                    )}
                     <Input
                         label="Fee / Harga Pengerjaan Naskah (Rp)"
                         value={assignFee}
@@ -1157,6 +1495,98 @@ export default function ManuscriptDetailPage() {
                 </div>
             )}
 
+            {canAdminAssignCoauthor && (
+                <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                        Tentukan Co-author (Admin)
+                    </h5>
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Penulis memakai layanan co-author tanpa memilih
+                        orangnya. Tunjuk langsung salah satu editor yang
+                        mencentang co-author, atau buka ke pool co-author.
+                        Co-author dan editor harus orang yang berbeda.
+                    </p>
+
+                    <Select
+                        name="coauthor"
+                        label="Pilih Co-author"
+                        option_data={[
+                            { value: '', label: 'Pilih co-author' },
+                            ...coauthors.map((coauthor) => ({
+                                value: String(coauthor.user_id),
+                                label: `${coauthor.name} (Rp ${coauthor.fee})${coauthor.under_monitoring ? ' — dalam pemantauan' : ''}`,
+                            })),
+                        ]}
+                        value={selectedCoauthorId}
+                        onChange={(e) => setSelectedCoauthorId(e.target.value)}
+                    />
+                    {coauthors.find(
+                        (coauthor) =>
+                            String(coauthor.user_id) === selectedCoauthorId
+                    )?.under_monitoring && (
+                        <p
+                            role="note"
+                            className="-mt-2 rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200"
+                        >
+                            Co-author ini dalam pemantauan. Disarankan memilih
+                            yang lain.
+                        </p>
+                    )}
+                    <Input
+                        label="Fee / Harga Pengerjaan Co-author (Rp)"
+                        value={assignFee}
+                        onChange={(e) => setAssignFee(e.target.value)}
+                        required
+                    />
+                    <small className="text-oxford-navy-900/65 -mt-2">
+                        Ditugaskan langsung: ini fee co-author. Dibuka ke pool:
+                        ini harga pengerjaan yang diterima co-author yang
+                        mengambil naskah.
+                    </small>
+                    <Input
+                        label="Deadline"
+                        type="date"
+                        value={assignDeadline}
+                        onChange={(e) => setAssignDeadline(e.target.value)}
+                    />
+                    <Input
+                        label="Catatan untuk Co-author"
+                        value={assignNote}
+                        onChange={(e) => setAssignNote(e.target.value)}
+                    />
+                    <div className="flex flex-col gap-1 rounded-lg bg-forest-moss-50 p-4 ring-1 ring-forest-moss-100">
+                        <FieldCategoryPicker
+                            label="Kriteria Co-author Pool (dipakai saat Buka ke Pool)"
+                            categories={fieldCategories}
+                            value={effectivePoolFields}
+                            onChange={setPoolFields}
+                            emptyLabel="Umum — semua co-author bisa mengambil naskah ini."
+                        />
+                    </div>
+
+                    <div className="flex flex-row gap-2">
+                        <Button
+                            variant="primary"
+                            onClick={handleAssignCoauthor}
+                            disabled={
+                                isAssigning ||
+                                !selectedCoauthorId ||
+                                assignFee.trim() === ''
+                            }
+                        >
+                            Tugaskan Co-author Ini
+                        </Button>
+                        <Button
+                            variant="outline2"
+                            onClick={handleOpenCoauthorPool}
+                            disabled={isAssigning || assignFee.trim() === ''}
+                        >
+                            Buka ke Pool Co-author
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {isAdmin && manuscript.book_chapter?.book.is_chapter_offering && (
                 <div className="flex flex-col gap-2 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
                     <p className="text-forest-moss-700 text-sm">
@@ -1198,8 +1628,8 @@ export default function ManuscriptDetailPage() {
                         {isbnApplication.status === 'draft'
                             ? 'Surat sudah dibuat tetapi belum Anda tandatangani.'
                             : isbnApplication.status === 'signed'
-                              ? 'Sudah Anda tandatangani, menunggu tanda tangan dan stempel admin.'
-                              : 'Sudah diproses admin.'}
+                              ? 'Sudah Anda tandatangani, menunggu tanda tangan dan stempel dari penanggung jawab.'
+                              : 'Sudah diproses penanggung jawab penerbit.'}
                     </p>
                     <Link
                         to={`/dashboard/isbn/${isbnApplication.id}`}
@@ -1422,6 +1852,43 @@ export default function ManuscriptDetailPage() {
                             disabled={isReviewing}
                         >
                             Minta Revisi Lagi
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {canAuthorCoauthorReview && (
+                <div className="flex flex-col gap-4 bg-white shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] ring-1 ring-forest-moss-100 rounded-2xl p-6">
+                    <h5 className="font-display text-oxford-navy-700 text-xl font-bold">
+                        Tinjau Hasil Susunan Co-author
+                    </h5>
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Co-author{' '}
+                        <strong>{manuscript.coauthor?.name ?? '-'}</strong>{' '}
+                        sudah menyusun naskah Anda dan admin sudah
+                        menyetujuinya. Unduh hasil terbaru di Riwayat Revisi.
+                        Jika Anda setuju, naskah dilanjutkan ke editor; jika
+                        tidak, minta revisi dan tulis catatannya.
+                    </p>
+                    <Input
+                        label="Catatan (kalau minta revisi)"
+                        value={reviewNote}
+                        onChange={(e) => setReviewNote(e.target.value)}
+                    />
+                    <div className="flex flex-row gap-2">
+                        <Button
+                            variant="primary"
+                            onClick={() => handleCoauthorReview('approve')}
+                            disabled={isReviewing}
+                        >
+                            Setujui, Lanjut ke Editor
+                        </Button>
+                        <Button
+                            variant="outline2"
+                            onClick={() => handleCoauthorReview('revise')}
+                            disabled={isReviewing}
+                        >
+                            Minta Revisi ke Co-author
                         </Button>
                     </div>
                 </div>

@@ -27,6 +27,7 @@ const fieldClass =
 type Draft = MouContentDraft & {
     physical_royalty: number | string;
     ebook_royalty: number | string;
+    coauthor_royalty: number | string;
 };
 
 function toDraft(template: mouApi.MouTemplate): Draft {
@@ -41,6 +42,7 @@ function toDraft(template: mouApi.MouTemplate): Draft {
         contact_note: template.contact_note,
         physical_royalty: template.physical_royalty,
         ebook_royalty: template.ebook_royalty,
+        coauthor_royalty: template.coauthor_royalty ?? 5,
     };
 }
 
@@ -96,6 +98,7 @@ export default function MouTemplatePage() {
                 ...draft,
                 physical_royalty: Number(draft.physical_royalty),
                 ebook_royalty: Number(draft.ebook_royalty),
+                coauthor_royalty: Number(draft.coauthor_royalty),
             });
             setDraft(toDraft(response.data));
 
@@ -225,7 +228,36 @@ export default function MouTemplatePage() {
                                 />
                                 %
                             </label>
+                            {category === 'regular' && (
+                                <label className="flex flex-row items-center gap-2">
+                                    Royalti tetap co-author
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={100}
+                                        step="0.01"
+                                        className={fieldClass}
+                                        value={draft.coauthor_royalty}
+                                        onChange={(e) =>
+                                            setDraft({
+                                                ...draft,
+                                                coauthor_royalty:
+                                                    e.target.value,
+                                            })
+                                        }
+                                    />
+                                    %
+                                </label>
+                            )}
                         </div>
+                        {category === 'regular' && (
+                            <p className="text-xs text-oxford-navy-900/65">
+                                Layanan co-author: co-author menjadi penulis
+                                terakhir dengan jatah tetap ini untuk buku fisik
+                                maupun ebook (sesuai layanan ISBN), di luar
+                                pembagian rata royalti penulis lain.
+                            </p>
+                        )}
                     </fieldset>
 
                     <MouContentFields

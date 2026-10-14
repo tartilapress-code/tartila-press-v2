@@ -1,4 +1,8 @@
+import IsbnTypeSelector from '@/components/package/IsbnTypeSelector';
+import { ISBN_TYPES, isbnFlags } from '@/lib/isbnTypes';
 import {
+    isbnCostFor,
+    minimumFor,
     toNumber,
     type BookChapterCostSettings,
     type PackageItem,
@@ -92,8 +96,8 @@ function ItemGroup({
 }
 
 /**
- * Yang didapatkan penulis pada proyek Book Chapter: HKI, ISBN cetak, e-ISBN,
- * serta fasilitas & layanan yang diambil dari daftar item Paket Custom.
+ * Yang didapatkan penulis pada proyek Book Chapter: HKI, jenis ISBN (cetak,
+ * digital, atau keduanya), serta fasilitas & layanan yang diambil dari daftar item Paket Custom.
  * Biaya di sisi kanan dipotong dari total harga bab.
  */
 export default function PackageOptionsField({
@@ -138,23 +142,41 @@ export default function PackageOptionsField({
                         onChange({ ...value, includes_hki: checked })
                     }
                 />
-                <CheckRow
-                    label="ISBN Cetak"
-                    cost={toNumber(settings.isbn_print_cost)}
-                    checked={value.includes_isbn_print}
-                    onChange={(checked) =>
-                        onChange({ ...value, includes_isbn_print: checked })
-                    }
-                />
-                <CheckRow
-                    label="e-ISBN"
-                    cost={toNumber(settings.isbn_electronic_cost)}
-                    checked={value.includes_isbn_electronic}
-                    onChange={(checked) =>
+            </div>
+
+            <div className="bg-forest-moss-50 ring-1 ring-forest-moss-100 rounded-lg p-3">
+                <IsbnTypeSelector
+                    name="chapter-isbn-type"
+                    choices={ISBN_TYPES.map((type) => ({
+                        type,
+                        price: isbnCostFor(settings, type),
+                    }))}
+                    value={value.isbn_type}
+                    onChange={(type) => {
+                        const flags = isbnFlags(type);
+
                         onChange({
                             ...value,
-                            includes_isbn_electronic: checked,
-                        })
+                            isbn_type: type,
+                            includes_isbn_print: flags.print,
+                            includes_isbn_electronic: flags.electronic,
+                        });
+                    }}
+                    formatPrice={(amount) =>
+                        amount > 0
+                            ? `− ${rupiahFormatter.format(amount)}`
+                            : 'Gratis'
+                    }
+                    footer={(type) => (
+                        <span className="text-xs font-semibold text-oxford-navy-700">
+                            Minimal biaya 1 buku (jenis ini):{' '}
+                            {rupiahFormatter.format(minimumFor(settings, type))}
+                        </span>
+                    )}
+                    error={
+                        value.isbn_type === null
+                            ? 'Jenis ISBN wajib dipilih.'
+                            : undefined
                     }
                 />
             </div>

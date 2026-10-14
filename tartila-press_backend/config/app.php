@@ -55,6 +55,12 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Alamat situs Tartila Book (baca/beli ebook), tanpa garis miring di akhir. Tautan beli ebook
+    | di Tartila Press = alamat ini + /buku/{judul-buku (slug)}.
+    */
+    'book_url' => rtrim((string) env('TARTILA_BOOK_URL', 'http://localhost:5174'), '/'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

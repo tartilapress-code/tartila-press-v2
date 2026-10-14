@@ -8,6 +8,7 @@ use App\Models\Mou;
 use App\Models\OrderItem;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Support\PartnerSplit;
 use Illuminate\Support\Collection;
 
 class BookRoyaltyService
@@ -38,6 +39,8 @@ class BookRoyaltyService
         'ownerEditor',
         'manuscript.mou.signatories.user',
         'chapterMou.signatories.user',
+        'partner.user',
+        'partnerAuthors',
     ];
 
     /**
@@ -62,6 +65,11 @@ class BookRoyaltyService
      */
     public function authors(Book $book): Collection
     {
+        // Buku mitra: penulis = akun yang dipilih mitra.
+        if ($book->isPartnerBook()) {
+            return $book->partnerAuthors->values();
+        }
+
         if ($book->is_chapter_compilation) {
             return $book->chapters
                 ->map(fn ($chapter) => $chapter->manuscript)
@@ -86,6 +94,24 @@ class BookRoyaltyService
     public function shares(Book $book): array
     {
         $shares = [];
+
+        // Buku mitra: penulis 50% (dibagi rata) dan mitra 30% dari harga jual ebook; Tartila 20%.
+        if ($book->isPartnerBook()) {
+            $split = PartnerSplit::PURCHASE;
+            $authors = $this->authors($book);
+
+            foreach ($authors as $author) {
+                $each = round($split['author'] / max(1, $authors->count()), 4);
+                $shares[] = ['user_id' => $author->id, 'name' => $author->name, 'role' => 'author', 'rate' => $each, 'ebook_rate' => $each];
+            }
+
+            if ($book->partner?->user) {
+                $shares[] = ['user_id' => $book->partner->user_id, 'name' => $book->partner->company_name, 'role' => 'partner', 'rate' => $split['partner'], 'ebook_rate' => $split['partner']];
+            }
+
+            return $shares;
+        }
+
         $mou = $this->bindingMou($book);
 
         if ($mou) {
@@ -139,10 +165,19 @@ class BookRoyaltyService
             $authors = $this->authors($book);
 
             if ($authors->isNotEmpty()) {
-                $each = round(self::REGULAR_AUTHOR_POOL / $authors->count(), 4);
+                // Co-author (layanan co-author) mendapat jatah tetap di luar pembagian rata penulis.
+                $coauthorIds = $book->manuscript?->authorLinks->where('is_coauthor', true)->pluck('user_id')->all() ?? [];
+                $mainCount = $authors->reject(fn (User $author) => in_array($author->id, $coauthorIds, true))->count();
+                $each = round(self::REGULAR_AUTHOR_POOL / max(1, $mainCount), 4);
 
                 foreach ($authors as $author) {
-                    $shares[] = ['user_id' => $author->id, 'name' => $author->name, 'role' => 'author', 'rate' => $each];
+                    $isCoauthor = in_array($author->id, $coauthorIds, true);
+                    $shares[] = [
+                        'user_id' => $author->id,
+                        'name' => $author->name,
+                        'role' => 'author',
+                        'rate' => $isCoauthor ? app(ManuscriptAssignmentService::class)->royaltyPercent() : $each,
+                    ];
                 }
             }
         }

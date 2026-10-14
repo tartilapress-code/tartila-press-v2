@@ -8,6 +8,8 @@
         "languagesTitle": "Languages mastered",
         "languagesEmpty": "Not filled in yet.",
         "bioTitle": "Bio",
+        "promoted": "Recommended",
+        "monitored": "Under monitoring — we suggest choosing someone else",
         "bioEmpty": "This editor has not written a bio yet."
     }
 }

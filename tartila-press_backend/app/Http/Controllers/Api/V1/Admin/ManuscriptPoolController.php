@@ -7,6 +7,7 @@ use App\Models\EditorProfile;
 use App\Models\FieldCategory;
 use App\Models\Manuscript;
 use App\Models\User;
+use App\Services\ManuscriptAssignmentService;
 use App\Services\ManuscriptPoolService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,10 @@ use Illuminate\Http\Request;
  */
 class ManuscriptPoolController extends Controller
 {
-    public function __construct(private readonly ManuscriptPoolService $pool) {}
+    public function __construct(
+        private readonly ManuscriptPoolService $pool,
+        private readonly ManuscriptAssignmentService $assignment,
+    ) {}
 
     public function index(): JsonResponse
     {
@@ -48,6 +52,27 @@ class ManuscriptPoolController extends Controller
                     ->count(),
             ]);
 
+        // Pool co-author: hanya editor ber-centang co-author yang memenuhi kriteria bidang.
+        $coauthorEditors = $editors->filter(fn (User $editor) => (bool) $editor->editorProfile?->is_coauthor);
+
+        $coauthorManuscripts = Manuscript::with('user:id,name')
+            ->where('coauthor_open_for_claim', true)
+            ->latest()
+            ->get()
+            ->map(fn (Manuscript $manuscript) => [
+                'id' => $manuscript->id,
+                'title' => $manuscript->title,
+                'authors' => $manuscript->authors ?? [],
+                'difficulty' => $manuscript->difficulty,
+                'coauthor_fee' => $manuscript->coauthor_fee === null ? null : (float) $manuscript->coauthor_fee,
+                'coauthor_deadline' => $manuscript->coauthor_deadline?->toDateString(),
+                'pool_field_category_ids' => $this->pool->criteriaOf($manuscript),
+                'criteria' => $this->pool->describe($manuscript, $fieldCategories),
+                'eligible_coauthor_count' => $coauthorEditors
+                    ->filter(fn (User $editor) => $this->assignment->canClaim($editor, $manuscript))
+                    ->count(),
+            ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Pengaturan pool naskah berhasil diambil.',
@@ -58,9 +83,11 @@ class ManuscriptPoolController extends Controller
                     'id' => $editor->id,
                     'name' => $editor->name,
                     'is_available' => (bool) ($editor->editorProfile?->is_available ?? true),
+                    'is_coauthor' => (bool) ($editor->editorProfile?->is_coauthor ?? false),
                     'field_category_ids' => $editorFields[$editor->id],
                 ])->values(),
                 'manuscripts' => $manuscripts->values(),
+                'coauthor_manuscripts' => $coauthorManuscripts->values(),
             ],
         ]);
     }

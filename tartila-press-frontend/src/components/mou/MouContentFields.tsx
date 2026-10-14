@@ -188,10 +188,23 @@ export default function MouContentFields({
                             </button>
                         </div>
                         <textarea
-                            rows={2}
+                            rows={4}
                             className={fieldClass}
-                            placeholder="Keterangan (opsional)"
-                            aria-label={`Keterangan hak distribusi ${index + 1}`}
+                            placeholder={
+                                'Rincian hak, satu poin per baris. Contoh:\nDistribusi hanya dilakukan oleh Pihak Pertama.\nPihak Kedua dilarang mendistribusikan ke pihak lain.'
+                            }
+                            aria-label={`Rincian hak distribusi ${index + 1} (satu poin per baris)`}
+                            value={(option.points ?? []).join('\n')}
+                            onChange={(e) =>
+                                setOption(index, {
+                                    points: e.target.value.split('\n'),
+                                })
+                            }
+                        />
+                        <input
+                            className={fieldClass}
+                            placeholder="Ringkasan singkat (opsional)"
+                            aria-label={`Ringkasan hak distribusi ${index + 1}`}
                             value={option.description}
                             maxLength={500}
                             onChange={(e) =>
@@ -208,7 +221,7 @@ export default function MouContentFields({
                     onClick={() =>
                         set('distribution_options', [
                             ...value.distribution_options,
-                            { key: '', name: '', description: '' },
+                            { key: '', name: '', description: '', points: [] },
                         ])
                     }
                 >

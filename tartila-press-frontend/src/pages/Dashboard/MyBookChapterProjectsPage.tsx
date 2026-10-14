@@ -145,6 +145,11 @@ export default function MyBookChapterProjectsPage() {
         : null;
 
     async function handleSubmit() {
+        if (!options.isbn_type) {
+            setStatusMessage('Pilih jenis ISBN terlebih dulu.');
+            return;
+        }
+
         setIsSubmitting(true);
         setStatusMessage('');
 

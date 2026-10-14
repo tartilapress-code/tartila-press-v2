@@ -1,6 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { RiCheckLine, RiShoppingCartLine, RiStarFill } from '@remixicon/react';
+import {
+    RiBookOpenLine,
+    RiCheckLine,
+    RiShoppingCartLine,
+    RiStarFill,
+} from '@remixicon/react';
 import BookCover from '@/components/book/catalog/BookCover';
 import { useCart } from '@/context/useCart';
 import { DEFAULT_CHAPTER_COVER } from '@/lib/bookChapterPublic';
@@ -138,32 +143,45 @@ export default function CatalogBookCard({ book }: { book: BookSummary }) {
                         </span>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => addToCart(book.id)}
-                        disabled={inCart}
-                        className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-oxford-navy-700 px-3 py-2.5 text-[13px] font-semibold text-white transition-colors hover:cursor-pointer hover:bg-oxford-navy-600 disabled:cursor-default disabled:bg-forest-moss-100 disabled:text-forest-moss-800 sm:text-sm"
-                    >
-                        {inCart ? (
-                            <>
-                                <RiCheckLine className="size-4" aria-hidden />
-                                {t('books.card.inCart')}
-                            </>
-                        ) : (
-                            <>
-                                <RiShoppingCartLine
-                                    className="size-4"
-                                    aria-hidden
-                                />
-                                <span className="@[11.5rem]:hidden">
-                                    {t('books.card.cartShort')}
-                                </span>
-                                <span className="hidden @[11.5rem]:inline">
-                                    {t('books.card.addToCart')}
-                                </span>
-                            </>
-                        )}
-                    </button>
+                    {!book.sells_physical ? (
+                        <Link
+                            to={`/buku/${book.slug}`}
+                            className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-oxford-navy-700 px-3 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-oxford-navy-600 sm:text-sm"
+                        >
+                            <RiBookOpenLine className="size-4" aria-hidden />
+                            {t('books.card.buyEbook')}
+                        </Link>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => addToCart(book.id)}
+                            disabled={inCart}
+                            className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-oxford-navy-700 px-3 py-2.5 text-[13px] font-semibold text-white transition-colors hover:cursor-pointer hover:bg-oxford-navy-600 disabled:cursor-default disabled:bg-forest-moss-100 disabled:text-forest-moss-800 sm:text-sm"
+                        >
+                            {inCart ? (
+                                <>
+                                    <RiCheckLine
+                                        className="size-4"
+                                        aria-hidden
+                                    />
+                                    {t('books.card.inCart')}
+                                </>
+                            ) : (
+                                <>
+                                    <RiShoppingCartLine
+                                        className="size-4"
+                                        aria-hidden
+                                    />
+                                    <span className="@[11.5rem]:hidden">
+                                        {t('books.card.cartShort')}
+                                    </span>
+                                    <span className="hidden @[11.5rem]:inline">
+                                        {t('books.card.addToCart')}
+                                    </span>
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </article>

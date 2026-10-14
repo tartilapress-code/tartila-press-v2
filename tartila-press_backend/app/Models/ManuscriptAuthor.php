@@ -12,6 +12,8 @@ class ManuscriptAuthor extends Model
         'user_id',
         'position',
         'approved_at',
+        // Co-author layanan paket: penulis terakhir, tidak ikut menyetujui tinjauan penulis.
+        'is_coauthor',
     ];
 
     protected function casts(): array
@@ -19,6 +21,7 @@ class ManuscriptAuthor extends Model
         return [
             'position' => 'integer',
             'approved_at' => 'datetime',
+            'is_coauthor' => 'boolean',
         ];
     }
 

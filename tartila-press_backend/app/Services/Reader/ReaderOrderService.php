@@ -8,9 +8,9 @@ use App\Models\Reader\ReaderOrder;
 use App\Models\Reader\ReaderPlan;
 use App\Models\User;
 use App\Services\Notifier;
+use App\Support\OrderNumber;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Pembelian buku satuan / langganan di Tartila Book: pesanan transfer
@@ -48,7 +48,7 @@ class ReaderOrderService
         }
 
         return ReaderOrder::create($attributes + [
-            'order_number' => 'RB-'.now('Asia/Jakarta')->format('Ymd').'-'.strtoupper(Str::random(5)),
+            'order_number' => OrderNumber::make($kind === 'plan' ? OrderNumber::SUBSCRIPTION : OrderNumber::EBOOK),
             'user_id' => $user->id,
             'kind' => $kind,
             'status' => 'pending',

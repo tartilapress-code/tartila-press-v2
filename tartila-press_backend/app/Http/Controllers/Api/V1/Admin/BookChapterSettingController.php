@@ -37,6 +37,9 @@ class BookChapterSettingController extends Controller
             'isbn_print_cost' => 'Biaya ISBN cetak',
             'isbn_electronic_cost' => 'Biaya e-ISBN',
             'min_book_cost' => 'Minimal biaya 1 buku',
+            'min_book_cost_print' => 'Minimal biaya 1 buku (ISBN cetak)',
+            'min_book_cost_electronic' => 'Minimal biaya 1 buku (ISBN digital)',
+            'min_book_cost_both' => 'Minimal biaya 1 buku (ISBN cetak + digital)',
         ];
 
         $costMessages = [];
@@ -55,11 +58,14 @@ class BookChapterSettingController extends Controller
             'isbn_print_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
             'isbn_electronic_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
             'min_book_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
+            'min_book_cost_print' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
+            'min_book_cost_electronic' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
+            'min_book_cost_both' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:'.self::MAX_MONEY_AMOUNT],
         ], $costMessages);
 
-        // Dikosongkan = 0 (kolomnya NOT NULL).
+        // Dikosongkan = 0 (kolomnya NOT NULL). Minimal per jenis ISBN dikosongkan = ikut nilai umum.
         foreach (array_keys($costLabels) as $field) {
-            if (array_key_exists($field, $validated) && $validated[$field] === null) {
+            if (array_key_exists($field, $validated) && $validated[$field] === null && ! str_starts_with($field, 'min_book_cost_')) {
                 $validated[$field] = 0;
             }
         }

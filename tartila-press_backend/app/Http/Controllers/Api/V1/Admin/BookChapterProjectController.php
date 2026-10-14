@@ -125,9 +125,10 @@ class BookChapterProjectController extends Controller
             'title' => ['required', 'string', 'max:255'],
             ...self::PROJECT_FIELD_RULES,
             ...self::CHAPTER_RULES,
-            ...$this->bookChapterOptionRules(),
+            ...$this->bookChapterOptionRules(creating: true),
             ...Languages::rules(),
         ]);
+        $validated = $this->normalizeIsbnType($validated);
 
         $ownerEditorId = $this->resolveOwnerEditorId($validated['owner_editor_id'] ?? null);
 
@@ -166,7 +167,7 @@ class BookChapterProjectController extends Controller
         $rules['title'] = ['sometimes', 'required', 'string', 'max:255'];
         $rules['is_active'] = ['sometimes', 'boolean'];
 
-        $validated = $request->validate($rules);
+        $validated = $this->normalizeIsbnType($request->validate($rules));
 
         if (array_key_exists('owner_editor_id', $validated)) {
             $validated['owner_editor_id'] = $this->resolveOwnerEditorId($validated['owner_editor_id']);

@@ -15,6 +15,8 @@ export type Access = {
 
 export type ReaderBook = {
     id: number;
+    // Judul buku dalam bentuk tautan (dipakai di alamat /buku/{slug}).
+    slug: string;
     book: {
         title: string;
         authors: string;

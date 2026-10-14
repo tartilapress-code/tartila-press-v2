@@ -4833,6 +4833,107 @@ LAMPIRAN G. MODUL YANG DITAMBAHKAN SETELAH VERSI 1.1
   | Kompilasi Book Chapter     | Bab ditunggu -> admin menggabungkan semua .docx per BAB      |
   |                            | menjadi satu naskah untuk editor; catatan revisi per bab.    |
   | Tartila Book               | Lampiran F.                                                  |
+  | Jenis ISBN (cetak/digital/ | Paket punya harga per jenis ISBN (packages.isbn_prices;      |
+  | keduanya)                  | harga bawaan tampil = ISBN cetak); pembeli wajib memilih     |
+  |                            | (popup bila belum; order_items.isbn_type). Book Chapter:     |
+  |                            | editor memilih jenis (books.isbn_type), biaya minimal 1 buku |
+  |                            | per jenis (book_chapter_settings), daftar publik bisa dicari |
+  |                            | menurut jenis. Jenis menentukan MOU & royalti (cetak = buku  |
+  |                            | fisik, digital = ebook). MOU memuat hak penulis atas         |
+  |                            | fasilitas & layanan paket, dan pilihan hak distribusi        |
+  |                            | berupa daftar poin. Kelas: App\Support\IsbnTypes.            |
+  | Layanan Co-author          | Opsional di paket penerbitan: penulis punya naskah mentah,   |
+  |                            | disusun CO-AUTHOR (editor ber-centang is_coauthor, fee       |
+  |                            | mandiri coauthor_fee, keterangan), lalu dikoreksi EDITOR     |
+  |                            | (orang berbeda). Alur status: submitted -> (admin setuju) -> |
+  |                            | pending_coauthor_assignment (admin tunjuk / buka pool /      |
+  |                            | dipilih penulis saat order) -> in_coauthoring -> pending_    |
+  |                            | admin_review_coauthor -> pending_author_review_coauthor      |
+  |                            | (penulis setuju / minta revisi) -> alur editor biasa ->      |
+  |                            | tinjauan akhir penulis. Co-author = penulis TERAKHIR         |
+  |                            | (manuscript_authors/mou_signatories.is_coauthor), royalti    |
+  |                            | tetap 5% (mou_templates.coauthor_royalty) untuk buku fisik   |
+  |                            | & ebook di luar pembagian rata penulis lain, ikut tanda      |
+  |                            | tangan MOU + notifikasi, tampil di halaman buku & Buku       |
+  |                            | Terbit. Fee: dipilih penulis = fee permintaan + fee admin    |
+  |                            | (ditambah ke total order); admin/pool = fee admin. Dompet:   |
+  |                            | jenis coauthor_fee; Keuangan: digabung ke fee editor dengan  |
+  |                            | rincian. Co-author tidak boleh jadi editor naskah yang sama. |
+  |                            | Kelas: ManuscriptAssignmentService. Endpoint: /coauthors,    |
+  |                            | /editor/coauthor-pool, /editor/coauthor-manuscripts, /admin/ |
+  |                            | manuscripts/{id}/assign-coauthor | open-coauthor-pool,       |
+  |                            | /manuscripts/{id}/coauthor-review. Tes: CoauthorServiceTest. |
+  | Kelola Editor (admin)      | /admin/editors: daftar editor + naskah selesai/dikerjakan,   |
+  |                            | bidang, co-author, performa (3 nilai 1-10 = 1 + 9 x sesuai/  |
+  |                            | total: ketepatan waktu, tanpa reject admin, tanpa revisi     |
+  |                            | penulis), level (1: 0-5, 2: 6-10, 3: 11-25, 4: 26-50, 5: 51+ |
+  |                            | naskah), total fee, fee belum diambil (perkiraan = total fee |
+  |                            | - penarikan); sort semua kolom + cari. "Dalam pemantauan"    |
+  |                            | (editor_profiles.is_banned): tak bisa ambil pool editor/co-  |
+  |                            | author, penulis/admin diberi peringatan saat memilih.        |
+  |                            | "Dipromosikan" (is_promoted): teratas di pemilih editor dan  |
+  |                            | profil publik editor, maksimal 3 (level lalu performa).      |
+  |                            | Level & performa hanya admin dan editor itu sendiri          |
+  |                            | (/editor/insight; Profil Editor). Kelas: EditorInsightService|
+  |                            | , EditorManagementController. Tes: EditorManagementTest.     |
+  | Kelola Penulis (admin)     | /admin/authors: daftar penulis + bidang (dari kategori      |
+  |                            | keilmuan buku terbit), buku terbit, naskah dalam proses,     |
+  |                            | jumlah royalti, royalti belum dicairkan (perkiraan = royalti |
+  |                            | - penarikan), catatan progres otomatis (naskah proses, MOU   |
+  |                            | belum ditandatangani, buku belum terbit, ISBN/HAKI/buku      |
+  |                            | fisik belum selesai; selalu memuat judul) + catatan admin    |
+  |                            | (tabel admin_user_notes, hanya admin). Sort semua kolom +    |
+  |                            | cari. Kelas: AuthorProgressService, AuthorManagement-        |
+  |                            | Controller. Tes: AuthorManagementTest.                       |
+  | Revisi 2026-10-14          | Nomor pesanan ORD-YYYYMMDD-NNNK (NNN urut harian bersama     |
+  |                            | Press + Tartila Book; K: P paket, BC book chapter, BF buku   |
+  |                            | fisik, E event, L langganan, EB ebook; kelas OrderNumber,    |
+  |                            | tanggal WIB). Fee editor/co-author & catatan penugasan       |
+  |                            | disembunyikan dari penulis (Manuscript::hideFeesFrom).       |
+  |                            | Penulis wajib memilih template naskah saat submit            |
+  |                            | (manuscripts.manuscript_template_id; GET /manuscripts/       |
+  |                            | template-options; admin auto layout memakainya lebih dulu).  |
+  |                            | Catatan penulis saat minta revisi lagi: manuscript_revisions |
+  |                            | .author_note (bukan admin_note). Notifikasi penugasan editor |
+  |                            | memuat ulang relasi editor. Surat ISBN: tempat/tanggal       |
+  |                            | sejajar blok penanggung jawab, status "menunggu ttd dan      |
+  |                            | stempel penanggung jawab". MOU: penulis ganjil di tengah.    |
+  | Mitra Tartila Book         | Role mitra (di Tartila Press hanya beli buku fisik: middleware|
+  |                            | RestrictPartnerAccount + cek di OrderController). Mitra unggah|
+  |                            | manual di Tartila Book (/mitra): data buku, penulis (akun    |
+  |                            | terdaftar), sampul, ebook PDF, hasil Turnitin (<20%), surat  |
+  |                            | keaslian, MOU. Buku mitra = baris books ber-partner_id       |
+  |                            | (global scope ExcludePartnerBooks menyembunyikannya dari     |
+  |                            | Press) + ReaderBook. Status draft -> submitted -> approved / |
+  |                            | rejected (catatan wajib) -> diperbaiki -> diajukan ulang;    |
+  |                            | hanya approved yang tampil di katalog (ReaderBook::listed).  |
+  |                            | Admin: /admin/mitra (kelola mitra), /admin/mitra/buku        |
+  |                            | (antrean, unduh berkas, setujui/tolak). Bagi hasil          |
+  |                            | (PartnerSplit): pembelian Tartila 20 / mitra 30 / penulis 50; |
+  |                            | langganan (bacaan) 10 / 15 / 75; masuk dompet + laporan      |
+  |                            | /partner/report. Notifikasi kategori reader ke admin, mitra, |
+  |                            | dan penulis. Tes: PartnerBookTest.                           |
+  | Cover (panel admin)        | Menu /admin/covers: 3 daftar. (1) Cover Paket: tagihan muncul|
+  |                            | begitu admin ACC hasil editing (reviewRevision ->            |
+  |                            | CoverService::openForManuscript); admin unggah 3 pilihan,    |
+  |                            | penulis memilih di halaman naskah. >1 penulis = voting; sepakat|
+  |                            | semua -> langsung; selain itu 24 jam, suara terbanyak (seri: |
+  |                            | nomor terkecil). Catatan pada cover pilihan -> status revisi,|
+  |                            | admin unggah revisi, penulis menyetujui lagi; "minta dibuat  |
+  |                            | ulang" = ronde baru. ACC cover = layak terbit (terbit diblokir|
+  |                            | selama belum, juga Book Chapter). (2) Cover Book Chapter:    |
+  |                            | proyek dibuat otomatis saat proyek chapter dibuat (tahap     |
+  |                            | "early", tidak mendesak); 1 cover awal tampil publik ganti   |
+  |                            | cover bawaan; 2 pembanding setelah tenggat; setelah naskah   |
+  |                            | gabungan di-auto layout pindah ke Cover Paket ("mendesak").  |
+  |                            | (3) Cover Buku: cover final buku terbit, admin bisa ganti.   |
+  |                            | Buku terbit + 7x24 jam (asumsi "7x14 jam"): cover pilihan/   |
+  |                            | revisi dan berkas revisi naskah dihapus, riwayat tetap;      |
+  |                            | peringatan unduh ke semua penulis dulu (scheduler            |
+  |                            | covers-purge harian, covers-close-voting tiap 10 menit).     |
+  |                            | Tabel cover_projects, covers, cover_votes, cover_events.     |
+  |                            | Kelas: CoverService, CoverController, CoverAdminController.  |
+  |                            | Tes: CoverTest (11).                                         |
   +----------------------------+--------------------------------------------------------------+
   Perbaikan penting saat uji kapasitas (Lampiran H): migrasi 2026_10_22_090000 gagal di MySQL/
   MariaDB karena nama indeks > 64 karakter (sudah diberi nama pendek). Wajib dijalankan ulang

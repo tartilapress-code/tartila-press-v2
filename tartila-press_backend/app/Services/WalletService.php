@@ -24,6 +24,7 @@ class WalletService
 {
     public const TYPE_LABELS = [
         'editor_fee' => 'Fee editor',
+        'coauthor_fee' => 'Fee co-author',
         'royalty' => 'Royalti penulis',
         'ebook_royalty' => 'Royalti ebook',
         'sales_fee' => 'Fee penjualan',
@@ -45,6 +46,7 @@ class WalletService
     {
         return collect()
             ->merge($this->editorFees($user))
+            ->merge($this->coauthorFees($user))
             ->merge($this->royalties($user))
             ->merge($this->readerRoyalty->walletEntries($user))
             ->merge($this->salesFees($user))
@@ -77,6 +79,40 @@ class WalletService
             'balance' => round($earned - $paid - $pending, 2),
             'by_type' => $byType,
         ];
+    }
+
+    /**
+     * Semua pemasukan royalti user (buku fisik/luar sistem + ebook Tartila Book): dipakai Kelola Penulis.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function royaltyEntries(User $user): Collection
+    {
+        return $this->royalties($user)->merge($this->readerRoyalty->walletEntries($user));
+    }
+
+    /**
+     * Semua fee layanan user (editor + co-author), tanpa royalti: dipakai Kelola Editor.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function serviceFees(User $user): Collection
+    {
+        return $this->editorFees($user)->merge($this->coauthorFees($user));
+    }
+
+    /** Fee menyusun naskah sebagai co-author (setelah naskah selesai). */
+    private function coauthorFees(User $user): Collection
+    {
+        return $user->coauthoredManuscripts()->where('status', 'completed')->with('user:id,name')->get()
+            ->map(fn (Manuscript $manuscript) => [
+                'type' => 'coauthor_fee',
+                'label' => self::TYPE_LABELS['coauthor_fee'],
+                'title' => $manuscript->title,
+                'detail' => 'Menyusun naskah sebagai co-author'.($manuscript->user ? ' — penulis '.$manuscript->user->name : ''),
+                'amount' => (float) ($manuscript->coauthor_fee ?? 0),
+                'date' => $manuscript->updated_at,
+            ]);
     }
 
     /** Fee edit naskah yang sudah selesai + fee slot bab terjual di proyek Book Chapter miliknya. */

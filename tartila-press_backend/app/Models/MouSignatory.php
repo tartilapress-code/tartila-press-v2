@@ -15,6 +15,7 @@ class MouSignatory extends Model
         'royalty_physical',
         'royalty_ebook',
         'chapters',
+        'is_coauthor',
         'identity',
         'agreed_at',
         'signed_at',
@@ -32,6 +33,7 @@ class MouSignatory extends Model
             'royalty_physical' => 'float',
             'royalty_ebook' => 'float',
             'identity' => 'array',
+            'is_coauthor' => 'boolean',
             'agreed_at' => 'datetime',
             'signed_at' => 'datetime',
         ];

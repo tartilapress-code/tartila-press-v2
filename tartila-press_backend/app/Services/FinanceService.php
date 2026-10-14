@@ -474,6 +474,11 @@ class FinanceService
             $includesHki = $detail?->includes_hki ?? $hkiAuto;
             $extraCopies = $detail?->extra_copies ?? $copiesAuto;
             $manuscriptFee = $order->manuscript?->editor_fee;
+            $editorPart = $manuscriptFee !== null ? (float) $manuscriptFee : (float) $order->editor_fee;
+            // Fee co-author digabung dengan fee editor; rinciannya hanya keterangan.
+            $coauthorPart = $order->manuscript?->coauthor_fee !== null
+                ? (float) $order->manuscript->coauthor_fee
+                : (float) $order->coauthor_fee;
 
             $row = [
                 'id' => $order->id,
@@ -484,10 +489,11 @@ class FinanceService
                 'type' => $this->orderType($order),
                 'status' => $order->status === 'completed' ? 'completed' : 'hold',
                 'received' => round((float) $order->total, 2),
-                'price' => round((float) $order->subtotal + (float) $order->editor_fee, 2),
+                'price' => round((float) $order->subtotal + (float) $order->editor_fee + (float) $order->coauthor_fee, 2),
                 'discount' => round((float) $order->discount_total + (float) $order->voucher_discount + (float) $order->voucher_fee, 2),
-                'editor_fee' => round($manuscriptFee !== null ? (float) $manuscriptFee : (float) $order->editor_fee, 2),
+                'editor_fee' => round($editorPart + $coauthorPart, 2),
                 'editor_fee_source' => $manuscriptFee !== null ? 'manuscript' : 'order',
+                'editor_fee_detail' => $coauthorPart > 0 ? ['editor' => round($editorPart, 2), 'coauthor' => round($coauthorPart, 2)] : null,
                 'includes_hki' => $includesHki,
                 'hki_auto' => $hkiAuto,
                 'hki' => $includesHki ? $hkiCost : 0.0,

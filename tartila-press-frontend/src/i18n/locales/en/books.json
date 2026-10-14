@@ -4,7 +4,8 @@
         "editor": "Editor:",
         "inCart": "In Cart",
         "cartShort": "Cart",
-        "addToCart": "Add to Cart"
+        "addToCart": "Add to Cart",
+        "buyEbook": "Buy ebook"
     },
     "cartFab": "Cart ({{count}})",
     "catalog": {
@@ -81,7 +82,11 @@
             "inCart": "Already in Cart",
             "addToCart": "Add to Cart",
             "previewPdf": "View PDF Preview",
-            "scholar": "Google Scholar"
+            "scholar": "Google Scholar",
+            "buyEbook": "Buy the ebook on Tartila Book",
+            "bothFormats": "Available in two formats: physical book and ebook.",
+            "ebookOnly": "This book is only available as an ebook on Tartila Book.",
+            "ebookUnavailable": "The ebook is not available yet, please try again later."
         },
         "chapterRow": {
             "srChapter": "Chapter {{number}}:",

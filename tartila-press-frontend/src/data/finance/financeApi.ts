@@ -114,6 +114,8 @@ export type PackageRow = {
     discount: number;
     editor_fee: number;
     editor_fee_source: 'manuscript' | 'order';
+    // Fee co-author sudah digabung ke editor_fee; ini hanya rincian keterangannya.
+    editor_fee_detail?: { editor: number; coauthor: number } | null;
     includes_hki: boolean;
     hki_auto: boolean;
     hki: number;

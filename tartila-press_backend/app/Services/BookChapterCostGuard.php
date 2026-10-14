@@ -40,6 +40,7 @@ class BookChapterCostGuard
             'includes_hki' => (bool) ($project['includes_hki'] ?? false),
             'includes_isbn_print' => (bool) ($project['includes_isbn_print'] ?? false),
             'includes_isbn_electronic' => (bool) ($project['includes_isbn_electronic'] ?? false),
+            'isbn_type' => $project['isbn_type'] ?? null,
             'item_costs' => $this->itemCosts($itemIds),
         ], $settings);
 
@@ -54,7 +55,7 @@ class BookChapterCostGuard
         $before = $this->calculator->inputFromBook($book);
         $after = $before;
 
-        foreach (['price', 'discount', 'includes_hki', 'includes_isbn_print', 'includes_isbn_electronic'] as $key) {
+        foreach (['price', 'discount', 'includes_hki', 'includes_isbn_print', 'includes_isbn_electronic', 'isbn_type'] as $key) {
             if (array_key_exists($key, $changes) && $changes[$key] !== null) {
                 $after[$key] = $changes[$key];
             }

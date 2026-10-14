@@ -4,6 +4,8 @@ import { queryString, type PageParams } from '@/lib/pagination';
 export type ProjectListParams = Partial<{
     search: string;
     category: string;
+    // Jenis ISBN: print | electronic | both.
+    isbn_type: string;
     sort: 'newest' | 'deadline' | 'price' | 'slots';
 }> &
     PageParams;

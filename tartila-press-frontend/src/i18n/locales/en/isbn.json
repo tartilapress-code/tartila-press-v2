@@ -1,0 +1,56 @@
+{
+    "types": {
+        "print": {
+            "label": "Print ISBN",
+            "short": "Print",
+            "summary": "An identification number for the printed (physical) edition of a book.",
+            "uses": [
+                "The book may be printed and sold through bookstores, fairs and libraries.",
+                "Registered in the National Library catalogue as a print edition.",
+                "Royalties are calculated from physical book sales."
+            ],
+            "suits": "Best if you want a physical book to hold and sell directly."
+        },
+        "electronic": {
+            "label": "Digital ISBN",
+            "short": "Digital",
+            "summary": "An identification number for the digital edition (ebook PDF/EPUB), also called an e-ISBN.",
+            "uses": [
+                "The ebook may be sold on digital book platforms (e.g. Google Play Books) and on Tartila Book.",
+                "No printing cost, so it can be published faster.",
+                "Royalties are calculated from ebook sales."
+            ],
+            "suits": "Best if you only want to publish an ebook."
+        },
+        "both": {
+            "label": "Print + Digital ISBN",
+            "short": "Print + Digital",
+            "summary": "Two ISBNs at once: one for the printed edition and one for the digital edition.",
+            "uses": [
+                "The book is published in two formats: print and digital.",
+                "You receive both physical-book and ebook royalties.",
+                "Each format has its own ISBN, so it costs more than either one alone."
+            ],
+            "suits": "Best if you want to reach print readers and digital readers alike."
+        }
+    },
+    "chooseTitle": "Choose the ISBN type",
+    "chooseHint": "The ISBN type sets the price, the publishing format and the kind of royalty in the MOU.",
+    "uses": "Uses",
+    "defaultPriceNote": "The price shown is the Print ISBN price. The final price follows the ISBN type you choose.",
+    "alsoAvailable": "Also available: {{types}}",
+    "fromPrice": "From {{price}}",
+    "required": "Please choose an ISBN type first.",
+    "dialog": {
+        "title": "Choose an ISBN type first",
+        "text": "This package has several ISBN types with different prices. Pick one before continuing your order.",
+        "confirm": "Use this type",
+        "cancel": "Cancel"
+    },
+    "filter": {
+        "label": "ISBN type",
+        "all": "All types"
+    },
+    "badgeTitle": "ISBN type",
+    "priceFor": "Price for {{type}}"
+}

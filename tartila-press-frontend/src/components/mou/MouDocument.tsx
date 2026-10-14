@@ -25,6 +25,25 @@ function Article({
     );
 }
 
+/** Rincian satu hak distribusi: daftar poin (bila belum ada poin, teks keterangan lama). */
+function OptionDetails({ option }: { option: mouApi.DistributionOption }) {
+    if (option.points?.length) {
+        return (
+            <ul className="mt-1 list-disc pl-5 font-normal text-oxford-navy-900/80">
+                {option.points.map((point, index) => (
+                    <li key={index}>{point}</li>
+                ))}
+            </ul>
+        );
+    }
+
+    return option.description ? (
+        <span className="block font-normal text-oxford-navy-900/70">
+            {option.description}
+        </span>
+    ) : null;
+}
+
 function Terms({ items }: { items: string[] }) {
     return (
         <ol className="list-decimal flex flex-col gap-1 pl-5 text-sm text-oxford-navy-900/90">
@@ -60,6 +79,12 @@ export default function MouDocument({
     );
     const isChapter = mou.type === 'chapter';
     const several = mou.signatories.length > 1;
+    const rights = content.package_rights ?? null;
+    const hasRights =
+        rights !== null &&
+        (rights.facilities.length > 0 || rights.services.length > 0);
+    // Pasal hak paket menggeser nomor pasal berikutnya (sama dengan PDF).
+    const offset = hasRights ? 1 : 0;
 
     return (
         <div className="flex flex-col gap-5 rounded-xl bg-white p-5 ring-1 ring-oxford-navy-900/10 sm:p-7">
@@ -90,19 +115,67 @@ export default function MouDocument({
                 <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 text-sm">
                     <dt className="text-oxford-navy-900/60">Judul buku</dt>
                     <dd className="text-oxford-navy-900">{mou.title}</dd>
+                    {rights?.package && (
+                        <>
+                            <dt className="text-oxford-navy-900/60">
+                                Paket yang diambil
+                            </dt>
+                            <dd className="text-oxford-navy-900">
+                                {rights.package}
+                            </dd>
+                        </>
+                    )}
                     <dt className="text-oxford-navy-900/60">Layanan ISBN</dt>
                     <dd className="text-oxford-navy-900">
-                        {[
-                            types.physical ? 'Buku cetak' : null,
-                            types.ebook ? 'Buku elektronik (ebook)' : null,
-                        ]
-                            .filter(Boolean)
-                            .join(' dan ')}
+                        {rights?.isbn_label ??
+                            [
+                                types.physical ? 'Buku cetak' : null,
+                                types.ebook ? 'Buku elektronik (ebook)' : null,
+                            ]
+                                .filter(Boolean)
+                                .join(' dan ')}
                     </dd>
                 </dl>
             </Article>
 
-            <Article number={2} title="Hak Distribusi">
+            {hasRights && rights && (
+                <Article
+                    number={2}
+                    title="Hak Pihak Kedua atas Fasilitas dan Layanan Paket"
+                >
+                    <p className="text-sm text-oxford-navy-900/90">
+                        Selain royalti, Pihak Kedua berhak memperoleh fasilitas
+                        dan layanan dari paket
+                        {rights.package ? ` ${rights.package}` : ''} yang
+                        diambilnya, sebagai berikut:
+                    </p>
+                    {(
+                        [
+                            ['Fasilitas', rights.facilities],
+                            ['Layanan', rights.services],
+                        ] as const
+                    ).map(
+                        ([label, items]) =>
+                            items.length > 0 && (
+                                <div
+                                    key={label}
+                                    className="flex flex-col gap-1"
+                                >
+                                    <p className="text-sm font-semibold text-oxford-navy-900">
+                                        {label}:
+                                    </p>
+                                    <ul className="list-disc pl-5 text-sm text-oxford-navy-900/90">
+                                        {items.map((item) => (
+                                            <li key={item}>{item}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )
+                    )}
+                </Article>
+            )}
+
+            <Article number={2 + offset} title="Hak Distribusi">
                 {choosing ? (
                     <fieldset className="flex flex-col gap-2">
                         <legend className="mb-1 text-sm text-oxford-navy-900">
@@ -126,11 +199,7 @@ export default function MouDocument({
                                     <span className="font-semibold text-oxford-navy-900">
                                         {option.name}
                                     </span>
-                                    {option.description && (
-                                        <span className="block text-oxford-navy-900/70">
-                                            {option.description}
-                                        </span>
-                                    )}
+                                    <OptionDetails option={option} />
                                 </span>
                             </label>
                         ))}
@@ -141,15 +210,16 @@ export default function MouDocument({
                             Pihak Kedua memberikan hak distribusi buku kepada
                             Pihak Pertama melalui:
                         </p>
-                        <Terms
-                            items={chosen.map(
-                                (option) =>
-                                    option.name +
-                                    (option.description
-                                        ? ` — ${option.description}`
-                                        : '')
-                            )}
-                        />
+                        <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-oxford-navy-900/90">
+                            {chosen.map((option) => (
+                                <li key={option.key}>
+                                    <span className="font-semibold">
+                                        {option.name}
+                                    </span>
+                                    <OptionDetails option={option} />
+                                </li>
+                            ))}
+                        </ol>
                     </>
                 ) : (
                     <p className="text-sm text-amber-700">
@@ -162,7 +232,7 @@ export default function MouDocument({
                 )}
             </Article>
 
-            <Article number={3} title="Royalti">
+            <Article number={3 + offset} title="Royalti">
                 <p className="text-sm text-oxford-navy-900/90">
                     Royalti dihitung dari harga jual buku yang terjual sesuai
                     jenis penjualannya.{' '}
@@ -170,6 +240,8 @@ export default function MouDocument({
                         (isChapter
                             ? 'Nilai royalti dibagi per bab yang ditulis masing-masing penulis.'
                             : 'Nilai royalti dibagi rata antar-penulis.')}{' '}
+                    {mou.signatories.some((row) => row.is_coauthor) &&
+                        'Co-author tercatat sebagai penulis terakhir dan menerima jatah royalti tetap yang tercantum pada tabel, di luar pembagian antar-penulis lainnya. '}
                     Jenis royalti mengikuti layanan ISBN yang diambil.
                 </p>
                 <div className="overflow-x-auto">
@@ -200,6 +272,11 @@ export default function MouDocument({
                                     <td className="p-2">{index + 1}</td>
                                     <td className="p-2">
                                         {row.name}
+                                        {row.is_coauthor && (
+                                            <span className="ml-1 rounded-full bg-forest-moss-50 px-1.5 py-0.5 text-xs text-forest-moss-800 ring-1 ring-forest-moss-200">
+                                                Co-author
+                                            </span>
+                                        )}
                                         {row.is_me && (
                                             <span className="ml-1 text-xs text-oxford-navy-900/60">
                                                 (Anda)
@@ -230,15 +307,24 @@ export default function MouDocument({
                 </div>
             </Article>
 
-            <Article number={4} title="Hak dan Tanggung Jawab Pihak Pertama">
+            <Article
+                number={4 + offset}
+                title="Hak dan Tanggung Jawab Pihak Pertama"
+            >
                 <Terms items={content.first_party_terms} />
             </Article>
 
-            <Article number={5} title="Hak dan Tanggung Jawab Pihak Kedua">
+            <Article
+                number={5 + offset}
+                title="Hak dan Tanggung Jawab Pihak Kedua"
+            >
                 <Terms items={content.second_party_terms} />
             </Article>
 
-            <Article number={6} title="Perubahan, Adendum dan Penyelesaian">
+            <Article
+                number={6 + offset}
+                title="Perubahan, Adendum dan Penyelesaian"
+            >
                 <Terms items={content.closing_terms} />
             </Article>
 
@@ -277,7 +363,9 @@ export default function MouDocument({
                             className="flex flex-col gap-0.5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
                         >
                             <span className="text-oxford-navy-900">
-                                Penulis {row.position}: {row.name}
+                                Penulis {row.position}
+                                {row.is_coauthor ? ' (Co-author)' : ''}:{' '}
+                                {row.name}
                             </span>
                             {row.signed_at ? (
                                 <span className="text-xs text-forest-moss-700">

@@ -259,6 +259,31 @@ export default function BookChapterProjectDetailPage() {
                         </section>
                     )}
 
+                    {project?.isbn_type && (
+                        <section
+                            id="jenis-isbn"
+                            aria-labelledby="jenis-isbn-title"
+                            className="flex scroll-mt-28 flex-col gap-3 border-t border-forest-moss-100 pt-8"
+                        >
+                            <SectionTitle id="jenis-isbn-title">
+                                {t('isbn.badgeTitle')}:{' '}
+                                {t(`isbn.types.${project.isbn_type}.label`)}
+                            </SectionTitle>
+                            <p className="text-oxford-navy-900/80">
+                                {t(`isbn.types.${project.isbn_type}.summary`)}
+                            </p>
+                            <ul className="flex list-disc flex-col gap-1 pl-5 text-sm text-oxford-navy-900/75">
+                                {(
+                                    t(`isbn.types.${project.isbn_type}.uses`, {
+                                        returnObjects: true,
+                                    }) as unknown as string[]
+                                ).map((use) => (
+                                    <li key={use}>{use}</li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
+
                     {hasIncluded && (
                         <section
                             id="fasilitas"

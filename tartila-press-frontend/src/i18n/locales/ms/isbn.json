@@ -1,0 +1,56 @@
+{
+    "types": {
+        "print": {
+            "label": "ISBN Cetak",
+            "short": "Cetak",
+            "summary": "Nombor pengenalan untuk buku versi cetak (fizikal).",
+            "uses": [
+                "Buku boleh dicetak dan dijual melalui kedai buku, pameran dan perpustakaan.",
+                "Didaftarkan dalam katalog Perpustakaan Negara sebagai edisi cetak.",
+                "Royalti dikira daripada jualan buku fizikal."
+            ],
+            "suits": "Sesuai jika anda mahu memiliki buku fizikal dan menjualnya secara terus."
+        },
+        "electronic": {
+            "label": "ISBN Digital",
+            "short": "Digital",
+            "summary": "Nombor pengenalan untuk buku versi digital (ebook PDF/EPUB), juga dipanggil e-ISBN.",
+            "uses": [
+                "Ebook boleh dijual di platform buku digital (cth. Google Play Books) dan di Tartila Book.",
+                "Tiada kos cetak, boleh diterbitkan lebih cepat.",
+                "Royalti dikira daripada jualan ebook."
+            ],
+            "suits": "Sesuai jika anda hanya mahu menerbitkan ebook."
+        },
+        "both": {
+            "label": "ISBN Cetak + Digital",
+            "short": "Cetak + Digital",
+            "summary": "Dua ISBN sekaligus: satu untuk edisi cetak dan satu untuk edisi digital.",
+            "uses": [
+                "Buku diterbitkan dalam dua format: cetak dan digital.",
+                "Menerima royalti buku fizikal dan royalti ebook.",
+                "Setiap format mempunyai ISBN sendiri, jadi kosnya lebih tinggi daripada salah satunya."
+            ],
+            "suits": "Sesuai jika anda mahu menjangkau pembaca buku fizikal dan pembaca digital."
+        }
+    },
+    "chooseTitle": "Pilih jenis ISBN",
+    "chooseHint": "Jenis ISBN menentukan harga, format terbitan dan jenis royalti dalam MOU.",
+    "uses": "Kegunaan",
+    "defaultPriceNote": "Harga yang dipaparkan ialah harga ISBN Cetak. Harga akhir mengikut jenis ISBN yang anda pilih.",
+    "alsoAvailable": "Turut tersedia: {{types}}",
+    "fromPrice": "Bermula {{price}}",
+    "required": "Sila pilih jenis ISBN terlebih dahulu.",
+    "dialog": {
+        "title": "Pilih jenis ISBN dahulu",
+        "text": "Pakej ini mempunyai beberapa jenis ISBN dengan harga berbeza. Pilih satu sebelum meneruskan pesanan.",
+        "confirm": "Guna jenis ini",
+        "cancel": "Batal"
+    },
+    "filter": {
+        "label": "Jenis ISBN",
+        "all": "Semua jenis"
+    },
+    "badgeTitle": "Jenis ISBN",
+    "priceFor": "Harga untuk {{type}}"
+}

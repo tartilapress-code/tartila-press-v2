@@ -70,6 +70,12 @@ export default function ChapterProjectCard({
                     ))}
                 </div>
 
+                {project.isbn_type && (
+                    <p className="mt-1 text-[11px] font-semibold text-oxford-navy-700">
+                        {t(`isbn.types.${project.isbn_type}.label`)}
+                    </p>
+                )}
+
                 <h3 className="line-clamp-2 min-h-[2.6em] text-[15px] font-semibold leading-snug text-oxford-navy-900 transition-colors group-hover:text-oxford-navy-600">
                     {project.title}
                 </h3>

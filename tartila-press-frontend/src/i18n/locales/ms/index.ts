@@ -11,6 +11,7 @@ import errors from './errors.json';
 import events from './events.json';
 import footer from './footer.json';
 import home from './home.json';
+import isbn from './isbn.json';
 import nav from './nav.json';
 import packages from './packages.json';
 import people from './people.json';
@@ -30,6 +31,7 @@ const ms: Translation = {
     events,
     footer,
     home,
+    isbn,
     nav,
     packages,
     people,

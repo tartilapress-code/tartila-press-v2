@@ -78,6 +78,7 @@ class ReaderPresenter
 
         return [
             'id' => $readerBook->id,
+            'slug' => $book->slug,
             'book' => [
                 'title' => $book->title,
                 'authors' => $book->authors_text ?: implode(', ', (array) $book->authors),

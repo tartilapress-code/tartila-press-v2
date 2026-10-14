@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\Order;
+use App\Support\OrderNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +75,7 @@ class EventRegistrationController extends Controller
 
         $registration = DB::transaction(function () use ($event, $user, $documentUrl, $paymentMethodId) {
             $order = Order::create([
-                'order_number' => Order::generateOrderNumber(),
+                'order_number' => Order::generateOrderNumber(OrderNumber::EVENT),
                 'user_id' => $user->id,
                 'status' => 'pending',
                 'subtotal' => $event->fee,

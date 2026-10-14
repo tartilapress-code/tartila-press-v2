@@ -4,7 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { RiArrowLeftLine, RiCheckLine } from '@remixicon/react';
 import * as packageApi from '@/data/package/packageApi';
 import Button from '@/components/Button/Button';
+import IsbnPriceNote from '@/components/package/IsbnPriceNote';
+import IsbnTypeDialog from '@/components/package/IsbnTypeDialog';
+import IsbnTypeSelector from '@/components/package/IsbnTypeSelector';
 import PillBadge from '@/components/ui/PillBadge';
+import type { IsbnOption, IsbnType } from '@/lib/isbnTypes';
 import SectionTitle from '@/components/ui/SectionTitle';
 import ErrorPage from '@/pages/ErrorPage';
 import { ApiError } from '@/lib/http';
@@ -19,6 +23,7 @@ type PackageDetail = {
     price: string;
     discount: number;
     final_price: number;
+    isbn_options: IsbnOption[];
     description: string | null;
     facilities: string[] | null;
     services: string[] | null;
@@ -67,6 +72,8 @@ export default function PackageDetailPage() {
     const [pkg, setPkg] = useState<PackageDetail | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [notFound, setNotFound] = useState<boolean>(false);
+    const [isbnType, setIsbnType] = useState<IsbnType | null>(null);
+    const [showIsbnDialog, setShowIsbnDialog] = useState<boolean>(false);
 
     useEffect(() => {
         Promise.resolve()
@@ -94,13 +101,33 @@ export default function PackageDetailPage() {
         return <ErrorPage />;
     }
 
-    function handleTakePackage() {
+    function goToOrder(type: IsbnType | null) {
         if (!isAuthenticated) {
             navigate('/login');
             return;
         }
-        navigate(`/dashboard/ambil-paket/${pkg!.id}`);
+        navigate(
+            `/dashboard/ambil-paket/${pkg!.id}${type ? `?isbn=${type}` : ''}`
+        );
     }
+
+    function handleTakePackage() {
+        const options = pkg!.isbn_options ?? [];
+
+        // Lebih dari satu jenis ISBN: pembeli wajib memilih dulu (popup bila belum memilih).
+        if (options.length > 1 && !isbnType) {
+            setShowIsbnDialog(true);
+            return;
+        }
+
+        goToOrder(isbnType ?? options[0]?.type ?? null);
+    }
+
+    const isbnChoices = (pkg.isbn_options ?? []).map((option) => ({
+        type: option.type,
+        price: option.final_price,
+        originalPrice: option.price,
+    }));
 
     const hasLists = [pkg.services, pkg.facilities, pkg.terms, pkg.notes].some(
         (items) => items && items.length > 0
@@ -140,7 +167,11 @@ export default function PackageDetailPage() {
                             </span>
                         )}
                         <span className="text-3xl font-bold text-oxford-navy-700">
-                            {rupiah(pkg.final_price)}
+                            {rupiah(
+                                pkg.isbn_options?.find(
+                                    (option) => option.type === isbnType
+                                )?.final_price ?? pkg.final_price
+                            )}
                         </span>
                         {pkg.discount > 0 && (
                             <span className="rounded-full bg-forest-moss-700 px-2.5 py-1 text-xs font-semibold text-white">
@@ -151,10 +182,29 @@ export default function PackageDetailPage() {
                         )}
                     </div>
 
+                    {isbnType === null && (
+                        <p className="-mt-3 text-xs text-oxford-navy-900/65">
+                            {t('isbn.defaultPriceNote')}
+                        </p>
+                    )}
+                    {isbnType === null && (
+                        <IsbnPriceNote options={pkg.isbn_options} />
+                    )}
+
                     {pkg.description && (
                         <p className="leading-relaxed text-oxford-navy-900/75">
                             {pkg.description}
                         </p>
+                    )}
+
+                    {isbnChoices.length > 1 && (
+                        <IsbnTypeSelector
+                            name="package-isbn"
+                            choices={isbnChoices}
+                            value={isbnType}
+                            onChange={setIsbnType}
+                            formatPrice={rupiah}
+                        />
                     )}
 
                     <Button
@@ -165,6 +215,20 @@ export default function PackageDetailPage() {
                         {t('packages.detail.take')}
                     </Button>
                 </div>
+
+                {showIsbnDialog && (
+                    <IsbnTypeDialog
+                        choices={isbnChoices}
+                        formatPrice={rupiah}
+                        initial={isbnType}
+                        onCancel={() => setShowIsbnDialog(false)}
+                        onConfirm={(type) => {
+                            setIsbnType(type);
+                            setShowIsbnDialog(false);
+                            goToOrder(type);
+                        }}
+                    />
+                )}
 
                 {hasLists && (
                     <section

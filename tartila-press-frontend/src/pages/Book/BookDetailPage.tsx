@@ -178,6 +178,7 @@ export default function BookDetailPage() {
     const [book, setBook] = useState<BookDetail | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [notFound, setNotFound] = useState<boolean>(false);
+    const [ebookMessage, setEbookMessage] = useState<string>('');
 
     useEffect(() => {
         let cancelled = false;
@@ -319,6 +320,20 @@ export default function BookDetailPage() {
                     inCart={isInCart(book.id)}
                     onBuy={() => navigate(`/dashboard/beli-buku/${book.slug}`)}
                     onAddToCart={() => addToCart(book.id)}
+                    onBuyEbook={() => {
+                        // Beli ebook di Tartila Book (alamat situs + judul buku).
+                        if (!book.ebook_available || !book.ebook_url) {
+                            setEbookMessage(
+                                t('books.detail.hero.ebookUnavailable')
+                            );
+
+                            return;
+                        }
+
+                        setEbookMessage('');
+                        window.location.assign(book.ebook_url);
+                    }}
+                    ebookMessage={ebookMessage}
                     onSeeReviews={() => scrollToSection('ulasan')}
                 />
 

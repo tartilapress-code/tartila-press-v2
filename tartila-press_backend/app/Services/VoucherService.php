@@ -6,6 +6,7 @@ use App\Models\Book;
 use App\Models\CustomPackageItem;
 use App\Models\Order;
 use App\Models\Package;
+use App\Models\Scopes\ExcludePartnerBooks;
 use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Support\Collection;
@@ -117,6 +118,16 @@ class VoucherService
                 Book::with(BookRoyaltyService::SHARE_RELATIONS)
                     ->where('is_active', true)
                     ->where('owner_editor_id', $user->id)
+                    ->get()
+            )
+            // Buku mitra yang sudah disetujui: penulisnya (akun) dan mitranya.
+            ->merge(
+                Book::withoutGlobalScope(ExcludePartnerBooks::class)
+                    ->with(BookRoyaltyService::SHARE_RELATIONS)
+                    ->where('partner_status', 'approved')
+                    ->where(fn ($query) => $query
+                        ->whereHas('partnerAuthors', fn ($authors) => $authors->where('users.id', $user->id))
+                        ->orWhereHas('partner', fn ($partner) => $partner->where('user_id', $user->id)))
                     ->get()
             )
             ->unique('id');

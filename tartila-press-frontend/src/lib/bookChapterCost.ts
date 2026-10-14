@@ -11,6 +11,8 @@
  * editor.
  */
 
+import { isbnFromFlags, type IsbnType } from '@/lib/isbnTypes';
+
 export type BookChapterCostSettings = {
     min_chapters: number;
     max_chapters: number | null;
@@ -20,6 +22,10 @@ export type BookChapterCostSettings = {
     isbn_print_cost: string | number;
     isbn_electronic_cost: string | number;
     min_book_cost: string | number;
+    // Minimal biaya 1 buku per jenis ISBN; kosong = ikut min_book_cost.
+    min_book_cost_print?: string | number | null;
+    min_book_cost_electronic?: string | number | null;
+    min_book_cost_both?: string | number | null;
 };
 
 export type PackageItem = {
@@ -35,6 +41,8 @@ export type PackageOptions = {
     includes_hki: boolean;
     includes_isbn_print: boolean;
     includes_isbn_electronic: boolean;
+    // Jenis ISBN proyek (cetak / digital / keduanya); wajib dipilih saat membuat proyek.
+    isbn_type: IsbnType | null;
     package_item_ids: number[];
 };
 
@@ -42,6 +50,7 @@ export const emptyPackageOptions: PackageOptions = {
     includes_hki: false,
     includes_isbn_print: false,
     includes_isbn_electronic: false,
+    isbn_type: null,
     package_item_ids: [],
 };
 
@@ -63,6 +72,7 @@ export type CostSummary = {
         total: number;
     };
     net: number;
+    isbn_type: IsbnType | null;
     min_book_cost: number;
     meets_minimum: boolean;
     shortfall: number;
@@ -79,6 +89,36 @@ export function toNumber(value: string | number | null | undefined): number {
 
 function roundMoney(value: number): number {
     return Math.round(value * 100) / 100;
+}
+
+/** Biaya minimal 1 buku untuk satu jenis ISBN (belum diisi / jenis belum dipilih = nilai umum). */
+export function minimumFor(
+    settings: BookChapterCostSettings,
+    type: IsbnType | null
+): number {
+    const byType = {
+        print: settings.min_book_cost_print,
+        electronic: settings.min_book_cost_electronic,
+        both: settings.min_book_cost_both,
+    };
+    const value = type ? byType[type] : null;
+
+    return toNumber(value ?? settings.min_book_cost);
+}
+
+/** Biaya ISBN yang dipotong untuk satu jenis (keduanya = cetak + digital). */
+export function isbnCostFor(
+    settings: BookChapterCostSettings,
+    type: IsbnType
+): number {
+    const print = toNumber(settings.isbn_print_cost);
+    const electronic = toNumber(settings.isbn_electronic_cost);
+
+    return type === 'print'
+        ? print
+        : type === 'electronic'
+          ? electronic
+          : print + electronic;
 }
 
 export function calculateBookChapterCost(
@@ -124,13 +164,20 @@ export function calculateBookChapterCost(
 
     chaptersTotal = roundMoney(chaptersTotal);
     const net = roundMoney(chaptersTotal - deductions.total);
-    const minimum = toNumber(settings.min_book_cost);
+    const isbnType =
+        input.isbn_type ??
+        isbnFromFlags(
+            input.includes_isbn_print,
+            input.includes_isbn_electronic
+        );
+    const minimum = minimumFor(settings, isbnType);
 
     return {
         chapter_count: input.chapters.length,
         chapters_total: chaptersTotal,
         deductions,
         net,
+        isbn_type: isbnType,
         min_book_cost: minimum,
         meets_minimum: net + 0.005 >= minimum,
         shortfall: roundMoney(Math.max(0, minimum - net)),

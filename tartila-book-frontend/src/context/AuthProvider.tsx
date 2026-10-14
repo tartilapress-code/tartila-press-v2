@@ -83,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isAdmin: Boolean(
                 user?.roles?.some((role) => role.name === 'admin')
             ),
+            isPartner: Boolean(
+                user?.roles?.some((role) => role.name === 'mitra')
+            ),
             login,
             logout,
             unread: userId === null ? 0 : unread,

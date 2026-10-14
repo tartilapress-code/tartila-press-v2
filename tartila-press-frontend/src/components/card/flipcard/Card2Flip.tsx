@@ -1,3 +1,4 @@
+import IsbnPriceNote from '@/components/package/IsbnPriceNote';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -119,6 +120,7 @@ export default function Card2({
                                             {rupiah(pkg.final_price)}
                                         </span>
                                     </div>
+                                    <IsbnPriceNote options={pkg.isbn_options} />
                                     {highlight && (
                                         <p className="text-xs font-semibold text-forest-moss-700">
                                             {t(

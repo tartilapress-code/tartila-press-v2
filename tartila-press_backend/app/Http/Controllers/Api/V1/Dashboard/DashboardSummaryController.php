@@ -21,6 +21,7 @@ use App\Models\WalletWithdrawal;
 use App\Services\CertificateService;
 use App\Services\FinanceService;
 use App\Services\HkiService;
+use App\Services\ManuscriptAssignmentService;
 use App\Services\ManuscriptPoolService;
 use App\Services\WalletService;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,6 +46,7 @@ class DashboardSummaryController extends Controller
         private readonly CertificateService $certificates,
         private readonly HkiService $hki,
         private readonly ManuscriptPoolService $pool,
+        private readonly ManuscriptAssignmentService $assignment,
         private readonly WalletService $wallet,
         private readonly FinanceService $finance,
     ) {}
@@ -149,7 +151,7 @@ class DashboardSummaryController extends Controller
         }
 
         $needsRevision = $manuscripts->where('status', 'revision_requested')->count();
-        $needsFinalReview = $manuscripts->filter(fn (Manuscript $manuscript) => $manuscript->status === 'pending_penulis_review'
+        $needsFinalReview = $manuscripts->filter(fn (Manuscript $manuscript) => in_array($manuscript->status, ['pending_penulis_review', 'pending_author_review_coauthor'], true)
             && $manuscript->authorLinks->contains(fn ($link) => $link->user_id === $user->id && $link->approved_at === null))->count();
         $chapterNotes = ChapterRevisionRequest::whereNull('resolved_at')
             ->whereIn('manuscript_id', $manuscripts->pluck('id'))
@@ -182,6 +184,13 @@ class DashboardSummaryController extends Controller
         $inReview = $assigned->whereIn('status', ['pending_admin_review_editor', 'pending_penulis_review'])->count();
         $runningFee = (float) $assigned->whereNotIn('status', ['completed'])->sum('editor_fee');
 
+        $coauthored = $user->coauthoredManuscripts()->get(['id', 'status', 'coauthor_fee']);
+        $coauthorWork = $coauthored->whereIn('status', ['in_coauthoring', 'coauthor_revision_requested'])->count();
+        $coauthorFee = (float) $coauthored->where('status', '!=', 'completed')->sum('coauthor_fee');
+        $coauthorPool = ManuscriptAssignmentService::isCoauthor($user)
+            ? Manuscript::where('coauthor_open_for_claim', true)->get()->filter(fn (Manuscript $manuscript) => $this->assignment->canClaim($user, $manuscript))->count()
+            : 0;
+
         $editorFields = $this->pool->editorFieldIds($user);
         $poolCount = Manuscript::where('open_for_claim', true)
             ->get(['id', 'pool_field_category_ids'])
@@ -194,7 +203,11 @@ class DashboardSummaryController extends Controller
             $this->item('editor_work', 'Naskah perlu dikerjakan', $toWork, '/dashboard/naskah-ditugaskan', $toWork > 0),
             $this->item('editor_review', 'Hasil edit sedang direview', $inReview, '/dashboard/naskah-ditugaskan'),
             $this->item('editor_pool', 'Naskah tersedia di pool', $poolCount, '/dashboard/pool-naskah', $poolCount > 0, 'Sesuai bidang keahlian Anda'),
-            $this->item('editor_fee', 'Fee naskah berjalan', $runningFee, '/dashboard/fee-saya', false, null, 'currency'),
+            $this->item('editor_fee', 'Fee naskah berjalan', $runningFee + $coauthorFee, '/dashboard/fee-saya', false, null, 'currency'),
+            ...($coauthored->isNotEmpty() || $coauthorPool > 0 ? [
+                $this->item('coauthor_work', 'Naskah co-author perlu dikerjakan', $coauthorWork, '/dashboard/naskah-coauthor', $coauthorWork > 0),
+                $this->item('coauthor_pool', 'Naskah tersedia di pool co-author', $coauthorPool, '/dashboard/pool-coauthor', $coauthorPool > 0, 'Sesuai bidang keahlian Anda'),
+            ] : []),
             $this->item('editor_projects', 'Proyek Book Chapter saya', $projects, '/dashboard/proyek-bab-buku-saya'),
         ]);
     }

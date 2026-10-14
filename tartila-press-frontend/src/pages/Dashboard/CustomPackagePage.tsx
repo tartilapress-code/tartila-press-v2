@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button/Button';
+import CoauthorOffer from '@/components/coauthor/CoauthorOffer';
+import { useCoauthorOffer } from '@/components/coauthor/useCoauthorOffer';
 import EditorPicker, {
     type EditorOption,
 } from '@/components/editor/EditorPicker';
@@ -36,6 +38,7 @@ export default function CustomPackagePage() {
     );
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
+    const coauthorOffer = useCoauthorOffer();
     const [wantsOwnEditor, setWantsOwnEditor] = useState<boolean>(false);
     const [editors, setEditors] = useState<EditorOption[]>([]);
     const [selectedEditorId, setSelectedEditorId] = useState<number | null>(
@@ -101,7 +104,8 @@ export default function CustomPackagePage() {
         subtotal -
         discountTotal -
         (voucher.quote?.voucher_discount ?? 0) +
-        editorFee;
+        editorFee +
+        coauthorOffer.fee;
 
     async function handleSubmit() {
         if (selectedItems.length === 0) {
@@ -118,6 +122,7 @@ export default function CustomPackagePage() {
                 type: 'custom',
                 custom_item_ids: selectedItems.map((item) => item.id),
                 voucher_code: voucher.code,
+                ...coauthorOffer.payload,
                 editor_id:
                     wantsOwnEditor && selectedEditorId
                         ? selectedEditorId
@@ -230,11 +235,19 @@ export default function CustomPackagePage() {
                 />
             )}
 
+            <CoauthorOffer
+                offer={coauthorOffer}
+                formatFee={rupiahFormatter.format}
+            />
+
             <VoucherField voucher={voucher} />
             <PaymentMethodPicker choice={paymentChoice} />
 
             <div className="flex flex-col gap-1 border-t border-forest-moss-200 pt-4">
-                {(discountTotal > 0 || editorFee > 0 || voucher.quote) && (
+                {(discountTotal > 0 ||
+                    editorFee > 0 ||
+                    coauthorOffer.fee > 0 ||
+                    voucher.quote) && (
                     <p className="text-oxford-navy-900/70 text-sm">
                         Subtotal: {rupiahFormatter.format(subtotal)}
                     </p>
@@ -253,6 +266,12 @@ export default function CustomPackagePage() {
                 {editorFee > 0 && (
                     <p className="text-oxford-navy-900/70 text-sm">
                         Biaya editor: +{rupiahFormatter.format(editorFee)}
+                    </p>
+                )}
+                {coauthorOffer.fee > 0 && (
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Biaya co-author: +
+                        {rupiahFormatter.format(coauthorOffer.fee)}
                     </p>
                 )}
                 <p className="text-oxford-navy-900 text-lg font-semibold">

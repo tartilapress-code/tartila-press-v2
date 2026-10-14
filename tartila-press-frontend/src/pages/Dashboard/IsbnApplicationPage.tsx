@@ -127,8 +127,8 @@ export default function IsbnApplicationPage() {
                 <p className="text-oxford-navy-900/80 text-sm">
                     Surat permohonan ISBN dan surat pernyataan keaslian karya
                     sudah terisi otomatis. Tinjau, lalu tanda tangani sebagai{' '}
-                    {application.signer_role.toLowerCase()}. Admin kemudian
-                    membubuhkan tanda tangan dan stempel penerbit.
+                    {application.signer_role.toLowerCase()}. Penanggung jawab
+                    penerbit kemudian membubuhkan tanda tangan dan stempel.
                 </p>
 
                 <dl className="grid grid-cols-1 sm:grid-cols-[10rem_1fr] gap-x-4 gap-y-1 text-sm">
@@ -250,8 +250,8 @@ export default function IsbnApplicationPage() {
                             )}
                         .{' '}
                         {application.status === 'processed'
-                            ? 'Admin sudah memproses surat ini.'
-                            : 'Menunggu tanda tangan dan stempel admin.'}
+                            ? 'Penanggung jawab penerbit sudah memproses surat ini.'
+                            : 'Menunggu tanda tangan dan stempel dari penanggung jawab.'}
                     </p>
                 ) : (
                     <>

@@ -20,6 +20,9 @@ trait ValidatesMouContent
             'distribution_options.*.key' => ['nullable', 'string', 'max:40', 'alpha_dash', 'distinct'],
             'distribution_options.*.name' => ['required', 'string', 'max:150'],
             'distribution_options.*.description' => ['nullable', 'string', 'max:500'],
+            // Rincian hak berupa daftar poin (satu butir per baris di formulir admin).
+            'distribution_options.*.points' => ['nullable', 'array', 'max:20'],
+            'distribution_options.*.points.*' => ['nullable', 'string', 'max:600'],
             'distribution_mode' => ['required', Rule::in(MouTemplate::MODES)],
             'first_party_terms' => ['required', 'array', 'min:1', 'max:30'],
             'first_party_terms.*' => ['required', 'string', 'max:1500'],
@@ -46,7 +49,12 @@ trait ValidatesMouContent
 
             $used[] = $key;
 
-            return ['key' => $key, 'name' => trim($option['name']), 'description' => trim((string) ($option['description'] ?? ''))];
+            return [
+                'key' => $key,
+                'name' => trim($option['name']),
+                'description' => trim((string) ($option['description'] ?? '')),
+                'points' => $this->cleanList((array) ($option['points'] ?? [])),
+            ];
         }, $options));
     }
 

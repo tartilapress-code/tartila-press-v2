@@ -175,6 +175,12 @@ export function PackagesTab() {
                             ? 'dari naskah'
                             : 'dari pesanan'}
                     </Hint>
+                    {row.editor_fee_detail && (
+                        <Hint>
+                            editor {rupiah(row.editor_fee_detail.editor)} +
+                            co-author {rupiah(row.editor_fee_detail.coauthor)}
+                        </Hint>
+                    )}
                 </>
             ),
         },

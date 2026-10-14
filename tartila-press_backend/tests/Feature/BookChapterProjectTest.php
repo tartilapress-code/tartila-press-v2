@@ -7,6 +7,7 @@ use App\Models\BookChapter;
 use App\Models\BookChapterSetting;
 use App\Models\EditorProfile;
 use App\Models\Manuscript;
+use App\Models\ManuscriptTemplate;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
@@ -65,6 +66,7 @@ class BookChapterProjectTest extends TestCase
             'title' => 'Antologi Cerita Pendek',
             'price' => 100000,
             'discount' => 0,
+            'includes_isbn_print' => false,
             'chapters' => [
                 ['title' => 'Bab 1'],
                 ['title' => 'Bab 2'],
@@ -437,11 +439,13 @@ class BookChapterProjectTest extends TestCase
 
         // Bab Book Chapter digabung menjadi satu buku: wajib Word (.docx).
         $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order['id'],
             'file' => UploadedFile::fake()->create('naskah.pdf', 100, 'application/pdf'),
         ])->assertStatus(422);
 
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order['id'],
             'title' => 'Bab Pertama',
             'authors' => [$penulis->name],
@@ -481,6 +485,7 @@ class BookChapterProjectTest extends TestCase
 
         Sanctum::actingAs($penulis);
         $manuscript = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order['id'],
             'title' => 'Bab Pertama',
             'authors' => [$penulis->name],
@@ -523,6 +528,7 @@ class BookChapterProjectTest extends TestCase
 
         Sanctum::actingAs($penulis);
         $manuscript = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order['id'],
             'title' => 'Bab Pertama',
             'authors' => [$penulis->name],

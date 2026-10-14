@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import Input from '@/components/Input/Input';
 import ContentLanguageField from '@/components/language/ContentLanguageField';
 import Button from '@/components/Button/Button';
+import EditorInsightCard from '@/components/editor/EditorInsightCard';
 import * as editorApi from '@/data/editor/editorApi';
 import * as bookApi from '@/data/book/bookApi';
 import { ApiError } from '@/lib/http';
@@ -21,6 +22,10 @@ export default function EditorProfilePage() {
     const [bio, setBio] = useState<string>('');
     const [languages, setLanguages] = useState<ContentLanguage[]>([]);
     const [isAvailable, setIsAvailable] = useState<boolean>(true);
+    // Layanan co-author: editor yang mencentang bisa dipilih penulis / ditunjuk admin sebagai co-author.
+    const [isCoauthor, setIsCoauthor] = useState<boolean>(false);
+    const [coauthorFee, setCoauthorFee] = useState<string>('0');
+    const [coauthorBio, setCoauthorBio] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
@@ -39,6 +44,9 @@ export default function EditorProfilePage() {
                     setBio(profile.bio ?? '');
                     setLanguages(toContentLanguages(profile.languages));
                     setIsAvailable(Boolean(profile.is_available));
+                    setIsCoauthor(Boolean(profile.is_coauthor));
+                    setCoauthorFee(profile.coauthor_fee?.toString() ?? '0');
+                    setCoauthorBio(profile.coauthor_bio ?? '');
 
                     const ids: number[] = profile.field_category_ids ?? [];
                     setFields(
@@ -67,6 +75,9 @@ export default function EditorProfilePage() {
                 bio,
                 languages,
                 is_available: isAvailable,
+                is_coauthor: isCoauthor,
+                coauthor_fee: coauthorFee,
+                coauthor_bio: coauthorBio,
             });
             setStatusMessage('Profil editor berhasil disimpan.');
         } catch (error) {
@@ -97,6 +108,8 @@ export default function EditorProfilePage() {
                     editor.
                 </p>
             </div>
+
+            <EditorInsightCard />
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <Input
@@ -134,6 +147,50 @@ export default function EditorProfilePage() {
                             ? fields.join(', ')
                             : 'Belum diatur — Anda bisa mengambil naskah pool yang terbuka untuk umum.'}
                     </span>
+                </div>
+
+                <div className="flex flex-col gap-3 rounded-xl bg-forest-moss-50 p-4 ring-1 ring-forest-moss-100">
+                    <label className="flex flex-row items-center gap-2 font-medium text-oxford-navy-900">
+                        <input
+                            type="checkbox"
+                            checked={isCoauthor}
+                            onChange={(e) => setIsCoauthor(e.target.checked)}
+                        />
+                        Saya bersedia menjadi co-author
+                    </label>
+                    <p className="text-sm text-oxford-navy-900/75">
+                        Co-author membantu penulis menyusun naskah mentah
+                        sebelum dikoreksi editor. Namanya dicantumkan sebagai
+                        penulis terakhir buku, dengan royalti tetap (bawaan 5%)
+                        untuk buku cetak dan ebook, dan ikut menandatangani MOU.
+                        Dalam satu naskah Anda tidak bisa menjadi co-author
+                        sekaligus editornya.
+                    </p>
+
+                    {isCoauthor && (
+                        <>
+                            <Input
+                                label="Fee Co-author Mandiri (Rp)"
+                                name="coauthor_fee"
+                                value={coauthorFee}
+                                onChange={(e) => setCoauthorFee(e.target.value)}
+                            />
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-medium text-oxford-navy-900">
+                                    Keterangan Co-author
+                                </label>
+                                <textarea
+                                    className={textareaClass}
+                                    rows={4}
+                                    value={coauthorBio}
+                                    onChange={(e) =>
+                                        setCoauthorBio(e.target.value)
+                                    }
+                                    placeholder="Pengalaman, bidang tulisan, dan gaya menyusun naskah Anda."
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <label className="flex flex-row items-center gap-2 text-oxford-navy-900">

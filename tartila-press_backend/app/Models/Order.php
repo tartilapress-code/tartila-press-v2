@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\OrderNumber;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class Order extends Model
 {
@@ -25,6 +25,9 @@ class Order extends Model
         'discount_total',
         'editor_id',
         'editor_fee',
+        'wants_coauthor',
+        'coauthor_id',
+        'coauthor_fee',
         'voucher_id',
         'voucher_code',
         'voucher_discount',
@@ -52,6 +55,8 @@ class Order extends Model
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'editor_fee' => 'decimal:2',
+            'coauthor_fee' => 'decimal:2',
+            'wants_coauthor' => 'boolean',
             'voucher_discount' => 'decimal:2',
             'voucher_fee' => 'decimal:2',
             'total' => 'decimal:2',
@@ -111,6 +116,11 @@ class Order extends Model
         return $this->belongsTo(Voucher::class);
     }
 
+    public function coauthor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'coauthor_id');
+    }
+
     public function editor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'editor_id');
@@ -165,12 +175,9 @@ class Order extends Model
         ]);
     }
 
-    public static function generateOrderNumber(): string
+    /** Nomor pesanan ORD-YYYYMMDD-NNNK (lihat OrderNumber); $code = kode jenis, bawaan paket. */
+    public static function generateOrderNumber(string $code = OrderNumber::PACKAGE): string
     {
-        do {
-            $orderNumber = 'ORD-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
-        } while (static::where('order_number', $orderNumber)->exists());
-
-        return $orderNumber;
+        return OrderNumber::make($code);
     }
 }

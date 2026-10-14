@@ -402,16 +402,19 @@ export default function AccountSettingsPage() {
                 </form>
             </Card>
 
-            <Card title="Jadi Penulis / Editor">
-                <p className="text-oxford-navy-900/70 text-sm">
-                    Ajukan untuk membuka fitur Penulis dan/atau Editor.
-                    Permintaan akan ditinjau oleh Admin.
-                </p>
-                <div className="flex flex-col gap-3">
-                    <RoleUpgradeRow role="penulis" />
-                    <RoleUpgradeRow role="editor" />
-                </div>
-            </Card>
+            {/* Akun mitra tidak bisa meminta role penulis/editor. */}
+            {!user?.roles?.some((role) => role.name === 'mitra') && (
+                <Card title="Jadi Penulis / Editor">
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Ajukan untuk membuka fitur Penulis dan/atau Editor.
+                        Permintaan akan ditinjau oleh Admin.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <RoleUpgradeRow role="penulis" />
+                        <RoleUpgradeRow role="editor" />
+                    </div>
+                </Card>
+            )}
         </div>
     );
 }

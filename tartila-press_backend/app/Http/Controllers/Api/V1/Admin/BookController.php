@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\BookChapter;
+use App\Models\CoverProject;
 use App\Models\Manuscript;
 use App\Services\MouService;
+use App\Support\IsbnTypes;
 use App\Support\Languages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -85,6 +87,15 @@ class BookController extends Controller
             'Naskah ini sudah pernah diterbitkan.'
         );
 
+        // Cover harus sudah dipilih & disetujui penulis (layak terbit).
+        $coverProject = CoverProject::where('manuscript_id', $manuscript->id)->first();
+
+        abort_if(
+            $coverProject && $coverProject->status !== 'approved',
+            422,
+            'Cover buku belum disetujui penulis. Selesaikan dulu di menu Cover.'
+        );
+
         abort_unless(
             $mous->isBindingForManuscript($manuscript),
             422,
@@ -96,6 +107,10 @@ class BookController extends Controller
             ...Languages::rules(),
         ]);
 
+        // Jenis ISBN dari paket yang dibeli penulis menentukan jenis royalti & MOU buku ini.
+        $isbnType = $mous->isbnTypeForManuscript($manuscript);
+        $isbnFlags = IsbnTypes::flags($isbnType);
+
         $book = Book::create([
             ...$validated,
             'manuscript_id' => $manuscript->id,
@@ -103,6 +118,11 @@ class BookController extends Controller
             'authors' => $manuscript->authors,
             'authors_text' => implode(', ', $manuscript->authors),
             'created_by' => $request->user()->id,
+            ...($isbnType ? [
+                'isbn_type' => $isbnType,
+                'includes_isbn_print' => $isbnFlags['print'],
+                'includes_isbn_electronic' => $isbnFlags['electronic'],
+            ] : []),
         ]);
 
         return response()->json([

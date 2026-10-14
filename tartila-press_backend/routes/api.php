@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\About\AboutController;
 use App\Http\Controllers\Api\V1\Admin\AboutController as AdminAboutController;
 use App\Http\Controllers\Api\V1\Admin\ArticleController as AdminArticleController;
+use App\Http\Controllers\Api\V1\Admin\AuthorManagementController;
 use App\Http\Controllers\Api\V1\Admin\BookChapterCompilationController as AdminBookChapterCompilationController;
 use App\Http\Controllers\Api\V1\Admin\BookChapterProjectController as AdminBookChapterProjectController;
 use App\Http\Controllers\Api\V1\Admin\BookChapterSettingController as AdminBookChapterSettingController;
@@ -10,7 +11,9 @@ use App\Http\Controllers\Api\V1\Admin\BookController as AdminBookController;
 use App\Http\Controllers\Api\V1\Admin\BookEbookController as AdminBookEbookController;
 use App\Http\Controllers\Api\V1\Admin\BookShipmentController;
 use App\Http\Controllers\Api\V1\Admin\CertificateTemplateController as AdminCertificateTemplateController;
+use App\Http\Controllers\Api\V1\Admin\CoverAdminController;
 use App\Http\Controllers\Api\V1\Admin\DiscountController as AdminDiscountController;
+use App\Http\Controllers\Api\V1\Admin\EditorManagementController;
 use App\Http\Controllers\Api\V1\Admin\EventAttendanceController as AdminEventAttendanceController;
 use App\Http\Controllers\Api\V1\Admin\EventCategoryController as AdminEventCategoryController;
 use App\Http\Controllers\Api\V1\Admin\EventController as AdminEventController;
@@ -43,9 +46,11 @@ use App\Http\Controllers\Api\V1\Book\MyPublishedBookController;
 use App\Http\Controllers\Api\V1\Certificate\FontController as CertificateFontController;
 use App\Http\Controllers\Api\V1\Certificate\MyCertificateController;
 use App\Http\Controllers\Api\V1\Certificate\MyHkiController;
+use App\Http\Controllers\Api\V1\Cover\CoverController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\Editor\BookChapterProjectController as EditorBookChapterProjectController;
 use App\Http\Controllers\Api\V1\Editor\BookChapterSettingController as EditorBookChapterSettingController;
+use App\Http\Controllers\Api\V1\Editor\CoauthorDirectoryController;
 use App\Http\Controllers\Api\V1\Editor\EditorDirectoryController;
 use App\Http\Controllers\Api\V1\Editor\ManuscriptController as EditorManuscriptController;
 use App\Http\Controllers\Api\V1\Editor\MyEditorProfileController;
@@ -71,9 +76,11 @@ use App\Http\Controllers\Api\V1\PublicProfile\PublicProfileController;
 use App\Http\Controllers\Api\V1\Reader\AdminBookController as ReaderAdminBookController;
 use App\Http\Controllers\Api\V1\Reader\AdminConfigController as ReaderAdminConfigController;
 use App\Http\Controllers\Api\V1\Reader\AdminOrderController as ReaderAdminOrderController;
+use App\Http\Controllers\Api\V1\Reader\AdminPartnerController as ReaderAdminPartnerController;
 use App\Http\Controllers\Api\V1\Reader\CatalogController as ReaderCatalogController;
 use App\Http\Controllers\Api\V1\Reader\InteractionController as ReaderInteractionController;
 use App\Http\Controllers\Api\V1\Reader\MeController as ReaderMeController;
+use App\Http\Controllers\Api\V1\Reader\PartnerBookController as ReaderPartnerBookController;
 use App\Http\Controllers\Api\V1\Reader\ReadingController as ReaderReadingController;
 use App\Http\Controllers\Api\V1\RoleRequest\RoleRequestController;
 use App\Http\Controllers\Api\V1\Royalty\RoyaltyController as UserRoyaltyController;
@@ -555,8 +562,19 @@ Route::prefix('v1')->group(function () {
         );
 
         Route::get(
+            '/coauthors',
+            [CoauthorDirectoryController::class, 'index']
+        );
+
+        Route::get(
             '/editor/profile',
             [MyEditorProfileController::class, 'show']
+        );
+
+        // Level & performa milik sendiri (hanya dilihat editor itu sendiri dan admin).
+        Route::get(
+            '/editor/insight',
+            [MyEditorProfileController::class, 'insight']
         );
 
         Route::post(
@@ -685,6 +703,22 @@ Route::prefix('v1')->group(function () {
     });
 
     // Tartila Book - pembaca (login). Pembatasan baca per buku dicek di controller.
+    // Dashboard mitra Tartila Book (role mitra): buku sendiri, ebook, dokumen, pengajuan, laporan.
+    Route::middleware(['auth:sanctum', 'role:mitra'])->prefix('partner')->group(function () {
+        Route::get('/terms', [ReaderPartnerBookController::class, 'terms']);
+        Route::get('/books', [ReaderPartnerBookController::class, 'index']);
+        Route::post('/books', [ReaderPartnerBookController::class, 'store']);
+        Route::get('/books/{bookId}', [ReaderPartnerBookController::class, 'show'])->whereNumber('bookId');
+        Route::put('/books/{bookId}', [ReaderPartnerBookController::class, 'update'])->whereNumber('bookId');
+        Route::delete('/books/{bookId}', [ReaderPartnerBookController::class, 'destroy'])->whereNumber('bookId');
+        Route::post('/books/{bookId}/ebook', [ReaderPartnerBookController::class, 'ebook'])->whereNumber('bookId');
+        Route::post('/books/{bookId}/documents/{kind}', [ReaderPartnerBookController::class, 'document'])->whereNumber('bookId')->whereIn('kind', ['turnitin', 'originality', 'mou']);
+        Route::get('/books/{bookId}/documents/{kind}', [ReaderPartnerBookController::class, 'download'])->whereNumber('bookId')->whereIn('kind', ['ebook', 'turnitin', 'originality', 'mou']);
+        Route::post('/books/{bookId}/submit', [ReaderPartnerBookController::class, 'submit'])->whereNumber('bookId');
+        Route::post('/books/{bookId}/reopen', [ReaderPartnerBookController::class, 'reopen'])->whereNumber('bookId');
+        Route::get('/report', [ReaderPartnerBookController::class, 'report']);
+    });
+
     Route::middleware('auth:sanctum')->prefix('reader')->group(function () {
         Route::get('/books/{readerBook}/file', [ReaderReadingController::class, 'file']);
         Route::post('/books/{readerBook}/reads', [ReaderReadingController::class, 'reads'])->middleware('throttle:240,1');
@@ -710,6 +744,12 @@ Route::prefix('v1')->group(function () {
     });
 
     // MOU distribusi buku (penulis): daftar di Royalti Saya, tanda tangan, PDF.
+    // Berkas cover (gambar) untuk admin dan penulis buku itu.
+    Route::middleware('auth:sanctum')->prefix('covers')->group(function () {
+        Route::get('/{cover}/image', [CoverController::class, 'image']);
+        Route::get('/{cover}/download', [CoverController::class, 'download']);
+    });
+
     Route::middleware('auth:sanctum')->prefix('mous')->group(function () {
         Route::get('/', [MyMouController::class, 'index']);
         Route::get('/{mou}', [MyMouController::class, 'show']);
@@ -780,6 +820,12 @@ Route::prefix('v1')->group(function () {
             [PenulisManuscriptController::class, 'mine']
         );
 
+        // Template naskah yang bisa dipilih penulis saat mengirim naskah.
+        Route::get(
+            '/template-options',
+            [PenulisManuscriptController::class, 'templateOptions']
+        );
+
         Route::get(
             '/{manuscript}',
             [PenulisManuscriptController::class, 'show']
@@ -822,6 +868,16 @@ Route::prefix('v1')->group(function () {
             [PenulisManuscriptController::class, 'finalReview']
         );
 
+        // Cover buku: lihat pilihan & hasil, memilih / voting.
+        Route::get('/{manuscript}/cover', [CoverController::class, 'show']);
+        Route::post('/{manuscript}/cover/vote', [CoverController::class, 'vote']);
+
+        // Layanan co-author: penulis menyetujui / meminta revisi susunan co-author.
+        Route::post(
+            '/{manuscript}/coauthor-review',
+            [PenulisManuscriptController::class, 'coauthorReview']
+        );
+
     });
 
     /*
@@ -851,6 +907,11 @@ Route::prefix('v1')->group(function () {
             '/fees',
             [EditorManuscriptController::class, 'fees']
         );
+
+        // Layanan co-author: pool, ambil, dan naskah yang disusun sebagai co-author.
+        Route::get('/coauthor-pool', [EditorManuscriptController::class, 'coauthorPool']);
+        Route::post('/coauthor-pool/{manuscript}/claim', [EditorManuscriptController::class, 'claimCoauthor']);
+        Route::get('/coauthor-manuscripts', [EditorManuscriptController::class, 'coauthorMine']);
 
         // Book Chapter Settings (hint batas minimum/maksimum)
         Route::get(
@@ -1072,6 +1133,16 @@ Route::prefix('v1')->group(function () {
             [AdminManuscriptController::class, 'openPool']
         );
 
+        Route::post(
+            '/manuscripts/{manuscript}/assign-coauthor',
+            [AdminManuscriptController::class, 'assignCoauthor']
+        );
+
+        Route::post(
+            '/manuscripts/{manuscript}/open-coauthor-pool',
+            [AdminManuscriptController::class, 'openCoauthorPool']
+        );
+
         // Tingkat kesulitan & kriteria editor pool sebuah naskah.
         Route::put(
             '/manuscripts/{manuscript}/pool-settings',
@@ -1081,6 +1152,26 @@ Route::prefix('v1')->group(function () {
         // Pengaturan pool naskah: bidang keahlian editor.
         Route::get('/manuscript-pool', [AdminManuscriptPoolController::class, 'index']);
         Route::put('/manuscript-pool/editors/{user}', [AdminManuscriptPoolController::class, 'updateEditorFields']);
+
+        // Kelola Editor: statistik, performa, level, fee, dalam pemantauan (ban) dan promosi.
+        Route::get('/editors', [EditorManagementController::class, 'index']);
+        Route::put('/editors/{user}/ban', [EditorManagementController::class, 'ban']);
+        Route::put('/editors/{user}/promote', [EditorManagementController::class, 'promote']);
+
+        // Cover khusus: cover paket, cover Book Chapter, cover buku terbit.
+        Route::get('/covers/packages', [CoverAdminController::class, 'packages']);
+        Route::get('/covers/chapters', [CoverAdminController::class, 'chapters']);
+        Route::get('/covers/books', [CoverAdminController::class, 'books']);
+        Route::get('/covers/projects/{project}', [CoverAdminController::class, 'show']);
+        Route::post('/covers/projects/{project}/covers', [CoverAdminController::class, 'upload']);
+        Route::post('/covers/projects/{project}/revision', [CoverAdminController::class, 'revision']);
+        Route::post('/covers/projects/{project}/decide', [CoverAdminController::class, 'decide']);
+        Route::delete('/covers/covers/{cover}', [CoverAdminController::class, 'destroyCover']);
+        Route::post('/covers/books/{book}', [CoverAdminController::class, 'replaceBookCover']);
+
+        // Kelola Penulis: buku terbit, naskah dalam proses, royalti, dan catatan progres/hak.
+        Route::get('/authors', [AuthorManagementController::class, 'index']);
+        Route::put('/authors/{user}/note', [AuthorManagementController::class, 'note']);
 
         // Books
         Route::get(
@@ -1295,6 +1386,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/books/{readerBook}', [ReaderAdminBookController::class, 'show']);
             Route::patch('/books/{readerBook}', [ReaderAdminBookController::class, 'update']);
             Route::delete('/books/{readerBook}', [ReaderAdminBookController::class, 'destroy']);
+
+            // Mitra: kelola mitra dan tinjau ebook mitra (setujui / tolak dengan catatan).
+            Route::get('/partners', [ReaderAdminPartnerController::class, 'partners']);
+            Route::post('/partners', [ReaderAdminPartnerController::class, 'storePartner']);
+            Route::put('/partners/{partner}', [ReaderAdminPartnerController::class, 'updatePartner']);
+            Route::delete('/partners/{partner}', [ReaderAdminPartnerController::class, 'destroyPartner']);
+            Route::get('/partner-books', [ReaderAdminPartnerController::class, 'books']);
+            Route::get('/partner-books/{bookId}', [ReaderAdminPartnerController::class, 'book'])->whereNumber('bookId');
+            Route::post('/partner-books/{bookId}/approve', [ReaderAdminPartnerController::class, 'approve'])->whereNumber('bookId');
+            Route::post('/partner-books/{bookId}/reject', [ReaderAdminPartnerController::class, 'reject'])->whereNumber('bookId');
+            Route::get('/partner-books/{bookId}/documents/{kind}', [ReaderAdminPartnerController::class, 'download'])->whereNumber('bookId')->whereIn('kind', ['ebook', 'turnitin', 'originality', 'mou']);
 
             Route::get('/terms', [ReaderAdminConfigController::class, 'terms']);
             Route::post('/terms', [ReaderAdminConfigController::class, 'storeTerm']);

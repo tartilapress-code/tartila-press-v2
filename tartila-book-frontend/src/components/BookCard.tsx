@@ -38,7 +38,7 @@ export default function BookCard({ book }: { book: ReaderBook }) {
 
     return (
         <Link
-            to={`/buku/${book.id}`}
+            to={`/buku/${book.slug}`}
             className="group card-shadow flex flex-col gap-3 rounded-2xl bg-white p-3 ring-1 ring-forest-moss-100 transition hover:-translate-y-1 hover:ring-forest-moss-300"
         >
             <div className="relative">

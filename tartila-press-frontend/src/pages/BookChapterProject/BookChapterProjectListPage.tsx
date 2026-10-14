@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     RiArrowUpDownLine,
+    RiBarcodeLine,
     RiLayoutGridLine,
     RiRestartLine,
 } from '@remixicon/react';
@@ -40,6 +41,7 @@ export default function BookChapterProjectListPage() {
     const [query, setQuery] = useState<string>('');
     const [category, setCategory] = useState<string>('');
     const [sort, setSort] = useState<SortMode>('newest');
+    const [isbnType, setIsbnType] = useState<string>('');
     const [page, setPage] = useState<number>(1);
     const [meta, setMeta] = useState<PageMeta | null>(null);
     const [categories, setCategories] = useState<string[]>([]);
@@ -53,7 +55,13 @@ export default function BookChapterProjectListPage() {
             setIsLoading(true);
 
             bookChapterProjectApi
-                .list({ search: query.trim(), category, sort, page })
+                .list({
+                    search: query.trim(),
+                    category,
+                    isbn_type: isbnType,
+                    sort,
+                    page,
+                })
                 .then((response) => {
                     if (cancelled) return;
                     setProjects(response.data);
@@ -74,9 +82,10 @@ export default function BookChapterProjectListPage() {
             cancelled = true;
             clearTimeout(timeout);
         };
-    }, [query, category, sort, page]);
+    }, [query, category, isbnType, sort, page]);
 
-    const hasFilters = query.trim() !== '' || category !== '';
+    const hasFilters =
+        query.trim() !== '' || category !== '' || isbnType !== '';
     const total = meta?.total ?? projects.length;
 
     function changeQuery(value: string) {
@@ -86,6 +95,11 @@ export default function BookChapterProjectListPage() {
 
     function changeCategory(value: string) {
         setCategory(value);
+        setPage(1);
+    }
+
+    function changeIsbnType(value: string) {
+        setIsbnType(value);
         setPage(1);
     }
 
@@ -173,6 +187,27 @@ export default function BookChapterProjectListPage() {
                                 ]}
                                 ariaLabel={t('bookChapter.list.categoryAria')}
                                 icon={<RiLayoutGridLine />}
+                            />
+                            <SelectField
+                                value={isbnType}
+                                onChange={changeIsbnType}
+                                options={[
+                                    { value: '', label: t('isbn.filter.all') },
+                                    {
+                                        value: 'print',
+                                        label: t('isbn.types.print.label'),
+                                    },
+                                    {
+                                        value: 'electronic',
+                                        label: t('isbn.types.electronic.label'),
+                                    },
+                                    {
+                                        value: 'both',
+                                        label: t('isbn.types.both.label'),
+                                    },
+                                ]}
+                                ariaLabel={t('isbn.filter.label')}
+                                icon={<RiBarcodeLine />}
                             />
                             <SelectField
                                 value={sort}

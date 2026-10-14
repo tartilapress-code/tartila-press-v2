@@ -96,7 +96,7 @@ class CatalogController extends Controller
 
     public function show(Request $request, ReaderBook $readerBook): JsonResponse
     {
-        abort_unless(ReaderBook::listed()->whereKey($readerBook->id)->exists(), 404, 'Buku tidak ditemukan.');
+        abort_unless(ReaderBook::listed()->whereKey($readerBook->id)->exists(), 404, 'Ebook belum tersedia, coba lagi di lain waktu.');
 
         return response()->json([
             'success' => true,

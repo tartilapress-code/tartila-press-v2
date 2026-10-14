@@ -37,7 +37,12 @@ export const EDITOR_PATHS = [
     '/dashboard/fee-saya',
     '/dashboard/proyek-bab-buku-saya',
 ];
-export const EDITOR_CATEGORIES = ['pool', 'assigned_manuscript'];
+export const EDITOR_CATEGORIES = [
+    'pool',
+    'assigned_manuscript',
+    'coauthor_pool',
+    'coauthor_manuscript',
+];
 
 export const isProfilePage = (pathname: string) =>
     matches(pathname, PROFILE_PATHS);

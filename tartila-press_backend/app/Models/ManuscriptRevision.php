@@ -17,6 +17,9 @@ class ManuscriptRevision extends Model
         'note',
         'admin_status',
         'admin_note',
+        // Catatan penulis saat meminta revisi lagi (terpisah dari catatan admin).
+        'author_note',
+        'file_purged_at',
         'reviewed_by',
         'reviewed_at',
     ];
@@ -25,6 +28,7 @@ class ManuscriptRevision extends Model
     {
         return [
             'reviewed_at' => 'datetime',
+            'file_purged_at' => 'datetime',
         ];
     }
 

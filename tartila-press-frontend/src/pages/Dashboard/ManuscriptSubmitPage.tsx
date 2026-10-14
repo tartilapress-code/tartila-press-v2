@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import Button from '@/components/Button/Button';
+import Select from '@/components/Select/Select';
 import * as manuscriptApi from '@/data/manuscript/manuscriptApi';
 import * as publicProfileApi from '@/data/publicProfile/publicProfileApi';
 import * as orderApi from '@/data/order/orderApi';
@@ -182,6 +183,12 @@ export default function ManuscriptSubmitPage() {
         null
     );
 
+    // Template naskah dipilih penulis dulu; naskah baru bisa terkirim setelah memilih.
+    const [templates, setTemplates] = useState<manuscriptApi.TemplateOption[]>(
+        []
+    );
+    const [templateId, setTemplateId] = useState<string>('');
+
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -199,6 +206,13 @@ export default function ManuscriptSubmitPage() {
                 }
             })
             .catch(() => setDefaultBio(null));
+    }, []);
+
+    useEffect(() => {
+        manuscriptApi
+            .templateOptions()
+            .then((response) => setTemplates(response.data))
+            .catch(() => setTemplates([]));
     }, []);
 
     useEffect(() => {
@@ -227,6 +241,10 @@ export default function ManuscriptSubmitPage() {
             setErrorMessage('Judul buku wajib diisi.');
             return;
         }
+        if (!isBookChapter && templates.length > 0 && !templateId) {
+            setErrorMessage('Pilih template naskah terlebih dahulu.');
+            return;
+        }
 
         setIsSubmitting(true);
         setErrorMessage('');
@@ -236,6 +254,8 @@ export default function ManuscriptSubmitPage() {
         formData.append('file', file);
 
         if (!isBookChapter) {
+            if (templateId)
+                formData.append('manuscript_template_id', templateId);
             formData.append('title', title);
             coAuthors.forEach((author, index) =>
                 formData.append(`author_user_ids[${index}]`, String(author.id))
@@ -307,6 +327,33 @@ export default function ManuscriptSubmitPage() {
                         onChange={setCoAuthors}
                         currentUserId={user?.id}
                     />
+                    {templates.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                            <Select
+                                name="manuscript_template_id"
+                                label="Template Naskah (wajib dipilih)"
+                                option_data={[
+                                    {
+                                        value: '',
+                                        label: 'Pilih template naskah',
+                                    },
+                                    ...templates.map((template) => ({
+                                        value: String(template.id),
+                                        label: template.name,
+                                    })),
+                                ]}
+                                value={templateId}
+                                onChange={(e) => setTemplateId(e.target.value)}
+                            />
+                            <small className="text-oxford-navy-900/65">
+                                {templates.find(
+                                    (template) =>
+                                        String(template.id) === templateId
+                                )?.description ??
+                                    'Template menentukan tata letak buku Anda (halaman, huruf, daftar isi, dan sebagainya). Pilih dulu sebelum naskah bisa dikirim.'}
+                            </small>
+                        </div>
+                    )}
                 </>
             )}
 
@@ -373,7 +420,10 @@ export default function ManuscriptSubmitPage() {
                 variant="primary"
                 className="self-start"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={
+                    isSubmitting ||
+                    (!isBookChapter && templates.length > 0 && !templateId)
+                }
             >
                 {isSubmitting ? 'Mengunggah...' : 'Submit Naskah'}
             </Button>

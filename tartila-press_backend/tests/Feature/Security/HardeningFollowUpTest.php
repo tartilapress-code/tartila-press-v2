@@ -3,6 +3,7 @@
 namespace Tests\Feature\Security;
 
 use App\Models\Manuscript;
+use App\Models\ManuscriptTemplate;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\User;
@@ -149,6 +150,7 @@ class HardeningFollowUpTest extends TestCase
 
         return $this->post('/api/v1/manuscripts', [
             'order_id' => $order->id,
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'title' => 'Naskah Uji',
             'file' => new UploadedFile($path, $name, null, null, true),
         ], ['Accept' => 'application/json']);

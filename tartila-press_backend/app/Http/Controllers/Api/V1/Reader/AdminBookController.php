@@ -88,6 +88,13 @@ class AdminBookController extends Controller
             'Buku ini belum punya ebook PDF di Tartila Press. Unggah dulu di Admin > Buku (Tartila Press).'
         );
 
+        // Ebook mitra tampil hanya lewat persetujuan di menu Mitra.
+        abort_if(
+            ($validated['is_published'] ?? false) && $readerBook->book?->isPartnerBook() && $readerBook->book->partner_status !== 'approved',
+            422,
+            'Ebook mitra hanya tampil setelah disetujui di menu Mitra.'
+        );
+
         $readerBook->update($validated);
 
         return response()->json(['success' => true, 'message' => 'Buku diperbarui.', 'data' => $this->row($readerBook->fresh())]);
@@ -95,6 +102,8 @@ class AdminBookController extends Controller
 
     public function destroy(ReaderBook $readerBook): JsonResponse
     {
+        abort_if($readerBook->book?->isPartnerBook(), 422, 'Buku mitra dikelola mitra yang bersangkutan (menu Mitra).');
+
         // Ebook milik buku di Tartila Press, jadi berkasnya tidak ikut dihapus.
         $readerBook->delete();
 
@@ -155,6 +164,7 @@ class AdminBookController extends Controller
             'read_fee' => $readerBook->read_fee,
             'read_events' => $readerBook->read_events,
             'book_active' => (bool) $readerBook->book?->is_active,
+            'partner' => $readerBook->book?->isPartnerBook() ? $readerBook->book->partner?->company_name : null,
         ];
     }
 }

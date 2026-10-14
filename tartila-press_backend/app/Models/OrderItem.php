@@ -13,6 +13,7 @@ class OrderItem extends Model
         'itemable_type',
         'itemable_id',
         'name',
+        'isbn_type',
         'quantity',
         'unit_price',
         'subtotal',

@@ -281,7 +281,7 @@ class IsbnApplicationService
                 ? $manuscript->revisions->sortByDesc('revision_number')->first()
                 : $manuscript->latestRevision();
 
-            if ($revision) {
+            if ($revision && $revision->file_path) {
                 $candidates[] = [
                     'label' => $chapter ? 'Naskah gabungan' : 'Naskah',
                     'path' => $revision->file_path,

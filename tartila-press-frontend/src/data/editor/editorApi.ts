@@ -6,9 +6,19 @@ export type EditorProfilePayload = Partial<{
     // Bahasa yang dikuasai (kode, lihat lib/contentLanguages).
     languages: string[];
     is_available: boolean;
+    // Layanan co-author: centang, fee mandiri, dan keterangan.
+    is_coauthor: boolean;
+    coauthor_fee: number | string;
+    coauthor_bio: string;
 }>;
 
 export const directory = () => http.get('/editors');
+
+// Co-author (editor ber-centang co-author) yang bisa dipilih penulis.
+export const coauthorDirectory = () => http.get('/coauthors');
+
+// Level & performa milik sendiri (hanya terlihat oleh editor itu dan admin).
+export const myInsight = () => http.get('/editor/insight');
 
 export const getMyProfile = () => http.get('/editor/profile');
 
@@ -19,6 +29,14 @@ export const manuscriptPool = () => http.get('/editor/manuscript-pool');
 
 export const claimManuscript = (id: number | string) =>
     http.post(`/editor/manuscript-pool/${id}/claim`);
+
+export const coauthorPool = () => http.get('/editor/coauthor-pool');
+
+export const claimCoauthorManuscript = (id: number | string) =>
+    http.post(`/editor/coauthor-pool/${id}/claim`);
+
+export const myCoauthorManuscripts = () =>
+    http.get('/editor/coauthor-manuscripts');
 
 export const myManuscripts = () => http.get('/editor/manuscripts');
 
@@ -50,6 +68,7 @@ export type BookChapterProjectPayload = Partial<{
     includes_hki: boolean;
     includes_isbn_print: boolean;
     includes_isbn_electronic: boolean;
+    isbn_type: 'print' | 'electronic' | 'both' | null;
     package_item_ids: number[];
 }>;
 

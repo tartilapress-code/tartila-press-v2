@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Book;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
+use App\Support\IsbnTypes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,6 +38,11 @@ class BookChapterProjectController extends Controller
 
             $query->where(fn (Builder $q) => $q->whereHas('category', fn (Builder $c) => $c->where('name', $name))
                 ->orWhereHas('fieldCategory', fn (Builder $c) => $c->where('name', $name)));
+        }
+
+        // Jenis ISBN: print (cetak), electronic (digital), both (keduanya).
+        if (in_array($request->query('isbn_type'), IsbnTypes::ALL, true)) {
+            $query->where('isbn_type', $request->query('isbn_type'));
         }
 
         $open = fn ($chapters) => $chapters->whereNull('manuscript_id')->whereNull('order_id');

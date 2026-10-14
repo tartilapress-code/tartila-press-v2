@@ -18,7 +18,20 @@ type PoolEditor = {
     id: number;
     name: string;
     is_available: boolean;
+    // Editor yang bersedia menjadi co-author (layanan co-author).
+    is_coauthor?: boolean;
     field_category_ids: number[];
+};
+
+type PoolCoauthorManuscript = {
+    id: number;
+    title: string;
+    authors: string[];
+    difficulty: ManuscriptDifficulty | null;
+    coauthor_fee: number | null;
+    coauthor_deadline: string | null;
+    criteria: { general: boolean; field_categories: FieldCategory[] };
+    eligible_coauthor_count: number;
 };
 
 type PoolManuscript = {
@@ -37,6 +50,7 @@ type PoolSettings = {
     field_categories: FieldCategory[];
     editors: PoolEditor[];
     manuscripts: PoolManuscript[];
+    coauthor_manuscripts?: PoolCoauthorManuscript[];
 };
 
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
@@ -351,6 +365,79 @@ export default function ManuscriptPoolSettingsPage() {
                 )}
             </section>
 
+            <section className={cardClass} aria-labelledby="pool-coauthor">
+                <div className="flex flex-col gap-1">
+                    <h6
+                        id="pool-coauthor"
+                        className="font-display text-lg font-bold text-oxford-navy-700"
+                    >
+                        Naskah di Pool Co-author (
+                        {(settings.coauthor_manuscripts ?? []).length})
+                    </h6>
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Naskah yang menunggu co-author. Hanya editor yang
+                        mencentang co-author dan bidang keahliannya cocok yang
+                        bisa mengambilnya. Buka naskah ke pool ini dari halaman
+                        detail naskah (status Menunggu Penugasan Co-author).
+                    </p>
+                </div>
+                {(settings.coauthor_manuscripts ?? []).length === 0 ? (
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Belum ada naskah yang terbuka di pool co-author.
+                    </p>
+                ) : (
+                    <ul className="flex flex-col gap-3">
+                        {(settings.coauthor_manuscripts ?? []).map(
+                            (manuscript) => (
+                                <li
+                                    key={manuscript.id}
+                                    className="flex flex-wrap items-start justify-between gap-2 rounded-xl bg-forest-moss-50/60 p-4 ring-1 ring-forest-moss-100"
+                                >
+                                    <div className="flex flex-col gap-0.5">
+                                        <Link
+                                            to={`/dashboard/naskah/${manuscript.id}`}
+                                            className="font-semibold text-oxford-navy-900 hover:text-oxford-navy-600"
+                                        >
+                                            {manuscript.title}
+                                        </Link>
+                                        <p className="text-sm text-oxford-navy-900/70">
+                                            {manuscript.authors.join(', ')}
+                                            {manuscript.coauthor_fee !== null &&
+                                                ` · ${rupiahFormatter.format(manuscript.coauthor_fee)}`}
+                                            {manuscript.coauthor_deadline &&
+                                                ` · deadline ${manuscript.coauthor_deadline}`}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <DifficultyBadge
+                                            difficulty={manuscript.difficulty}
+                                        />
+                                        <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-oxford-navy-800 ring-1 ring-forest-moss-200">
+                                            {manuscript.criteria.general
+                                                ? 'Umum'
+                                                : manuscript.criteria.field_categories
+                                                      .map((item) => item.name)
+                                                      .join(', ')}
+                                        </span>
+                                        <span
+                                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
+                                                manuscript.eligible_coauthor_count ===
+                                                0
+                                                    ? 'bg-red-50 text-red-700 ring-red-200'
+                                                    : 'bg-white text-oxford-navy-800 ring-forest-moss-200'
+                                            }`}
+                                        >
+                                            {manuscript.eligible_coauthor_count}{' '}
+                                            co-author memenuhi
+                                        </span>
+                                    </div>
+                                </li>
+                            )
+                        )}
+                    </ul>
+                )}
+            </section>
+
             <section className={cardClass} aria-labelledby="pool-editor">
                 <div className="flex flex-col gap-1">
                     <h6
@@ -388,6 +475,11 @@ export default function ManuscriptPoolSettingsPage() {
                                         <span className="font-semibold text-oxford-navy-900">
                                             {editor.name}
                                         </span>
+                                        {editor.is_coauthor && (
+                                            <span className="rounded-full bg-forest-moss-50 px-2.5 py-0.5 text-xs font-medium text-forest-moss-800 ring-1 ring-forest-moss-200">
+                                                Co-author
+                                            </span>
+                                        )}
                                         {!editor.is_available && (
                                             <span className="rounded-full bg-white px-2.5 py-0.5 text-xs text-oxford-navy-900/70 ring-1 ring-forest-moss-200">
                                                 Sedang tidak tersedia

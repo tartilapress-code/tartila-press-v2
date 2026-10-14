@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Book;
 use App\Models\BookChapter;
 use App\Models\BookChapterSetting;
+use App\Services\Cover\CoverService;
 use Illuminate\Support\Facades\DB;
 
 class BookChapterProjectService
@@ -64,6 +65,9 @@ class BookChapterProjectService
             }
 
             $book->packageItems()->sync($packageItemIds);
+
+            // Judulnya langsung muncul di daftar cover Book Chapter (cover awal boleh dibuat lebih awal).
+            app(CoverService::class)->ensureChapterProject($book);
 
             return $book->load(['chapters', 'packageItems']);
         });

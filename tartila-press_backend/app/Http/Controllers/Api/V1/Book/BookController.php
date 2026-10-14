@@ -134,6 +134,12 @@ class BookController extends Controller
         $book->loadAvg('reviews', 'rating');
         $book->append(['author_profiles', 'editor_profile', 'citation_authors']);
 
+        // Pembelian ebook diarahkan ke Tartila Book (alamat situs + judul buku).
+        if ($book->sells_ebook) {
+            $book->setAttribute('ebook_url', $book->ebookUrl());
+            $book->setAttribute('ebook_available', $book->isEbookAvailable());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Detail buku berhasil diambil.',

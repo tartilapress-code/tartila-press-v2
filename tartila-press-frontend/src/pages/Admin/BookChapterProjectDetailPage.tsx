@@ -13,6 +13,7 @@ import ChapterRowEditor, {
     type EditableChapter,
 } from '@/components/bookChapter/ChapterRowEditor';
 import PackageOptionsField from '@/components/bookChapter/PackageOptionsField';
+import { isbnFromFlags, type IsbnType } from '@/lib/isbnTypes';
 import * as adminApi from '@/data/admin/adminApi';
 import * as editorApi from '@/data/editor/editorApi';
 import { ApiError } from '@/lib/http';
@@ -47,6 +48,7 @@ type ProjectDetail = {
     includes_hki: boolean;
     includes_isbn_print: boolean;
     includes_isbn_electronic: boolean;
+    isbn_type: IsbnType | null;
     package_items: PackageItem[];
     chapters: EditableChapter[];
 };
@@ -116,6 +118,12 @@ export default function BookChapterProjectDetailPage() {
             includes_hki: data.includes_hki,
             includes_isbn_print: data.includes_isbn_print,
             includes_isbn_electronic: data.includes_isbn_electronic,
+            isbn_type:
+                data.isbn_type ??
+                isbnFromFlags(
+                    data.includes_isbn_print,
+                    data.includes_isbn_electronic
+                ),
             package_item_ids: data.package_items.map((item) => item.id),
         });
         setLanguages(toContentLanguages(data.languages));

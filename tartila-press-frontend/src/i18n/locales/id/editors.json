@@ -8,6 +8,8 @@
         "languagesTitle": "Bahasa yang dikuasai",
         "languagesEmpty": "Belum diisi.",
         "bioTitle": "Bio",
+        "promoted": "Direkomendasikan",
+        "monitored": "Dalam pemantauan — disarankan memilih yang lain",
         "bioEmpty": "Editor ini belum menulis bio."
     }
 }

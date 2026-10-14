@@ -43,6 +43,8 @@ export default function EditorManuscriptPoolPage() {
     const [errorMessage, setErrorMessage] = useState<string>('');
     // Bidang keahlian editor ini (diatur admin).
     const [myFields, setMyFields] = useState<string[]>([]);
+    // Editor dalam pemantauan admin tidak bisa mengambil naskah dari pool.
+    const [isMonitored, setIsMonitored] = useState<boolean>(false);
 
     useEffect(() => {
         editorApi
@@ -50,6 +52,7 @@ export default function EditorManuscriptPoolPage() {
             .then((response) => {
                 setManuscripts(response.data);
                 setMyFields(response.meta?.my_field_categories ?? []);
+                setIsMonitored(Boolean(response.meta?.under_monitoring));
             })
             .finally(() => setIsLoading(false));
     }, []);
@@ -90,6 +93,16 @@ export default function EditorManuscriptPoolPage() {
                     </p>
                 )}
             </div>
+
+            {isMonitored && (
+                <p
+                    role="note"
+                    className="rounded-md bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-red-200"
+                >
+                    Akun Anda sedang dalam pemantauan admin, jadi belum bisa
+                    mengambil naskah dari pool.
+                </p>
+            )}
 
             {errorMessage && (
                 <p className="text-red-600 text-sm">{errorMessage}</p>
@@ -153,7 +166,9 @@ export default function EditorManuscriptPoolPage() {
                             <Button
                                 variant="primary"
                                 onClick={() => handleClaim(manuscript.id)}
-                                disabled={claimingId === manuscript.id}
+                                disabled={
+                                    claimingId === manuscript.id || isMonitored
+                                }
                             >
                                 Ambil Naskah Ini
                             </Button>

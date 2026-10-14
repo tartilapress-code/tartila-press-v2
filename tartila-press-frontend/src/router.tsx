@@ -37,6 +37,12 @@ import ManuscriptSubmitPage from './pages/Dashboard/ManuscriptSubmitPage';
 import ManuscriptDetailPage from './pages/Dashboard/ManuscriptDetailPage';
 import MyManuscriptsPage from './pages/Dashboard/MyManuscriptsPage';
 import NotificationsPage from './pages/Dashboard/NotificationsPage';
+import AuthorsManagementPage from './pages/Admin/AuthorsManagementPage';
+import CoverProjectPage from './pages/Admin/CoverProjectPage';
+import CoversPage from './pages/Admin/CoversPage';
+import EditorsManagementPage from './pages/Admin/EditorsManagementPage';
+import EditorCoauthorManuscriptsPage from './pages/Dashboard/EditorCoauthorManuscriptsPage';
+import EditorCoauthorPoolPage from './pages/Dashboard/EditorCoauthorPoolPage';
 import EditorManuscriptPoolPage from './pages/Dashboard/EditorManuscriptPoolPage';
 import EditorManuscriptsPage from './pages/Dashboard/EditorManuscriptsPage';
 import EditorFeePage from './pages/Dashboard/EditorFeePage';
@@ -259,6 +265,14 @@ const router = createBrowserRouter([
                                 element: <EditorManuscriptPoolPage />,
                             },
                             {
+                                path: 'pool-coauthor',
+                                element: <EditorCoauthorPoolPage />,
+                            },
+                            {
+                                path: 'naskah-coauthor',
+                                element: <EditorCoauthorManuscriptsPage />,
+                            },
+                            {
                                 path: 'naskah-ditugaskan',
                                 element: <EditorManuscriptsPage />,
                             },
@@ -428,6 +442,22 @@ const router = createBrowserRouter([
                             {
                                 path: 'tentang-kami',
                                 element: <AboutSettingsPage />,
+                            },
+                            {
+                                path: 'covers',
+                                element: <CoversPage />,
+                            },
+                            {
+                                path: 'covers/:projectId',
+                                element: <CoverProjectPage />,
+                            },
+                            {
+                                path: 'authors',
+                                element: <AuthorsManagementPage />,
+                            },
+                            {
+                                path: 'editors',
+                                element: <EditorsManagementPage />,
                             },
                             {
                                 path: 'pool-naskah',

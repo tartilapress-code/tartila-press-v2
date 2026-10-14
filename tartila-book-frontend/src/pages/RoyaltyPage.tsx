@@ -130,7 +130,7 @@ export default function RoyaltyPage() {
                                                     <span className="block text-xs text-oxford-navy-900/60">
                                                         dibagi{' '}
                                                         {row.authors_count}{' '}
-                                                        penulis
+                                                        penerima
                                                     </span>
                                                 )}
                                             </td>

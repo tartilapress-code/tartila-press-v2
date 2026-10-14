@@ -2,7 +2,7 @@ import { http } from '@/lib/http';
 import { queryString, type PageParams } from '@/lib/pagination';
 
 export type EntryType =
-    'editor_fee' | 'royalty' | 'ebook_royalty' | 'sales_fee';
+    'editor_fee' | 'coauthor_fee' | 'royalty' | 'ebook_royalty' | 'sales_fee';
 
 export type WalletEntry = {
     type: EntryType;
@@ -46,6 +46,7 @@ export type Wallet = {
 
 export const TYPE_LABEL: Record<EntryType, string> = {
     editor_fee: 'Fee editor',
+    coauthor_fee: 'Fee co-author',
     royalty: 'Royalti penulis',
     ebook_royalty: 'Royalti ebook',
     sales_fee: 'Fee penjualan',

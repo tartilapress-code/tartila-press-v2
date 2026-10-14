@@ -82,6 +82,29 @@ class User extends Authenticatable implements CanResetPasswordContract, MustVeri
         return $this->hasMany(Manuscript::class, 'editor_id');
     }
 
+    public function partner(): HasOne
+    {
+        return $this->hasOne(Partner::class);
+    }
+
+    /** Akun mitra Tartila Book: di Tartila Press hanya pengguna biasa (beli buku fisik). */
+    public function isPartner(): bool
+    {
+        return $this->roles()->where('name', 'mitra')->exists();
+    }
+
+    /** Keterkaitan user sebagai penulis naskah (termasuk co-author layanan). */
+    public function manuscriptAuthorLinks(): HasMany
+    {
+        return $this->hasMany(ManuscriptAuthor::class);
+    }
+
+    /** Naskah yang disusun user ini sebagai co-author (layanan co-author). */
+    public function coauthoredManuscripts(): HasMany
+    {
+        return $this->hasMany(Manuscript::class, 'coauthor_id');
+    }
+
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class);

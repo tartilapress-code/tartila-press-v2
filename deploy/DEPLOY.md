@@ -733,7 +733,8 @@ yang terpisah, jadi cukup satu backend di server.
 **Yang perlu disiapkan**
 
 1. Nama (sub)domain baru, mis. `book.tartilapress.com` — tambahkan *A record* ke IP server.
-2. Backend sudah terbaru (`git pull`) dan migrasinya jalan: `bash deploy/deploy.sh`
+2. Isi `TARTILA_BOOK_URL=https://$DOMAIN_BOOK` di `.env` backend (tautan beli ebook di Tartila Press = alamat itu + `/buku/{judul}`), lalu `php artisan config:cache`.
+   Backend sudah terbaru (`git pull`) dan migrasinya jalan: `bash deploy/deploy.sh`
    (membuat tabel `reader_*`). Cron di langkah 7 sudah cukup; tugas
    `reader:cancel-unpaid` ikut berjalan lewat `schedule:run`.
 3. Batas unggah ebook (admin): di repo sudah dinaikkan ke 210 MB

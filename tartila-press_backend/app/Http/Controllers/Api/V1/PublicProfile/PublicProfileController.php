@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\PublicProfile;
 use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\PublicProfile;
+use App\Services\EditorInsightService;
 use Illuminate\Http\Request;
 
 class PublicProfileController extends Controller
@@ -35,6 +36,14 @@ class PublicProfileController extends Controller
             $query->whereRaw("{$displayName} LIKE ?", ['%'.mb_strtolower((string) $request->query('search')).'%']);
         }
 
+        // Daftar editor: editor yang dipromosikan (maksimal 3, level & performa tertinggi) selalu paling atas.
+        $promoted = $role === 'editor' ? app(EditorInsightService::class)->promotedTop() : [];
+
+        if ($promoted !== []) {
+            $cases = collect($promoted)->values()->map(fn ($id, $index) => 'WHEN '.(int) $id.' THEN '.$index)->implode(' ');
+            $query->orderByRaw("CASE public_profiles.user_id {$cases} ELSE ".count($promoted).' END');
+        }
+
         match ($request->query('sort')) {
             'az' => $query->orderByRaw("{$displayName} ASC"),
             'za' => $query->orderByRaw("{$displayName} DESC"),
@@ -52,6 +61,7 @@ class PublicProfileController extends Controller
                 'roles' => $profile->user->roles
                     ->pluck('display_name')
                     ->values(),
+                'is_promoted' => in_array($profile->user_id, $promoted, true),
             ],
         );
     }

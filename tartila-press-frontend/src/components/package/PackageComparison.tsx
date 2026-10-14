@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RiCheckLine } from '@remixicon/react';
+import IsbnPriceNote from '@/components/package/IsbnPriceNote';
 import PillBadge from '@/components/ui/PillBadge';
 import type { PackageSummary } from '@/data/package/packageApi';
 import { useFormat } from '@/i18n/useFormat';
@@ -183,6 +184,10 @@ export default function PackageComparison({
                                     <span className="text-base font-bold text-oxford-navy-700">
                                         {rupiah(pkg.final_price)}
                                     </span>
+                                    <IsbnPriceNote
+                                        options={pkg.isbn_options}
+                                        className="mt-1 max-w-48 whitespace-normal"
+                                    />
                                 </div>
                             </td>
                             <FeatureCells

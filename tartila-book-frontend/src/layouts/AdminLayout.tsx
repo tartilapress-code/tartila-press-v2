@@ -2,6 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom';
 
 const LINKS = [
     { to: '/admin', label: 'Buku & ebook', end: true },
+    { to: '/admin/mitra/buku', label: 'Ebook mitra' },
+    { to: '/admin/mitra', label: 'Mitra', end: true },
     { to: '/admin/pilihan', label: 'Taksonomi' },
     { to: '/admin/langganan', label: 'Paket langganan' },
     { to: '/admin/akses', label: 'Jadwal buka / kunci' },

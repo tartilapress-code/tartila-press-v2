@@ -20,10 +20,15 @@ use Illuminate\Support\Collection;
  */
 class HkiService
 {
-    private const MANUSCRIPT_STATUS = [
+    public const MANUSCRIPT_STATUS = [
         'submitted' => 'Naskah direview admin',
         'revision_requested' => 'Revisi penulis',
         'pending_editor_assignment' => 'Menunggu editor',
+        'pending_coauthor_assignment' => 'Menunggu co-author',
+        'in_coauthoring' => 'Disusun co-author',
+        'coauthor_revision_requested' => 'Susunan co-author direvisi',
+        'pending_admin_review_coauthor' => 'Susunan co-author direview admin',
+        'pending_author_review_coauthor' => 'Susunan co-author ditinjau penulis',
         'in_editing' => 'Sedang diedit',
         'pending_admin_review_editor' => 'Hasil edit direview admin',
         'editor_revision_requested' => 'Revisi editor',

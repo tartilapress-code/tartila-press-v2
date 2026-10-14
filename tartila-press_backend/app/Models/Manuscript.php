@@ -35,6 +35,16 @@ class Manuscript extends Model
         'editor_deadline',
         'editor_assignment_note',
         'open_for_claim',
+        // Layanan co-author (lihat ManuscriptAssignmentService).
+        'wants_coauthor',
+        'coauthor_id',
+        'coauthor_source',
+        'coauthor_fee',
+        'coauthor_requested_fee',
+        'coauthor_deadline',
+        'coauthor_assignment_note',
+        'coauthor_open_for_claim',
+        'editor_admin_fee_pending',
         'author_bio_photo',
         'author_bio_name',
         'author_bio_text',
@@ -63,8 +73,30 @@ class Manuscript extends Model
 
     public const STATUS_COMPILED = 'compiled';
 
+    /**
+     * Sembunyikan fee dan catatan penugasan dari yang tidak berhak: fee editor hanya untuk admin dan
+     * editor naskah itu; fee co-author hanya untuk admin dan co-author-nya. Penulis tidak melihat keduanya.
+     */
+    public function hideFeesFrom(User $viewer, bool $isAdmin): static
+    {
+        if ($isAdmin) {
+            return $this;
+        }
+
+        if ($this->editor_id !== $viewer->id) {
+            $this->makeHidden(['editor_fee', 'editor_requested_fee', 'editor_admin_fee', 'editor_admin_fee_pending', 'editor_assignment_note']);
+        }
+
+        if ($this->coauthor_id !== $viewer->id) {
+            $this->makeHidden(['coauthor_fee', 'coauthor_requested_fee', 'coauthor_admin_fee', 'coauthor_assignment_note']);
+        }
+
+        return $this;
+    }
+
     protected $appends = [
         'editor_admin_fee',
+        'coauthor_admin_fee',
     ];
 
     protected function casts(): array
@@ -75,6 +107,12 @@ class Manuscript extends Model
             'editor_requested_fee' => 'decimal:2',
             'editor_deadline' => 'date',
             'open_for_claim' => 'boolean',
+            'wants_coauthor' => 'boolean',
+            'coauthor_open_for_claim' => 'boolean',
+            'coauthor_fee' => 'decimal:2',
+            'coauthor_requested_fee' => 'decimal:2',
+            'coauthor_deadline' => 'date',
+            'editor_admin_fee_pending' => 'decimal:2',
             'pool_field_category_ids' => 'array',
         ];
     }
@@ -92,6 +130,12 @@ class Manuscript extends Model
     public function editor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'editor_id');
+    }
+
+    /** Co-author yang menyusun naskah mentah penulis (editor yang mencentang co-author). */
+    public function coauthor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'coauthor_id');
     }
 
     public function revisions(): HasMany
@@ -157,6 +201,7 @@ class Manuscript extends Model
                 'id' => $link->user_id,
                 'name' => $link->user?->name,
                 'has_approved' => $link->approved_at !== null,
+                'is_coauthor' => (bool) $link->is_coauthor,
             ])->all(),
         );
     }
@@ -172,6 +217,16 @@ class Manuscript extends Model
             get: fn () => $this->editor_fee === null
                 ? null
                 : round($this->editor_fee - ($this->editor_requested_fee ?? 0), 2),
+        );
+    }
+
+    /** Bagian fee co-author dari admin (coauthor_fee = fee pilihan penulis + fee dari admin). */
+    protected function coauthorAdminFee(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->coauthor_fee === null
+                ? null
+                : round($this->coauthor_fee - ($this->coauthor_requested_fee ?? 0), 2),
         );
     }
 

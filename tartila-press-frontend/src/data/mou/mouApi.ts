@@ -10,7 +10,18 @@ export type DistributionMode = 'one' | 'all';
 export type DistributionOption = {
     key: string;
     name: string;
+    // Ringkasan opsional; rincian hak berupa daftar poin.
     description: string;
+    points: string[];
+};
+
+// Hak penulis atas fasilitas dan layanan dari paket yang diambil (tercantum di MOU).
+export type PackageRights = {
+    package: string | null;
+    isbn_type: 'print' | 'electronic' | 'both' | null;
+    isbn_label: string | null;
+    facilities: string[];
+    services: string[];
 };
 
 export type MouContent = {
@@ -20,6 +31,7 @@ export type MouContent = {
     distribution_mode: DistributionMode;
     royalty: { physical: number | null; ebook: number | null };
     royalty_types: { physical: boolean; ebook: boolean };
+    package_rights?: PackageRights | null;
     first_party_terms: string[];
     second_party_terms: string[];
     closing_terms: string[];
@@ -30,6 +42,8 @@ export type MouSignatory = {
     user_id: number;
     name: string;
     position: number;
+    // Co-author layanan paket: penulis terakhir dengan royalti tetap.
+    is_coauthor?: boolean;
     chapters: number | null;
     royalty_physical: number | null;
     royalty_ebook: number | null;
@@ -161,6 +175,8 @@ export type MouTemplate = {
     distribution_mode: DistributionMode;
     physical_royalty: number;
     ebook_royalty: number;
+    // Jatah royalti tetap co-author (layanan co-author), fisik dan ebook.
+    coauthor_royalty?: number;
     first_party_terms: string[];
     second_party_terms: string[];
     closing_terms: string[];

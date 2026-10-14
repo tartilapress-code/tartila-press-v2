@@ -43,6 +43,9 @@ type OrderRecord = {
     subtotal: string;
     discount_total: string;
     editor_fee: string;
+    wants_coauthor?: boolean;
+    coauthor_fee?: string;
+    coauthor?: { id: number; name: string } | null;
     voucher_code: string | null;
     voucher_discount: string;
     total: string;
@@ -408,6 +411,13 @@ export default function MyOrdersPage() {
                                         {rupiahFormatter.format(
                                             Number(order.voucher_discount)
                                         )}
+                                    </p>
+                                )}
+                                {order.wants_coauthor && (
+                                    <p className="text-oxford-navy-900/70 text-sm">
+                                        {order.coauthor
+                                            ? `Co-author: ${order.coauthor.name} (+${rupiahFormatter.format(Number(order.coauthor_fee ?? 0))})`
+                                            : 'Co-author: ditentukan admin'}
                                     </p>
                                 )}
                                 {order.editor && (

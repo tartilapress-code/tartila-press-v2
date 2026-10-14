@@ -71,6 +71,56 @@ const router = createBrowserRouter([
                 ],
             },
             {
+                path: 'mitra',
+                element: isApp ? (
+                    <WebOnlyPage path="/mitra" />
+                ) : (
+                    <RequireAuth partner />
+                ),
+                children: [
+                    {
+                        lazy: async () => ({
+                            Component: (await import('@/layouts/PartnerLayout'))
+                                .default,
+                        }),
+                        children: [
+                            {
+                                index: true,
+                                lazy: async () => ({
+                                    Component: (
+                                        await import('@/pages/partner/PartnerBooksPage')
+                                    ).default,
+                                }),
+                            },
+                            {
+                                path: 'buku/baru',
+                                lazy: async () => ({
+                                    Component: (
+                                        await import('@/pages/partner/PartnerBookFormPage')
+                                    ).default,
+                                }),
+                            },
+                            {
+                                path: 'buku/:bookId',
+                                lazy: async () => ({
+                                    Component: (
+                                        await import('@/pages/partner/PartnerBookFormPage')
+                                    ).default,
+                                }),
+                            },
+                            {
+                                path: 'laporan',
+                                lazy: async () => ({
+                                    Component: (
+                                        await import('@/pages/partner/PartnerReportPage')
+                                    ).default,
+                                }),
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
                 path: 'admin',
                 element: isApp ? (
                     <WebOnlyPage path="/admin" />
@@ -105,6 +155,30 @@ const router = createBrowserRouter([
                                 lazy: async () => ({
                                     Component: (
                                         await import('@/pages/admin/AdminBookFormPage')
+                                    ).default,
+                                }),
+                            },
+                            {
+                                path: 'mitra',
+                                lazy: async () => ({
+                                    Component: (
+                                        await import('@/pages/admin/AdminPartnersPage')
+                                    ).default,
+                                }),
+                            },
+                            {
+                                path: 'mitra/buku',
+                                lazy: async () => ({
+                                    Component: (
+                                        await import('@/pages/admin/AdminPartnerBooksPage')
+                                    ).default,
+                                }),
+                            },
+                            {
+                                path: 'mitra/buku/:bookId',
+                                lazy: async () => ({
+                                    Component: (
+                                        await import('@/pages/admin/AdminPartnerBookPage')
                                     ).default,
                                 }),
                             },

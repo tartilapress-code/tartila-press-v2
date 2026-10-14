@@ -24,6 +24,8 @@ export type PackagePayload = Partial<{
     photo: string;
     category: string;
     price: number | string;
+    // Harga per jenis ISBN yang ditawarkan (print = cetak, electronic = digital, both = keduanya).
+    isbn_prices: Partial<Record<'print' | 'electronic' | 'both', number>>;
     discount: number;
     description: string;
     terms: string[];
@@ -141,6 +143,8 @@ export const reviewManuscriptRevision = (
         note?: string;
         // Wajib saat approve naskah yang editornya dipilih langsung penulis.
         fee?: number | string;
+        // Wajib saat approve naskah yang co-author-nya dipilih langsung penulis.
+        coauthor_fee?: number | string;
         // Tata otomatis naskah Word dengan template lalu kirim ke editor.
         auto_layout?: boolean;
         manuscript_template_id?: number | null;
@@ -175,6 +179,29 @@ export const openManuscriptPool = (
         pool_field_category_ids?: number[];
     }
 ) => http.post(`/admin/manuscripts/${manuscriptId}/open-pool`, payload);
+
+// Layanan co-author: tunjuk co-author langsung / buka ke pool co-author.
+export const assignManuscriptCoauthor = (
+    manuscriptId: number | string,
+    payload: {
+        coauthor_id: number;
+        fee: number | string;
+        deadline?: string;
+        note?: string;
+    }
+) => http.post(`/admin/manuscripts/${manuscriptId}/assign-coauthor`, payload);
+
+export const openCoauthorPool = (
+    manuscriptId: number | string,
+    payload: {
+        fee: number | string;
+        deadline?: string;
+        note?: string;
+        difficulty?: ManuscriptDifficulty;
+        pool_field_category_ids?: number[];
+    }
+) =>
+    http.post(`/admin/manuscripts/${manuscriptId}/open-coauthor-pool`, payload);
 
 export const updateManuscriptPoolSettings = (
     manuscriptId: number | string,
@@ -260,6 +287,24 @@ export const updateBookCategory = (id: number, payload: CategoryPayload) =>
 export const deleteBookCategory = (id: number) =>
     http.delete(`/admin/book-categories/${id}`);
 
+// Kelola Editor: statistik, performa, level, fee, pemantauan (ban) dan promosi.
+export const listEditorsAdmin = () => http.get('/admin/editors');
+
+export const banEditorAdmin = (
+    userId: number,
+    banned: boolean,
+    note?: string
+) => http.put(`/admin/editors/${userId}/ban`, { banned, note });
+
+export const promoteEditorAdmin = (userId: number, promoted: boolean) =>
+    http.put(`/admin/editors/${userId}/promote`, { promoted });
+
+// Kelola Penulis: statistik, royalti, catatan progres + catatan admin.
+export const listAuthorsAdmin = () => http.get('/admin/authors');
+
+export const saveAuthorNoteAdmin = (userId: number, note: string) =>
+    http.put(`/admin/authors/${userId}/note`, { note });
+
 export const listFieldCategoriesAdmin = () => http.get('/field-categories');
 
 export const createFieldCategory = (payload: CategoryPayload) =>
@@ -299,6 +344,7 @@ export type BookChapterProjectPayload = Partial<{
     includes_hki: boolean;
     includes_isbn_print: boolean;
     includes_isbn_electronic: boolean;
+    isbn_type: 'print' | 'electronic' | 'both' | null;
     package_item_ids: number[];
 }>;
 
@@ -392,6 +438,10 @@ export type BookChapterSettingPayload = {
     isbn_print_cost?: number | string;
     isbn_electronic_cost?: number | string;
     min_book_cost?: number | string;
+    // Minimal biaya 1 buku per jenis ISBN (kosong = ikut min_book_cost).
+    min_book_cost_print?: number | string | null;
+    min_book_cost_electronic?: number | string | null;
+    min_book_cost_both?: number | string | null;
 };
 
 export const getBookChapterSettings = () =>

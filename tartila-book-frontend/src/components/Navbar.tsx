@@ -41,7 +41,7 @@ function Bell({ unread }: { unread: number }) {
 }
 
 function UserMenu() {
-    const { user, isAdmin, logout } = useAuth();
+    const { user, isAdmin, isPartner, logout } = useAuth();
     const [open, setOpen] = useState<boolean>(false);
     const ref = useRef<HTMLDivElement>(null);
     const { pathname } = useLocation();
@@ -99,6 +99,11 @@ function UserMenu() {
                     {isAdmin && !isApp && (
                         <Link to="/admin" role="menuitem" className={item}>
                             Panel Admin
+                        </Link>
+                    )}
+                    {isPartner && !isApp && (
+                        <Link to="/mitra" role="menuitem" className={item}>
+                            Dashboard Mitra
                         </Link>
                     )}
                     <a href={PRESS_URL} role="menuitem" className={item}>
@@ -277,7 +282,7 @@ export default function Navbar() {
 
 /** Menu akun versi daftar untuk layar kecil. */
 function UserMenuInline() {
-    const { user, isAdmin, logout } = useAuth();
+    const { user, isAdmin, isPartner, logout } = useAuth();
     const item =
         'rounded-full px-3 py-2 text-[15px] font-medium text-oxford-navy-900/80 hover:bg-forest-moss-50';
 
@@ -297,6 +302,11 @@ function UserMenuInline() {
             {isAdmin && !isApp && (
                 <Link to="/admin" className={item}>
                     Panel Admin
+                </Link>
+            )}
+            {isPartner && !isApp && (
+                <Link to="/mitra" className={item}>
+                    Dashboard Mitra
                 </Link>
             )}
             <a href={PRESS_URL} className={item}>

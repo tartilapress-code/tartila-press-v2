@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Book;
 use App\Models\EditorProfile;
+use App\Models\ManuscriptTemplate;
 use App\Models\Order;
 use App\Models\Package;
 use App\Models\Role;
@@ -87,6 +88,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A', 'Penulis B'],
@@ -140,6 +142,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -157,6 +160,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -173,6 +177,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -180,6 +185,7 @@ class ManuscriptWorkflowTest extends TestCase
         ])->assertStatus(201);
 
         $response = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku Lagi',
             'authors' => ['Penulis A'],
@@ -202,6 +208,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -259,6 +266,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -298,6 +306,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -329,6 +338,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -373,6 +383,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -417,6 +428,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -476,6 +488,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -565,6 +578,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -585,6 +599,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -608,6 +623,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -635,6 +651,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],
@@ -657,6 +674,7 @@ class ManuscriptWorkflowTest extends TestCase
         Sanctum::actingAs($penulis);
 
         $submitResponse = $this->postJson('/api/v1/manuscripts', [
+            'manuscript_template_id' => ManuscriptTemplate::default()?->id,
             'order_id' => $order->id,
             'title' => 'Judul Buku',
             'authors' => ['Penulis A'],

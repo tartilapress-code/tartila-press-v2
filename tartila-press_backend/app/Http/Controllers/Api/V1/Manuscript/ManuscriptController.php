@@ -7,9 +7,11 @@ use App\Models\Book;
 use App\Models\BookChapter;
 use App\Models\Manuscript;
 use App\Models\ManuscriptRevision;
+use App\Models\ManuscriptTemplate;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\BookChapterCompilationService;
+use App\Services\ManuscriptAssignmentService;
 use App\Services\MouService;
 use App\Services\PublicationProcessService;
 use App\Support\ManuscriptTemplates\DocxPackage;
@@ -19,18 +21,42 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 
 class ManuscriptController extends Controller
 {
-    public function __construct(private readonly BookChapterCompilationService $compilation) {}
+    public function __construct(
+        private readonly BookChapterCompilationService $compilation,
+        private readonly ManuscriptAssignmentService $assignment,
+    ) {}
 
     private const MANUSCRIPT_UPLOAD_RULES = [
         'file',
         'mimes:pdf,doc,docx,odt',
         'max:20480',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Template naskah yang bisa dipilih penulis (tanpa pengaturan internal)
+    |--------------------------------------------------------------------------
+    */
+
+    public function templateOptions(): JsonResponse
+    {
+        $templates = ManuscriptTemplate::where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get(['id', 'name', 'description', 'is_default']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Daftar template naskah berhasil diambil.',
+            'data' => $templates,
+        ]);
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -51,6 +77,8 @@ class ManuscriptController extends Controller
             'author_bio_photo' => ['nullable', 'string', 'max:500', 'http_url'],
             'author_bio_name' => ['nullable', 'string', 'max:255'],
             'author_bio_text' => ['nullable', 'string', 'max:5000'],
+            // Template naskah pilihan penulis (dipakai untuk auto layout); wajib untuk naskah paket.
+            'manuscript_template_id' => ['nullable', 'integer', Rule::exists('manuscript_templates', 'id')->where('is_active', true)],
         ]);
 
         $this->ensureUsableDocx($request);
@@ -90,6 +118,13 @@ class ManuscriptController extends Controller
         } else {
             abort_if(blank($validated['title'] ?? null), 422, 'Judul buku wajib diisi.');
 
+            // Penulis memilih template naskah sendiri dulu sebelum naskahnya terkirim.
+            if (empty($validated['manuscript_template_id']) && ManuscriptTemplate::where('is_active', true)->exists()) {
+                throw ValidationException::withMessages([
+                    'manuscript_template_id' => 'Pilih template naskah terlebih dahulu sebelum mengirim naskah.',
+                ]);
+            }
+
             $title = $validated['title'];
             $authorUserIds = collect($validated['author_user_ids'] ?? [])
                 ->map(fn ($id) => (int) $id)
@@ -107,7 +142,7 @@ class ManuscriptController extends Controller
             ->map(fn (int $id) => $usersById[$id]->publicProfile?->pen_name ?: $usersById[$id]->name)
             ->all();
 
-        $manuscript = DB::transaction(function () use ($request, $validated, $user, $order, $title, $authorUserIds, $authorNames) {
+        $manuscript = DB::transaction(function () use ($request, $validated, $user, $order, $title, $authorUserIds, $authorNames, $chapter) {
 
             $manuscript = Manuscript::create([
                 'order_id' => $order->id,
@@ -115,6 +150,8 @@ class ManuscriptController extends Controller
                 'title' => $title,
                 'authors' => $authorNames,
                 'status' => 'submitted',
+                'wants_coauthor' => ! $chapter && (bool) $order->wants_coauthor,
+                'manuscript_template_id' => $chapter ? null : ($validated['manuscript_template_id'] ?? null),
                 'author_bio_photo' => $validated['author_bio_photo'] ?? null,
                 'author_bio_name' => $validated['author_bio_name'] ?? null,
                 'author_bio_text' => $validated['author_bio_text'] ?? null,
@@ -142,7 +179,7 @@ class ManuscriptController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Naskah berhasil disubmit.',
-            'data' => $manuscript->load('revisions'),
+            'data' => $manuscript->load('revisions')->hideFeesFrom($request->user(), false),
         ], 201);
     }
 
@@ -184,6 +221,7 @@ class ManuscriptController extends Controller
                     && $manuscript->isbnApplication === null
                     && $manuscript->authorLinks->first()?->user_id === $request->user()->id);
                 $manuscript->makeHidden(['bookChapter', 'authorLinks']);
+                $manuscript->hideFeesFrom($request->user(), false);
             });
 
         return response()->json([
@@ -216,6 +254,7 @@ class ManuscriptController extends Controller
         $manuscript->load([
             'revisions.uploader',
             'editor',
+            'coauthor:id,name',
             'user',
             'book',
             'bookChapter.book',
@@ -225,11 +264,22 @@ class ManuscriptController extends Controller
             'chapterRevisionRequests.requester:id,name',
         ]);
         $manuscript->append('co_authors');
+        $isAdmin = $request->user()->roles()->where('name', 'admin')->exists();
+        $manuscript->hideFeesFrom($request->user(), $isAdmin);
 
         // Hanya untuk admin: saat approve, admin wajib mengisi fee bila penulis
         // memilih editor langsung. Data order lainnya tidak ikut terkirim.
         if ($request->user()->roles()->where('name', 'admin')->exists()) {
-            $order = $manuscript->order()->with('editor:id,name')->first();
+            $order = $manuscript->order()->with(['editor:id,name', 'coauthor:id,name'])->first();
+
+            $manuscript->setAttribute(
+                'author_chosen_coauthor',
+                $order?->coauthor_id ? [
+                    'id' => $order->coauthor_id,
+                    'name' => $order->coauthor?->name,
+                    'requested_fee' => (float) $order->coauthor_fee,
+                ] : null
+            );
 
             $manuscript->setAttribute(
                 'author_chosen_editor',
@@ -263,14 +313,25 @@ class ManuscriptController extends Controller
             'note' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $isCoAuthor = $manuscript->authorLinks()->where('user_id', $user->id)->exists();
+        // "Penulis" di sini = penulis naskah; co-author layanan paket punya tahapnya sendiri.
+        $isCoAuthor = $manuscript->authorLinks()->where('user_id', $user->id)->where('is_coauthor', false)->exists();
+        $isServiceCoauthor = $manuscript->coauthor_id === $user->id;
         $isEditor = $manuscript->editor_id === $user->id;
 
-        abort_unless($isCoAuthor || $isEditor, 403, 'Anda tidak berwenang mengunggah revisi untuk naskah ini.');
+        abort_unless($isCoAuthor || $isServiceCoauthor || $isEditor, 403, 'Anda tidak berwenang mengunggah revisi untuk naskah ini.');
 
         $this->ensureUsableDocx($request);
 
-        if ($isCoAuthor) {
+        if ($isServiceCoauthor) {
+            abort_unless(
+                in_array($manuscript->status, ManuscriptAssignmentService::COAUTHOR_WORKING, true),
+                422,
+                'Naskah tidak sedang menunggu hasil susunan dari Anda.'
+            );
+
+            $role = 'coauthor';
+            $nextStatus = ManuscriptAssignmentService::STATUS_PENDING_ADMIN_REVIEW_COAUTHOR;
+        } elseif ($isCoAuthor) {
             abort_unless(
                 in_array($manuscript->status, ['submitted', 'revision_requested'], true),
                 422,
@@ -309,7 +370,7 @@ class ManuscriptController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Revisi berhasil diunggah.',
-            'data' => $manuscript->fresh(['revisions', 'editor']),
+            'data' => $manuscript->fresh(['revisions', 'editor'])->hideFeesFrom($request->user(), false),
         ], 201);
     }
 
@@ -323,7 +384,7 @@ class ManuscriptController extends Controller
     {
         $user = $request->user();
 
-        $coAuthorLink = $manuscript->authorLinks()->where('user_id', $user->id)->first();
+        $coAuthorLink = $manuscript->authorLinks()->where('user_id', $user->id)->where('is_coauthor', false)->first();
 
         abort_unless($coAuthorLink, 403, 'Anda tidak berwenang melakukan aksi ini.');
 
@@ -359,7 +420,7 @@ class ManuscriptController extends Controller
         if ($validated['decision'] === 'approve') {
             $coAuthorLink->update(['approved_at' => now()]);
 
-            if ($manuscript->authorLinks()->whereNull('approved_at')->doesntExist()) {
+            if ($manuscript->authorLinks()->where('is_coauthor', false)->whereNull('approved_at')->doesntExist()) {
                 $manuscript->update(['status' => 'completed']);
 
                 // Naskah gabungan Book Chapter selesai → semua babnya selesai.
@@ -368,11 +429,11 @@ class ManuscriptController extends Controller
                 }
             }
         } else {
-            $manuscript->authorLinks()->update(['approved_at' => null]);
+            $manuscript->authorLinks()->where('is_coauthor', false)->update(['approved_at' => null]);
 
             $latestRevision = $manuscript->latestRevision();
             $latestRevision?->update([
-                'admin_note' => $validated['note'] ?? 'Penulis meminta revisi tambahan.',
+                'author_note' => $validated['note'] ?? 'Penulis meminta revisi tambahan.',
             ]);
 
             $manuscript->update(['status' => 'in_editing']);
@@ -381,7 +442,59 @@ class ManuscriptController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Review akhir berhasil disimpan.',
-            'data' => $manuscript->fresh(['revisions', 'editor', 'authorLinks.user'])->append('co_authors'),
+            'data' => $manuscript->fresh(['revisions', 'editor', 'authorLinks.user'])->append('co_authors')->hideFeesFrom($request->user(), false),
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Coauthor Review - Penulis menyetujui atau meminta revisi hasil co-author
+    |--------------------------------------------------------------------------
+    |
+    | Setelah admin menyetujui susunan co-author, naskah dikirim ke penulis. Setuju -> naskah
+    | diteruskan ke editor; minta revisi -> kembali ke co-author.
+    |
+    */
+
+    public function coauthorReview(Request $request, Manuscript $manuscript): JsonResponse
+    {
+        $user = $request->user();
+
+        $link = $manuscript->authorLinks()->where('user_id', $user->id)->where('is_coauthor', false)->first();
+
+        abort_unless($link, 403, 'Anda tidak berwenang melakukan aksi ini.');
+
+        abort_unless(
+            $manuscript->status === ManuscriptAssignmentService::STATUS_PENDING_AUTHOR_REVIEW_COAUTHOR,
+            422,
+            'Naskah tidak sedang menunggu tinjauan Anda atas hasil co-author.'
+        );
+
+        $validated = $request->validate([
+            'decision' => ['required', Rule::in(['approve', 'revise'])],
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        if ($validated['decision'] === 'approve') {
+            $link->update(['approved_at' => now()]);
+
+            if ($manuscript->authorLinks()->where('is_coauthor', false)->whereNull('approved_at')->doesntExist()) {
+                $this->assignment->afterCoauthorApproved($manuscript);
+            }
+        } else {
+            $manuscript->authorLinks()->where('is_coauthor', false)->update(['approved_at' => null]);
+
+            $manuscript->latestRevision()?->update([
+                'author_note' => $validated['note'] ?? 'Penulis meminta revisi hasil co-author.',
+            ]);
+
+            $manuscript->update(['status' => ManuscriptAssignmentService::STATUS_IN_COAUTHORING]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tinjauan hasil co-author berhasil disimpan.',
+            'data' => $manuscript->fresh(['revisions', 'editor', 'coauthor', 'authorLinks.user'])->append('co_authors')->hideFeesFrom($request->user(), false),
         ]);
     }
 
@@ -401,9 +514,9 @@ class ManuscriptController extends Controller
         abort_unless($revision->manuscript_id === $manuscript->id, 404);
 
         abort_unless(
-            Storage::disk('local')->exists($revision->file_path),
+            $revision->file_path && Storage::disk('local')->exists($revision->file_path),
             404,
-            'File tidak ditemukan.'
+            $revision->file_purged_at ? 'Dokumen revisi sudah dihapus dari sistem setelah buku terbit (tersisa riwayat).' : 'File tidak ditemukan.'
         );
 
         // Word: salinan tanpa template jarak jauh, tautan UNC/file:// dan
@@ -435,7 +548,7 @@ class ManuscriptController extends Controller
         $user = $request->user();
 
         $isCoAuthor = $manuscript->authorLinks()->where('user_id', $user->id)->exists();
-        $isEditor = $manuscript->editor_id === $user->id;
+        $isEditor = $manuscript->editor_id === $user->id || $manuscript->coauthor_id === $user->id;
         $isAdmin = $user->roles()->where('name', 'admin')->exists();
 
         // Editor naskah gabungan Book Chapter boleh membuka naskah tiap bab.

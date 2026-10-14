@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Button from '@/components/Button/Button';
+import CoauthorOffer from '@/components/coauthor/CoauthorOffer';
+import { useCoauthorOffer } from '@/components/coauthor/useCoauthorOffer';
 import EditorPicker, {
     type EditorOption,
 } from '@/components/editor/EditorPicker';
@@ -11,12 +13,16 @@ import VoucherField from '@/components/voucher/VoucherField';
 import { useVoucher } from '@/components/voucher/useVoucher';
 import { ApiError } from '@/lib/http';
 import PaymentMethodPicker from '@/components/order/PaymentMethodPicker';
+import IsbnTypeDialog from '@/components/package/IsbnTypeDialog';
+import IsbnTypeSelector from '@/components/package/IsbnTypeSelector';
+import { isIsbnType, type IsbnOption, type IsbnType } from '@/lib/isbnTypes';
 import { usePaymentMethodChoice } from '@/hooks/usePaymentMethodChoice';
 
 type PackageSummary = {
     id: number;
     name: string;
     final_price: number;
+    isbn_options: IsbnOption[];
 };
 
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
@@ -28,6 +34,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 export default function TakePackagePage() {
     const { packageId } = useParams<{ packageId: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const paymentChoice = usePaymentMethodChoice();
 
     const [pkg, setPkg] = useState<PackageSummary | null>(null);
@@ -36,6 +43,13 @@ export default function TakePackagePage() {
     const [selectedEditorId, setSelectedEditorId] = useState<number | null>(
         null
     );
+    const coauthorOffer = useCoauthorOffer();
+    const [isbnType, setIsbnType] = useState<IsbnType | null>(() => {
+        const fromLink = searchParams.get('isbn');
+
+        return isIsbnType(fromLink) ? fromLink : null;
+    });
+    const [showIsbnDialog, setShowIsbnDialog] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string>('');
@@ -53,8 +67,24 @@ export default function TakePackagePage() {
         }
     }, [wantsOwnEditor, editors.length]);
 
+    const options = pkg?.isbn_options ?? [];
+    // Satu jenis saja: otomatis terpilih. Lebih dari satu: pembeli memilih (popup bila belum).
+    const effectiveIsbn: IsbnType | null =
+        isbnType ?? (options.length === 1 ? options[0].type : null);
+    const needsIsbnChoice = options.length > 1 && effectiveIsbn === null;
+    const selectedOption = options.find(
+        (option) => option.type === effectiveIsbn
+    );
+    const packagePrice = selectedOption?.final_price ?? pkg?.final_price ?? 0;
+
     const voucher = useVoucher(
-        pkg ? { type: 'package', package_id: pkg.id } : null
+        pkg && !needsIsbnChoice
+            ? {
+                  type: 'package',
+                  package_id: pkg.id,
+                  isbn_type: effectiveIsbn ?? undefined,
+              }
+            : null
     );
 
     const selectedEditor = editors.find(
@@ -62,12 +92,19 @@ export default function TakePackagePage() {
     );
     const editorFee = selectedEditor ? Number(selectedEditor.fee) : 0;
     const total =
-        (pkg?.final_price ?? 0) +
-        editorFee -
+        packagePrice +
+        editorFee +
+        coauthorOffer.fee -
         (voucher.quote?.voucher_discount ?? 0);
 
-    async function handleSubmit() {
+    async function handleSubmit(chosen: IsbnType | null = effectiveIsbn) {
         if (!pkg) {
+            return;
+        }
+
+        // Belum memilih jenis ISBN: tampilkan popup pilihan beserta penjelasannya.
+        if (options.length > 1 && chosen === null) {
+            setShowIsbnDialog(true);
             return;
         }
 
@@ -79,7 +116,9 @@ export default function TakePackagePage() {
                 payment_method_id: paymentChoice.selectedId ?? undefined,
                 type: 'package',
                 package_id: pkg.id,
+                isbn_type: chosen ?? undefined,
                 voucher_code: voucher.code,
+                ...coauthorOffer.payload,
                 editor_id:
                     wantsOwnEditor && selectedEditorId
                         ? selectedEditorId
@@ -87,11 +126,15 @@ export default function TakePackagePage() {
             });
             navigate(`/dashboard/pesanan/${response.data.id}/invoice`);
         } catch (error) {
-            setErrorMessage(
-                error instanceof ApiError
-                    ? error.message
-                    : 'Terjadi kesalahan. Silakan coba lagi.'
-            );
+            if (error instanceof ApiError && error.errors?.isbn_type) {
+                setShowIsbnDialog(true);
+            } else {
+                setErrorMessage(
+                    error instanceof ApiError
+                        ? error.message
+                        : 'Terjadi kesalahan. Silakan coba lagi.'
+                );
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -112,8 +155,22 @@ export default function TakePackagePage() {
             </h5>
 
             <p className="text-oxford-navy-900/80">
-                Harga paket: {rupiahFormatter.format(pkg.final_price)}
+                Harga paket: {rupiahFormatter.format(packagePrice)}
             </p>
+
+            {options.length > 1 && (
+                <IsbnTypeSelector
+                    name="take-package-isbn"
+                    choices={options.map((option) => ({
+                        type: option.type,
+                        price: option.final_price,
+                        originalPrice: option.price,
+                    }))}
+                    value={effectiveIsbn}
+                    onChange={setIsbnType}
+                    formatPrice={rupiahFormatter.format}
+                />
+            )}
 
             <label className="flex flex-row items-center gap-2 text-oxford-navy-900">
                 <input
@@ -136,6 +193,11 @@ export default function TakePackagePage() {
                 />
             )}
 
+            <CoauthorOffer
+                offer={coauthorOffer}
+                formatFee={rupiahFormatter.format}
+            />
+
             <VoucherField voucher={voucher} />
             <PaymentMethodPicker choice={paymentChoice} />
 
@@ -144,6 +206,12 @@ export default function TakePackagePage() {
                     <p className="text-forest-moss-700 text-sm">
                         Voucher ({voucher.quote.code}): −
                         {rupiahFormatter.format(voucher.quote.voucher_discount)}
+                    </p>
+                )}
+                {coauthorOffer.fee > 0 && (
+                    <p className="text-oxford-navy-900/70 text-sm">
+                        Biaya co-author: +
+                        {rupiahFormatter.format(coauthorOffer.fee)}
                     </p>
                 )}
                 <p className="text-oxford-navy-900 text-lg font-semibold">
@@ -158,11 +226,29 @@ export default function TakePackagePage() {
             <Button
                 variant="primary"
                 className="self-start"
-                onClick={handleSubmit}
+                onClick={() => void handleSubmit()}
                 disabled={isSubmitting || paymentChoice.isMissing}
             >
                 {isSubmitting ? 'Memproses...' : 'Konfirmasi Ambil Paket'}
             </Button>
+
+            {showIsbnDialog && (
+                <IsbnTypeDialog
+                    choices={options.map((option) => ({
+                        type: option.type,
+                        price: option.final_price,
+                        originalPrice: option.price,
+                    }))}
+                    formatPrice={rupiahFormatter.format}
+                    initial={effectiveIsbn}
+                    onCancel={() => setShowIsbnDialog(false)}
+                    onConfirm={(type) => {
+                        setIsbnType(type);
+                        setShowIsbnDialog(false);
+                        void handleSubmit(type);
+                    }}
+                />
+            )}
         </div>
     );
 }

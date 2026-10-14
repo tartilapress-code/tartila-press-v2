@@ -11,6 +11,9 @@ export type EditorOption = {
     fee: string;
     bio: string | null;
     languages?: string[];
+    // Dipromosikan admin (tampil teratas) / dalam pemantauan admin (disarankan memilih yang lain).
+    is_promoted?: boolean;
+    under_monitoring?: boolean;
 };
 
 /**
@@ -23,12 +26,20 @@ export default function EditorPicker({
     selectedId,
     onSelect,
     formatFee,
+    groupName = 'editor',
+    hint,
+    emptyText,
 }: {
     editors: EditorOption[];
     selectedId: number | null;
     onSelect: (userId: number) => void;
     /** Format biaya editor, mengikuti halaman yang memakainya. */
     formatFee: (fee: number) => string;
+    /** Nama grup radio; beda untuk daftar lain (mis. co-author) di halaman yang sama. */
+    groupName?: string;
+    /** Teks petunjuk / daftar kosong khusus (bawaan: untuk editor). */
+    hint?: string;
+    emptyText?: string;
 }) {
     const { t } = useTranslation();
     const baseId = useId();
@@ -45,7 +56,7 @@ export default function EditorPicker({
     if (editors.length === 0) {
         return (
             <p className="text-sm text-oxford-navy-900/70">
-                {t('editors.picker.empty')}
+                {emptyText ?? t('editors.picker.empty')}
             </p>
         );
     }
@@ -53,7 +64,7 @@ export default function EditorPicker({
     return (
         <div className="flex flex-col gap-2">
             <p className="text-xs text-oxford-navy-900/65">
-                {t('editors.picker.hint')}
+                {hint ?? t('editors.picker.hint')}
             </p>
 
             <div
@@ -77,7 +88,7 @@ export default function EditorPicker({
                                 <input
                                     id={radioId}
                                     type="radio"
-                                    name="editor"
+                                    name={groupName}
                                     className="shrink-0"
                                     aria-label={t('editors.picker.selectAria', {
                                         name: editor.name,
@@ -101,6 +112,11 @@ export default function EditorPicker({
                                     <span className="min-w-0 break-words">
                                         {editor.name}
                                     </span>
+                                    {editor.is_promoted && (
+                                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
+                                            {t('editors.picker.promoted')}
+                                        </span>
+                                    )}
                                     <RiArrowDownSLine
                                         aria-hidden
                                         className={`size-4 shrink-0 transition-transform ${
@@ -116,6 +132,15 @@ export default function EditorPicker({
                                     +{formatFee(Number(editor.fee))}
                                 </label>
                             </div>
+
+                            {editor.under_monitoring && (
+                                <p
+                                    role="note"
+                                    className="mx-3 mb-3 rounded-md bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 ring-1 ring-red-200"
+                                >
+                                    {t('editors.picker.monitored')}
+                                </p>
+                            )}
 
                             {isOpen && (
                                 <dl

@@ -20,12 +20,15 @@ export default function AutoLayoutOption({
     filename,
     value,
     onChange,
+    preferredTemplateId = null,
 }: {
     manuscriptId: number;
     revisionId: number;
     filename: string;
     value: AutoLayoutValue;
     onChange: (value: AutoLayoutValue) => void;
+    /** Template yang dipilih penulis saat mengirim naskah (dipilih lebih dulu). */
+    preferredTemplateId?: number | null;
 }) {
     const [templates, setTemplates] = useState<
         templateApi.ManuscriptTemplate[]
@@ -45,7 +48,11 @@ export default function AutoLayoutOption({
                 setTemplates(active);
 
                 const preferred =
-                    active.find((template) => template.is_default) ?? active[0];
+                    active.find(
+                        (template) => template.id === preferredTemplateId
+                    ) ??
+                    active.find((template) => template.is_default) ??
+                    active[0];
 
                 if (preferred) {
                     onChange({ enabled: true, templateId: preferred.id });
