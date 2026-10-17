@@ -58,7 +58,8 @@ printf '[client]\nhost=%s\nport=%s\nuser=%s\npassword="%s"\n' "$DB_HOST" "$DB_PO
 
 # MySQL 8 butuh --no-tablespaces kalau user bukan admin; MariaDB tidak mengenalnya.
 EXTRA=()
-if mysqldump --help 2>/dev/null | grep -q -- '--no-tablespaces'; then
+DUMP_HELP="$(mysqldump --help 2>/dev/null || true)"
+if [[ "$DUMP_HELP" == *"--no-tablespaces"* ]]; then
     EXTRA+=(--no-tablespaces)
 fi
 

@@ -118,9 +118,11 @@ jalankan sudo sysctl --system > /dev/null 2>&1 || true
 # --------------------------------------------------------------- 2. database
 echo
 echo "==> 2/4 Database (MariaDB/MySQL)"
-if systemctl list-unit-files 2>/dev/null | grep -q '^mariadb.service'; then
+# `systemctl cat` berhasil (kode 0) bila unit-nya ada. (Jangan pakai `systemctl ... | grep -q`:
+# dengan `set -o pipefail`, grep yang berhenti lebih awal membuat pipa dianggap gagal.)
+if systemctl cat mariadb.service > /dev/null 2>&1; then
     DB_SERVICE=mariadb
-elif systemctl list-unit-files 2>/dev/null | grep -q '^mysql.service'; then
+elif systemctl cat mysql.service > /dev/null 2>&1; then
     DB_SERVICE=mysql
 else
     DB_SERVICE=""
