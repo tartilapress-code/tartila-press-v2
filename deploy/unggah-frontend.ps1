@@ -47,8 +47,8 @@ function Build-And-Pack([string]$folder, [string]$label) {
         # .env lokal. `vite build` (bukan `npm run build`): lihat catatan di deploy.sh.
         $env:VITE_API_URL = "$Domain/api/v1"
         $env:VITE_PRESS_URL = $Domain
-        if (-not (Test-Path "node_modules")) { npm ci; if ($LASTEXITCODE -ne 0) { throw "npm ci gagal" } }
-        npx vite build
+        if (-not (Test-Path "node_modules")) { npm ci | Out-Host; if ($LASTEXITCODE -ne 0) { throw "npm ci gagal" } }
+        npx vite build | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "vite build gagal ($label)" }
     }
     finally {
@@ -59,20 +59,21 @@ function Build-And-Pack([string]$folder, [string]$label) {
 
     $arsip = Join-Path $env:TEMP "$folder-dist.tgz"
     if (Test-Path -LiteralPath $arsip) { [System.IO.File]::Delete($arsip) }
-    tar -czf $arsip -C (Join-Path $dir "dist") .
+    tar -czf $arsip -C (Join-Path $dir "dist") . | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "Gagal membuat arsip $arsip" }
     Write-Host ("    arsip: {0} ({1} MB)" -f $arsip, [math]::Round((Get-Item -LiteralPath $arsip).Length / 1MB, 1))
-    return $arsip
+    # Hanya jalur arsip yang dikembalikan (keluaran lain sudah dialihkan ke layar).
+    return [string]$arsip
 }
 
 function Send-Dist([string]$arsip, [string]$folder) {
     $namaArsip = Split-Path $arsip -Leaf
     Write-Host "==> $folder : unggah ke $Server" -ForegroundColor Cyan
-    scp $arsip "${Server}:~/$namaArsip"
-    if ($LASTEXITCODE -ne 0) { throw "scp gagal" }
+    scp $arsip "${Server}:~/$namaArsip" | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "scp gagal ($arsip)" }
     # Diekstrak ke folder baru lalu ditukar, supaya situs tidak pernah setengah terganti.
     $remote = "set -e; cd $RemoteRoot/$folder && rm -rf dist.baru && mkdir dist.baru && tar -xzf ~/$namaArsip -C dist.baru && rm -rf dist.lama && { [ -d dist ] && mv dist dist.lama || true; } && mv dist.baru dist && rm -rf dist.lama ~/$namaArsip && echo 'dist terpasang di ' `$(pwd)/dist"
-    ssh $Server $remote
+    ssh $Server $remote | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "ssh gagal saat memasang dist" }
 }
 
@@ -80,7 +81,7 @@ $daftar = @(, @("tartila-press-frontend", "Tartila Press"))
 if ($BookDomain -ne "") { $daftar += , @("tartila-book-frontend", "Tartila Book") }
 
 foreach ($item in $daftar) {
-    $arsip = Build-And-Pack $item[0] $item[1]
+    $arsip = @(Build-And-Pack $item[0] $item[1])[-1]
     if (-not $SkipUpload) { Send-Dist $arsip $item[0] }
 }
 
