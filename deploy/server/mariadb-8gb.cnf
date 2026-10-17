@@ -1,5 +1,5 @@
 # MariaDB / MySQL untuk server 8 GB RAM, 4 vCPU (profil setelah naik paket).
-# Dipasang sebagai /etc/mysql/conf.d/99-tartila.cnf oleh deploy/pasang-server.sh 8gb.
+# Dipasang sebagai /etc/mysql/mariadb.conf.d/99-tartila.cnf (MySQL: conf.d) oleh deploy/pasang-server.sh 8gb.
 #
 # Ini menggantikan deploy/server/mariadb-2gb.cnf (nama berkas tujuannya sama, jadi
 # tidak bertumpuk). Pengaturan innodb_log_file_size sengaja tidak diubah; lihat

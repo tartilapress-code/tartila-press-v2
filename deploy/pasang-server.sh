@@ -13,7 +13,7 @@
 #
 # Yang dikerjakan:
 #   1. Swap (cadangan memori di disk) + vm.swappiness rendah.
-#   2. /etc/mysql/conf.d/99-tartila.cnf (memori, karakter, sql_mode) dan restart
+#   2. 99-tartila.cnf di /etc/mysql/mariadb.conf.d (MySQL: conf.d) (memori, karakter, sql_mode) dan restart
 #      database. Restart memutus koneksi website lama beberapa detik. Kalau
 #      database gagal start dengan berkas ini, berkasnya dicabut otomatis.
 #   3. Pool PHP-FPM tartila-v2 (jumlah worker sesuai profil) + OPcache.
@@ -132,8 +132,17 @@ if [ -z "$DB_SERVICE" ]; then
     echo "   Layanan MariaDB/MySQL tidak ditemukan; langkah ini dilewati."
     echo "   (Pasang dulu: deploy/DEPLOY.md langkah 2, lalu jalankan skrip ini lagi.)"
 else
-    CNF=/etc/mysql/conf.d/99-tartila.cnf
-    [ "$SIMULASI" = 1 ] || sudo mkdir -p /etc/mysql/conf.d
+    # MariaDB di Debian/Ubuntu membaca conf.d LEBIH DULU lalu mariadb.conf.d (yang memuat
+    # 50-server.cnf dengan collation bawaan sendiri); berkas yang dibaca terakhir menang.
+    # Karena itu berkas ini ditaruh di mariadb.conf.d bila ada (MySQL: conf.d).
+    if [ -d /etc/mysql/mariadb.conf.d ]; then
+        CNF=/etc/mysql/mariadb.conf.d/99-tartila.cnf
+        # Buang salinan lama dari versi skrip sebelumnya (supaya tidak ganda).
+        [ "$SIMULASI" = 1 ] || sudo rm -f /etc/mysql/conf.d/99-tartila.cnf
+    else
+        CNF=/etc/mysql/conf.d/99-tartila.cnf
+        [ "$SIMULASI" = 1 ] || sudo mkdir -p /etc/mysql/conf.d
+    fi
     CNF_LAMA=""
     if [ "$SIMULASI" = 0 ] && [ -f "$CNF" ]; then
         CNF_LAMA="$(mktemp)"

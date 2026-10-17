@@ -1,5 +1,5 @@
 # MariaDB / MySQL untuk server 2 GB RAM, 1 vCPU (Tartila Press v2 + website lama).
-# Dipasang sebagai /etc/mysql/conf.d/99-tartila.cnf oleh deploy/pasang-server.sh
+# Dipasang sebagai /etc/mysql/mariadb.conf.d/99-tartila.cnf (MySQL: conf.d) oleh deploy/pasang-server.sh
 # (atau salin manual, lalu restart layanan database).
 #
 # Berlaku untuk SELURUH server database (website lama ikut), jadi angkanya

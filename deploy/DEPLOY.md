@@ -75,7 +75,7 @@ Pembagian memori profil 2 GB (total 2048 MB):
 | **Swap 2 GB** (disk, pengaman kalau memori penuh) | di luar RAM |
 
 Semua setelan itu dipasang oleh **satu skrip** (`deploy/pasang-server.sh`, langkah
-2C): swap, `/etc/mysql/conf.d/99-tartila.cnf`, pool PHP-FPM `tartila-v2`, dan
+2C): swap, `/etc/mysql/mariadb.conf.d/99-tartila.cnf`, pool PHP-FPM `tartila-v2`, dan
 OPcache. Naik ke 8 GB nanti cukup menjalankannya lagi dengan `8gb`: skrip yang
 sama menimpa setelan 2 GB (tidak bertumpuk).
 
