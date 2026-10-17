@@ -71,7 +71,7 @@ if (! preg_match('#^https?://[^/\s]+$#', $base)) {
 
 $keluaran = (string) $opsi['out'];
 
-$backend = dirname(__DIR__).DIRECTORY_SEPARATOR.'tartila-press_backend';
+$backend = dirname(__DIR__, 2).DIRECTORY_SEPARATOR.'tartila-press_backend';
 if (! is_file($backend.'/vendor/autoload.php')) {
     gagal("folder backend tidak ditemukan di {$backend} (jalankan dari komputer pengembangan).");
 }

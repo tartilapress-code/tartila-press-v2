@@ -1,0 +1,53 @@
+# MariaDB / MySQL untuk server 2 GB RAM, 1 vCPU (Tartila Press v2 + website lama).
+# Dipasang sebagai /etc/mysql/conf.d/99-tartila.cnf oleh deploy/pasang-server.sh
+# (atau salin manual, lalu restart layanan database).
+#
+# Berlaku untuk SELURUH server database (website lama ikut), jadi angkanya
+# sengaja konservatif. Berjalan di MariaDB 10.3+ dan MySQL 5.7/8.0.
+#
+# Sengaja TIDAK memuat innodb_log_file_size: mengubahnya di MariaDB <= 10.4 dan
+# MySQL 5.7 membuat server menolak start ("log file size mismatch") kalau berkas
+# log lama masih ada. Bawaannya (48 MB) sudah cukup untuk beban ini.
+
+[mysqld]
+# --- Karakter & mode (sama dengan komputer pengembangan: deploy/server/mariadb-lokal-windows.ini)
+character-set-server = utf8mb4
+collation-server     = utf8mb4_unicode_ci
+sql_mode             = STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+
+# --- Memori: total database sekitar 600-700 MB dari 2 GB
+innodb_buffer_pool_size = 512M
+innodb_log_buffer_size  = 8M
+key_buffer_size         = 16M
+tmp_table_size          = 32M
+max_heap_table_size     = 32M
+sort_buffer_size        = 1M
+join_buffer_size        = 1M
+read_buffer_size        = 512K
+read_rnd_buffer_size    = 512K
+thread_cache_size       = 16
+table_open_cache        = 800
+table_definition_cache  = 600
+
+# --- Koneksi. 5 worker PHP-FPM + cron + website lama; 60 sudah longgar.
+max_connections    = 60
+max_allowed_packet = 64M
+wait_timeout       = 120
+
+# --- Disk
+innodb_file_per_table          = 1
+innodb_flush_method            = O_DIRECT
+# 2 = tulis log ke disk tiap detik (bukan tiap transaksi): jauh lebih cepat; bila
+# server mati mendadak, paling banyak ~1 detik transaksi terakhir yang hilang.
+innodb_flush_log_at_trx_commit = 2
+
+# --- Hemat memori (MySQL 8 / MariaDB): matikan pemantauan yang tidak dipakai
+performance_schema = OFF
+
+# --- Cari query lambat (periksa dengan: sudo mysqldumpslow /var/log/mysql/slow.log)
+slow_query_log      = 1
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time     = 1
+
+[mysqldump]
+max_allowed_packet = 64M

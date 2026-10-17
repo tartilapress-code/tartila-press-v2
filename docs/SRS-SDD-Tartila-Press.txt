@@ -267,7 +267,7 @@ BAB 1   PENDAHULUAN
   - T7  Keamanan berlapis: autentikasi token, otorisasi per peran, penyaringan data publik, validasi
         berkas, perlindungan SSRF/XXE.
   - T8  Mudah dirawat dan dikembangkan: kode modular per domain, tes otomatis, migrasi berversi.
-  - T9  Dapat dipasang pada server Linux standar (Nginx + PHP-FPM + MySQL/MariaDB/PostgreSQL).
+  - T9  Dapat dipasang pada server Linux standar (Nginx + PHP-FPM + MariaDB/MySQL).
 
 1.4 RUANG LINGKUP
 ------------------------------------------------------------------------------------------------
@@ -846,7 +846,8 @@ BAB 3   REQUIREMENT SISTEM
   | NFR-09    | Aksesibilitas      | Label ARIA, kontras warna, fokus keyboard, teks alternatif. |
   | NFR-10    | Maintainability    | Kode per domain, layanan (Service) terpisah, gaya kode      |
   |           |                    | otomatis (Pint, Prettier, ESLint), tes otomatis.            |
-  | NFR-11    | Portabilitas       | Berjalan di PostgreSQL, MySQL/MariaDB dan SQLite (tes).     |
+  | NFR-11    | Portabilitas       | Berjalan di MariaDB/MySQL (pengembangan, tes, produksi);    |
+  |           |                    | tes juga lulus di SQLite. PostgreSQL tidak dipakai lagi.    |
   | NFR-12    | Skalabilitas       | API stateless (token) sehingga dapat diperbanyak di balik   |
   |           |                    | load balancer; berkas dapat dipindah ke object storage.     |
   | NFR-13    | SEO                | Halaman Scholar server-rendered dengan meta citation_*.     |
@@ -885,7 +886,7 @@ BAB 3   REQUIREMENT SISTEM
   | Web server                 | Nginx 1.18+                                                    |
   | PHP                        | 8.2 (FPM + CLI) dengan ekstensi: ctype, curl, dom, fileinfo,   |
   |                            | filter, gd, hash, iconv, json, libxml, mbstring, openssl, pcre,|
-  |                            | session, tokenizer, xml, zip, dan driver DB (mysql/pgsql)      |
+  |                            | session, tokenizer, xml, zip, dan driver DB (pdo_mysql)        |
   | Database                   | MySQL 8 / MariaDB 10.4+ (direkomendasikan di server saat ini)  |
   |                            | atau PostgreSQL 14+                                            |
   | Composer                   | 2.x                                                            |
@@ -896,8 +897,10 @@ BAB 3   REQUIREMENT SISTEM
   +----------------------------+----------------------------------------------------------------+
 
   3.4.2 Lingkungan Pengembangan
-  - PHP 8.2, Laravel 12.65, PostgreSQL (database dev), Node 24, Vite 8.
-  - Tes backend memakai SQLite in-memory (phpunit.xml).
+  - PHP 8.2, Laravel 12.65, MariaDB 10.4 (XAMPP; database dev tartila_press_v2 dan tes
+    tartila_press_test, sejak 2026-10-17; sebelumnya PostgreSQL), Node 24, Vite 8.
+  - Tes backend bawaan memakai SQLite in-memory (phpunit.xml); seluruh tes (747) juga lulus di
+    MariaDB dengan DB_CONNECTION=mysql (deploy/server/mariadb-lokal-windows.ini).
 
   3.4.3 Klien
   - Peramban modern dengan JavaScript aktif; resolusi minimum 360 px lebar.
@@ -1233,8 +1236,8 @@ BAB 5   SYSTEM ARCHITECTURE
 5.4 DATABASE
 ------------------------------------------------------------------------------------------------
 
-  - Mesin: MySQL 8 / MariaDB 10.4+ di produksi (server saat ini), PostgreSQL di pengembangan, SQLite
-    in-memory untuk tes. Struktur dikelola sepenuhnya oleh migration Laravel (berversi di git).
+  - Mesin: MariaDB 10.4+ / MySQL 8 di pengembangan dan produksi (sama, sejak 2026-10-17), SQLite
+    in-memory sebagai alternatif tes cepat. Struktur dikelola sepenuhnya oleh migration Laravel (berversi di git).
   - 61 tabel aplikasi (Bab 6). Kunci utama BIGINT auto-increment; kolom JSON untuk data fleksibel
     (daftar penulis, fasilitas, konfigurasi template, target voucher, field sertifikat).
   - Uang disimpan sebagai DECIMAL(12/14,2). Waktu disimpan UTC; laporan dikonversi ke WIB.
@@ -1800,7 +1803,7 @@ BAB 6   DATABASE DESIGN
 6.5 DATA DICTIONARY
 ------------------------------------------------------------------------------------------------
 
-  Kolom: Nama | Tipe (sesuai database pengembangan PostgreSQL) | Null? | Default.
+  Kolom: Nama | Tipe (notasi PostgreSQL, dari dokumen awal) | Null? | Default.
   Tipe di MySQL setara: varchar, text, bigint, integer, smallint, boolean(tinyint), numeric
   (decimal), json, timestamp, date.
 
@@ -3725,7 +3728,7 @@ BAB 11  TESTING
   - Uji browser manual terkendali: akun uji "browsertest.*" dibuat lewat skrip, setiap fitur
     dicoba di peramban (desktop & ponsel), lalu data uji dihapus dan jumlah data dicocokkan
     dengan kondisi awal.
-  - Migrasi diuji pada SQLite, PostgreSQL dan MariaDB 10.4 (MySQL 8 belum).
+  - Migrasi dan seluruh tes diuji pada SQLite dan MariaDB 10.4 (PostgreSQL pernah; MySQL 8 belum).
   - Frontend: TypeScript (tsc), ESLint (aturan React Hooks & React Compiler), Prettier.
 
 11.4 SECURITY TESTING
@@ -4495,8 +4498,8 @@ LAMPIRAN C. VARIABEL LINGKUNGAN (.env BACKEND)
   | APP_LOCALE                 | en                           | Pesan validasi bawaan Laravel   |
   | BCRYPT_ROUNDS              | 12                           | Kekuatan hash password          |
   | LOG_CHANNEL/STACK/LEVEL    | stack / daily / warning      | Log harian                      |
-  | DB_CONNECTION ... PASSWORD | mysql, tartila_press_v2,     | Koneksi database (blok PostgreSQL|
-  |                            | tartila_v2                   | tersedia sebagai alternatif)    |
+  | DB_CONNECTION ... PASSWORD | mysql, tartila_press_v2,     | Koneksi database MariaDB/MySQL  |
+  |                            | tartila_v2                   |                                 |
   | SESSION_DRIVER/LIFETIME    | database / 120               | Sesi (API memakai token)        |
   | FILESYSTEM_DISK            | local                        | Disk bawaan                     |
   | QUEUE_CONNECTION           | database                     | Belum ada worker                |
@@ -4934,6 +4937,15 @@ LAMPIRAN G. MODUL YANG DITAMBAHKAN SETELAH VERSI 1.1
   |                            | Tabel cover_projects, covers, cover_votes, cover_events.     |
   |                            | Kelas: CoverService, CoverController, CoverAdminController.  |
   |                            | Tes: CoverTest (11).                                         |
+  | Server 2 GB + MariaDB      | Basis data disatukan ke MariaDB/MySQL (dev, tes, produksi);  |
+  | seragam (2026-10-17)       | data dev dipindah dari PostgreSQL (82 tabel, 713 baris       |
+  |                            | identik), 747 tes lulus di MariaDB. Kit deploy: profil server|
+  |                            | 2gb/8gb (deploy/pasang-server.sh + deploy/server/*: swap,    |
+  |                            | MariaDB, pool PHP-FPM, OPcache), backup.sh (dump harian,     |
+  |                            | arsip storage mingguan, rotasi), ekspor-data-lokal.ps1 +     |
+  |                            | muat-data.sh (bawa data lokal), unggah-frontend.ps1 (build di|
+  |                            | komputer; deploy.sh SKIP_FRONTEND_BUILD=1). Alat PostgreSQL  |
+  |                            | diarsipkan di deploy/arsip-postgresql/.                      |
   +----------------------------+--------------------------------------------------------------+
   Perbaikan penting saat uji kapasitas (Lampiran H): migrasi 2026_10_22_090000 gagal di MySQL/
   MariaDB karena nama indeks > 64 karakter (sudah diberi nama pendek). Wajib dijalankan ulang

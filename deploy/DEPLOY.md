@@ -3,9 +3,14 @@
 Panduan untuk server **Ubuntu + Nginx + PHP-FPM**, dengan kode di
 `/var/www/tartila-press-v2`, di server yang **sudah menjalankan website lama**
 (`/var/www/tartila-press`, database MySQL). Langkah-langkahnya sudah dicoba di
-komputer pengembang (instalasi produksi Laravel, migrasi dari nol di MySQL/MariaDB
-dan PostgreSQL, pemindahan data lokal, build frontend), tetapi belum di server
-Anda, jadi kalau ada langkah yang gagal, salin pesan galatnya dan tanyakan.
+komputer pengembang (instalasi produksi Laravel, migrasi dari nol di MariaDB,
+seluruh tes di MariaDB, pemindahan data lokal, pencadangan dan pemulihan, build
+frontend), tetapi belum di server Anda, jadi kalau ada langkah yang gagal, salin
+pesan galatnya dan tanyakan.
+
+**Database: MariaDB/MySQL, di mana-mana** (komputer pengembangan, tes, dan server),
+supaya perilakunya sama. PostgreSQL tidak dipakai lagi (alatnya diarsipkan di
+`deploy/arsip-postgresql/`).
 
 Satu alamat melayani semuanya:
 
@@ -18,9 +23,10 @@ Satu alamat melayani semuanya:
 Karena satu alamat, tidak ada urusan CORS, dan halaman Google Scholar
 (`/api/katalog`) berada di domain yang sama dengan situsnya.
 
-**Urutan**: 0 → 1 → 2 → 3 → 4 → 5 → 8 (uji coba di port 8080) → 6 (pindah ke
-domain) → 7 → 9. Bagian 10 (membawa data lokal) dikerjakan di tengah langkah 3,
-hanya kalau data lokal ingin ikut.
+**Urutan**: 0 → 1 → 2 (termasuk 2C, penyetelan sesuai ukuran server) → 3 → 4 → 5
+→ 8 (uji coba di port 8080) → 6 (pindah ke domain) → 7 → 9. Bagian 10 (membawa
+data lokal) dikerjakan di tengah langkah 3, hanya kalau data lokal ingin ikut.
+Cadangan otomatis (bagian "Cadangan" di akhir) dipasang setelah situs jalan.
 
 Perintah dijalankan sebagai **user biasa yang punya sudo** (bukan root).
 
@@ -44,8 +50,55 @@ Sebelum mulai, kumpulkan gambaran server (perintah ini hanya membaca, tidak
 mengubah apa pun):
 
 ```bash
-echo "== Nginx:"; ls /etc/nginx/sites-enabled/; grep -RhE "server_name|^\s*root |fastcgi_pass" /etc/nginx/sites-enabled/; echo "== PHP:"; php -v | head -1; ls /usr/bin/php* /run/php/; php -m | grep -iE "pdo_mysql|pdo_pgsql|mbstring|curl|zip|xml"; echo "== MySQL:"; mysql --version; echo "== HTTPS:"; certbot --version 2>&1 | head -1; echo "== cron:"; crontab -l 2>&1 | grep -v '^#'; echo "== memori/disk:"; free -h | head -2; df -h / | tail -1
+echo "== Nginx:"; ls /etc/nginx/sites-enabled/; grep -RhE "server_name|^\s*root |fastcgi_pass" /etc/nginx/sites-enabled/; echo "== PHP:"; php -v | head -1; ls /usr/bin/php* /run/php/; php -m | grep -iE "pdo_mysql|mbstring|curl|zip|xml"; echo "== MySQL:"; mysql --version; echo "== HTTPS:"; certbot --version 2>&1 | head -1; echo "== cron:"; crontab -l 2>&1 | grep -v '^#'; echo "== memori/disk:"; free -h | head -2; df -h / | tail -1
 ```
+
+---
+
+## Server 2 GB (profil saat ini) dan naik ke 8 GB
+
+Profil yang disiapkan di panduan ini:
+
+| Profil | Spesifikasi | Cocok untuk |
+| --- | --- | --- |
+| `2gb` (sekarang) | 1 vCPU, 2 GB RAM, 60 GB disk, Ubuntu | Tartila Press sampai ±10 ribu pengunjung/hari (di uji beban ±15 ms CPU per permintaan). Tartila Book dengan trafik besar **tidak** cocok di sini. |
+| `8gb` (rencana bulan depan) | 4 vCPU, 8 GB RAM, 80 GB NVMe | Press + Book dengan ruang tumbuh beberapa kali lipat. |
+
+Pembagian memori profil 2 GB (total 2048 MB):
+
+| Komponen | Jatah |
+| --- | --- |
+| Ubuntu + Nginx | ±300 MB |
+| MariaDB (buffer pool 512 MB) | ±600–700 MB |
+| PHP-FPM (5 worker × ±50 MB, permintaan berat bisa 200 MB) | ±300–400 MB |
+| Website lama (v1) + cadangan lonjakan | sisanya |
+| **Swap 2 GB** (disk, pengaman kalau memori penuh) | di luar RAM |
+
+Semua setelan itu dipasang oleh **satu skrip** (`deploy/pasang-server.sh`, langkah
+2C): swap, `/etc/mysql/conf.d/99-tartila.cnf`, pool PHP-FPM `tartila-v2`, dan
+OPcache. Naik ke 8 GB nanti cukup menjalankannya lagi dengan `8gb`: skrip yang
+sama menimpa setelan 2 GB (tidak bertumpuk).
+
+**Pilih sistem operasi yang masih didukung.** Kalau penyedia VPS membolehkan
+memilih/instal ulang OS, pilih **Ubuntu 24.04 LTS**: PHP 8.3 dan MariaDB 10.11 sudah
+ada di repositori resmi (Laravel 12 butuh PHP 8.2+), tanpa Launchpad. **Ubuntu 20.04
+sudah tidak mendapat pembaruan keamanan gratis** (dukungan standar berakhir April
+2025; aktifkan *Ubuntu Pro* gratis untuk sampai 5 mesin kalau tetap memakainya) dan
+repositorinya hanya berisi PHP 7.4, jadi PHP 8.2 harus dari `ppa:ondrej/php` di
+Launchpad (lihat langkah 1; beberapa server tidak bisa menjangkaunya).
+
+**Build frontend di komputer Anda, bukan di server.** `vite build` memakan memori
+besar dan membuat server 2 GB macet ("Killed"). Skrip `deploy/unggah-frontend.ps1`
+membangun frontend di komputer lalu mengunggah `dist`-nya; di server cukup
+`SKIP_FRONTEND_BUILD=1 bash deploy/deploy.sh`. Dengan cara ini Node.js tidak perlu
+dipasang di server sama sekali (langkah 4 menjelaskan caranya).
+
+**Kapan perlu naik paket?** Naikkan kalau salah satu terjadi terus-menerus: load
+rata-rata di atas 1,0 (`uptime`), swap terpakai rutin (`free -h`), error 502 atau
+timeout di jam ramai, atau `slow.log` (`sudo mysqldumpslow /var/log/mysql/slow.log`)
+cepat bertambah. Halaman Keuangan/Ringkasan admin masih memuat semua pesanan lunas
+(batas aman ±24 ribu pesanan lunas); itu butuh perbaikan kode (agregasi SQL), bukan
+sekadar server lebih besar.
 
 ---
 
@@ -105,8 +158,7 @@ Kebutuhan:
 - **PHP 8.2 atau lebih baru** (Laravel 12 tidak jalan di PHP 8.1)
 - **Node 20.19 atau lebih baru** (Vite 8)
 - Nginx, Composer, git
-- Ekstensi PHP: `mbstring`, `xml`, `curl`, `zip`, dan **satu** driver database:
-  `pdo_mysql` (MySQL/MariaDB) atau `pdo_pgsql` (PostgreSQL)
+- Ekstensi PHP: `mbstring`, `xml`, `curl`, `zip`, dan `pdo_mysql` (MariaDB/MySQL)
 - Ekstensi `gd` sangat disarankan: dipakai fitur sertifikat otomatis untuk
   mengubah gambar templat yang diunggah admin menjadi JPG dan memperkecilnya
   (tanpa `gd`, hanya JPG, atau PNG tanpa transparansi, yang diterima), dan
@@ -135,20 +187,19 @@ sudo update-alternatives --set php /usr/bin/php8.2
 Lihat ekstensi mana yang belum ada:
 
 ```bash
-for m in pdo_mysql pdo_pgsql mbstring xml curl zip gd; do php -m | grep -qix "$m" && echo "ada     $m" || echo "belum   $m"; done
+for m in pdo_mysql mbstring xml curl zip gd; do php -m | grep -qix "$m" && echo "ada     $m" || echo "belum   $m"; done
 ```
 
-(`pdo_mysql` dan `pdo_pgsql` tidak perlu dua-duanya; cukup yang sesuai pilihan
-database di langkah 2.) Pasang yang kurang; apt melewati yang sudah terpasang.
-Ekstensi harus sekelompok dengan PHP Anda, karena itu memakai `$PHPVER`:
+Pasang yang kurang; apt melewati yang sudah terpasang. Ekstensi harus sekelompok
+dengan PHP Anda, karena itu memakai `$PHPVER`. (Ekstensi `gd` = paket
+`php$PHPVER-gd`; sudah ada di baris `apt install` di bawah.)
 
 ```bash
 sudo apt update
-sudo apt install -y php$PHPVER-fpm php$PHPVER-cli php$PHPVER-mbstring php$PHPVER-xml php$PHPVER-curl php$PHPVER-zip php$PHPVER-mysql
+sudo apt install -y php$PHPVER-fpm php$PHPVER-cli php$PHPVER-mbstring php$PHPVER-xml php$PHPVER-curl php$PHPVER-zip php$PHPVER-mysql php$PHPVER-gd
 ```
 
-(Untuk PostgreSQL ganti `php$PHPVER-mysql` dengan `php$PHPVER-pgsql`.) Kalau apt
-menjawab `Unable to locate package` untuk paket `php8.2-…`, berarti repositori
+Kalau apt menjawab `Unable to locate package` untuk paket `php8.2-…`, berarti repositori
 PHP 8.2 belum/tidak lagi terpasang di server ini; kirim hasil perintah berikut:
 
 ```bash
@@ -177,115 +228,84 @@ Domain harus sudah diarahkan ke IP server (DNS *A record* untuk `DOMAIN`, dan
 
 ---
 
-## 2. Database: pilih MySQL atau PostgreSQL
+## 2. Database: MariaDB (atau MySQL)
 
-| | MySQL / MariaDB | PostgreSQL |
-| --- | --- | --- |
-| Cocok kalau | Server sudah punya MySQL (website lama memakainya); tidak mau memasang server database baru | Ingin sama persis dengan komputer pengembangan |
-| Paket PHP | `php$PHPVER-mysql` | `php$PHPVER-pgsql` (dari repositori PHP di Launchpad) |
-| Pengujian | Diuji di MariaDB 10.4: migrasi dari nol, 420 dari 421 tes lulus (1 tes gagal hanya karena tes itu mengira `id` = 1, dan lulus kalau dijalankan sendiri), API jalan dengan data hasil pemindahan. MySQL 8 belum diuji. | Database pengembangan; diuji penuh |
-| Data lokal | Bisa dibawa lewat `deploy/pg-ke-mysql.php` (bagian 10A; 40 tabel, 472 baris identik) | Bisa dibawa lewat `pg_dump` (bagian 10B) |
+Dipakai MariaDB/MySQL karena: server Anda sudah punya MySQL (website lama);
+komputer pengembangan kini juga MariaDB (data dan tes sama); lebih ringan di server
+kecil; dan untuk pola beban Tartila Press (baca katalog, tulis pesanan) selisih
+kecepatannya dengan PostgreSQL kecil dibanding pengaruh indeks, pagination, dan
+cache. Diuji di MariaDB 10.4: migrasi dari nol, **seluruh 747 tes lulus**, dan data
+lokal (82 tabel, 713 baris) dipindahkan identik. MySQL 8 dan MariaDB 10.11 belum
+diuji langsung, tetapi kode memakai fitur standar (cabang khusus per mesin hanya ada
+di satu fungsi tanggal `FinanceService`, dan cabang MySQL-nya adalah yang bawaan).
 
-Keduanya bisa berdampingan dengan MySQL website lama: database v2 selalu
-**terpisah**. Yang dipilih di sini harus sama dengan blok database di `.env`
-(langkah 3).
+Database v2 selalu **terpisah** dari database website lama.
 
-### 2A. MySQL / MariaDB
+### 2A. Server sudah punya MySQL/MariaDB (website lama memakainya)
 
-Buat database dan user khusus v2 (`sudo mysql` bekerja kalau root MySQL memakai
-login sistem; kalau Anda dulu memberi root sandi, pakai `mysql -u root -p`):
+Pakai yang ada; jangan memasang yang kedua. Buat database dan user khusus v2
+(`sudo mysql` bekerja kalau root memakai login sistem; kalau root punya sandi, pakai
+`mysql -u root -p`):
 
 ```bash
 sudo mysql -e "CREATE DATABASE tartila_press_v2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 sudo mysql -e "CREATE USER 'tartila_v2'@'localhost' IDENTIFIED BY 'GANTI_PASSWORD_DATABASE';"
-sudo mysql -e "GRANT ALL PRIVILEGES ON tartila_press_v2.* TO 'tartila_v2'@'localhost'; FLUSH PRIVILEGES;"
+sudo mysql -e "CREATE USER 'tartila_v2'@'127.0.0.1' IDENTIFIED BY 'GANTI_PASSWORD_DATABASE';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON tartila_press_v2.* TO 'tartila_v2'@'localhost'; GRANT ALL PRIVILEGES ON tartila_press_v2.* TO 'tartila_v2'@'127.0.0.1'; FLUSH PRIVILEGES;"
 ```
 
-Pastikan ekstensinya ada (harus menampilkan `pdo_mysql`):
+(Dua user `localhost` dan `127.0.0.1` karena `DB_HOST=127.0.0.1` terhubung lewat TCP,
+yang dicocokkan dengan host `127.0.0.1` pada sebagian konfigurasi.) Ganti
+`GANTI_PASSWORD_DATABASE` dengan sandi kuat (`openssl rand -base64 24`) dan samakan
+di `.env` (langkah 3).
+
+### 2B. Server belum punya database
+
+Pasang MariaDB. Di **Ubuntu 24.04** versinya sudah 10.11 dari repositori resmi:
+
+```bash
+sudo apt install -y mariadb-server
+sudo mysql_secure_installation
+```
+
+Di Ubuntu 20.04/22.04 versi bawaannya lama (10.3/10.6); ambil 10.11 dari repositori
+MariaDB sendiri (bukan Launchpad) lebih dahulu:
+
+```bash
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version=10.11
+sudo apt install -y mariadb-server
+sudo mysql_secure_installation
+```
+
+Lalu buat database dan user seperti di 2A. Pastikan ekstensinya ada (harus
+menampilkan `pdo_mysql`):
 
 ```bash
 php -m | grep pdo_mysql
 ```
 
-### 2B. PostgreSQL 18
+### 2C. Setel server sesuai ukurannya (swap, database, PHP-FPM, OPcache)
 
-Dari repositori resmi PostgreSQL, supaya sama dengan komputer pengembangan:
-
-```bash
-sudo apt install -y postgresql-common
-sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-sudo apt install -y postgresql-18 php$PHPVER-pgsql
-psql --version
-```
-
-Kalau `php$PHPVER-pgsql` tidak ditemukan, paket itu berasal dari repositori PHP
-di Launchpad (`ppa:ondrej/php`), yang bisa saja tidak terjangkau dari server ini.
-Coba dulu tes ini:
+Dari folder proyek di server (setelah `git pull`; PHP-FPM dan database sudah
+terpasang). `--simulasi` hanya menampilkan apa yang akan dikerjakan:
 
 ```bash
-curl -sS -o /dev/null -w "kode HTTP: %{http_code}\n" --max-time 10 https://ppa.launchpadcontent.net/ondrej/php/ubuntu/dists/jammy/Release
-getent hosts ppa.launchpadcontent.net
+cd /var/www/tartila-press-v2
+bash deploy/pasang-server.sh 2gb --simulasi
+bash deploy/pasang-server.sh 2gb
 ```
 
-Kalau hasilnya `kode HTTP: 200`, Launchpad terjangkau -- ulangi
-`sudo apt update && sudo apt install -y php$PHPVER-pgsql`. Kalau kosong/timeout
-atau `getent` tidak menemukan alamatnya, Launchpad memang tidak terjangkau dari
-server ini; ada dua jalan lain:
+Skrip ini me-restart database (website lama terputus beberapa detik; ia bertanya
+dulu) dan kalau database gagal start dengan setelan barunya, berkasnya dicabut
+otomatis. Isi setelannya ada di `deploy/server/` (`mariadb-2gb.cnf`,
+`mariadb-8gb.cnf`, `php-tuning.ini`) dan dapat dibaca/diubah sebelum dipasang.
+Setelah naik ke paket 8 GB, jalankan lagi dengan `8gb`.
 
-**A. Ambil berkas `.so`-nya saja dari paket terbaru, lewat komputer Anda.**
-Launchpad cuma menyimpan unduhan untuk versi PHP yang SEDANG aktif di PPA ini --
-versi yang sama persis dengan yang sudah terpasang di server (kalau sudah lebih
-lama) sudah tidak bisa diunduh lagi. Untungnya tidak perlu sama persis: semua
-PHP 8.2.x memakai "PHP API" yang sama, jadi berkas `.so` dari versi terbaru
-tetap kompatibel -- `apt`/`dpkg -i` yang menolaknya (karena mencocokkan nomor
-versi persis), bukan PHP-nya. Jalan ini mengambil `.so`-nya langsung, melewati
-`apt` sama sekali.
-
-Di browser komputer Anda, buka halaman ini dan cari baris versi TERBARU untuk
-seri `jammy` (ganti `jammy` kalau beda), klik baris itu, lalu di bagian
-"Builds" klik `amd64`:
-
-```
-https://launchpad.net/~ondrej/+archive/ubuntu/php/+packages?field.name_filter=php8.2&field.series_filter=jammy
-```
-
-Cari tautan `php8.2-pgsql_NOMOR-VERSI_amd64.deb` (BUKAN yang berakhiran
-`.ddeb`, itu cuma simbol debug) dan unduh. Pola alamatnya selalu:
-
-```
-https://launchpad.net/~ondrej/+archive/ubuntu/php/+files/php8.2-pgsql_NOMOR-VERSI_amd64.deb
-```
-
-```powershell
-scp Downloads\php8.2-pgsql_*_amd64.deb USER@IP_SERVER:~/
-```
-
-Di server, `deploy/pasang-pgsql-ext.sh` mengerjakan sisanya (bongkar `.deb`,
-salin `.so` ke folder ekstensi PHP yang aktif, aktifkan, restart PHP-FPM) --
-TIDAK lewat `dpkg`/`apt`, jadi tidak pernah membuat paket lain "rusak":
+Cek hasilnya:
 
 ```bash
-bash deploy/pasang-pgsql-ext.sh ~/php8.2-pgsql_*_amd64.deb
-```
-
-Baris terakhir keluarannya harus menyebut `pgsql` dan `pdo_pgsql`. Kalau mau
-dibatalkan: hapus `/etc/php/8.2/mods-available/pgsql.ini` dan `pdo_pgsql.ini`,
-lalu restart `php8.2-fpm` -- tidak ada bekas lain.
-
-**B. Pakai MySQL untuk v2** (bagian 2A) -- `php$PHPVER-mysql` di server ini
-SUDAH terpasang (dipakai website lama), tanpa perlu Launchpad sama sekali.
-Data lokal tetap bisa dibawa lewat `deploy/pg-ke-mysql.php` (bagian 10A).
-
-Kalau salah satu di atas berhasil dan `php -m | grep pgsql` menampilkan
-`pgsql`/`pdo_pgsql`, lanjutkan di sini. Buat databasenya:
-
-```bash
-openssl rand -base64 24
-```
-
-```bash
-sudo -u postgres psql -c "CREATE USER tartila WITH PASSWORD 'GANTI_PASSWORD_DATABASE';"
-sudo -u postgres psql -c "CREATE DATABASE tartila_press OWNER tartila;"
+sudo mysql -e "SELECT @@innodb_buffer_pool_size/1024/1024 AS buffer_mb, @@sql_mode, @@collation_server;"
+free -h; swapon --show; ls /run/php/
 ```
 
 ---
@@ -297,7 +317,7 @@ sudo -u postgres psql -c "CREATE DATABASE tartila_press OWNER tartila;"
 ```bash
 cd /var/www/tartila-press-v2
 cp deploy/backend.env.example tartila-press_backend/.env
-nano tartila-press_backend/.env        # ganti semua yang berawalan GANTI_, dan pilih blok database A (MySQL) atau B (PostgreSQL)
+nano tartila-press_backend/.env        # ganti semua yang berawalan GANTI_ (sandi database = yang dibuat di langkah 2)
 chmod 600 tartila-press_backend/.env
 ```
 
@@ -338,8 +358,7 @@ php artisan tinker --execute='$u = App\Models\User::create(["name" => "Admin Tar
 ```
 
 **Membawa data dari komputer lokal**: LEWATI perintah di atas (data lokal sudah
-berisi peran dan akun) dan kerjakan **bagian 10** (10A untuk MySQL, 10B untuk
-PostgreSQL), lalu kembali ke 3.3.
+berisi peran dan akun) dan kerjakan **bagian 10**, lalu kembali ke 3.3.
 
 ### 3.3 Simpan konfigurasi ke cache
 
@@ -356,6 +375,26 @@ php artisan event:cache
 ---
 
 ## 4. Frontend (build)
+
+### 4A. Server kecil (2 GB): bangun di komputer Anda (disarankan)
+
+Dari komputer Anda (PowerShell, folder proyek). `Domain` adalah alamat akhir situs
+(atau `http://IP_SERVER:8080` untuk uji coba); tambahkan `-BookDomain` kalau
+Tartila Book (bagian 12) ikut dibangun:
+
+```powershell
+cd "C:\Users\HP OMEN\Documents\NEW SOFTWARE_TARTILA PRESS"
+powershell -ExecutionPolicy Bypass -File deploy\unggah-frontend.ps1 -Server USER@IP_SERVER -Domain https://DOMAIN_ANDA
+```
+
+Skrip membangun, membuat arsip, mengunggah, dan memasang `dist` di server dengan
+menukar folder (situs tidak pernah setengah terganti). Alamat API dibenamkan lewat
+variabel `VITE_API_URL`, jadi `.env.production.local` tidak diperlukan. Pada
+pembaruan berikutnya, di server jalankan `SKIP_FRONTEND_BUILD=1 bash deploy/deploy.sh`
+dan di komputer jalankan lagi perintah di atas. Node.js tidak perlu dipasang di server.
+Lewati 4B.
+
+### 4B. Server besar (4 GB ke atas): bangun di server
 
 `tartila-press-frontend/.env` di repo berisi alamat lokal. Timpa di server dengan
 `.env.production.local` (tidak ikut git). Untuk uji coba isinya alamat IP + port;
@@ -387,9 +426,13 @@ yang sama dan tidak ada galat "permission denied". Pool bawaan (`www`) yang
 dipakai website lama tidak diubah. Batas unggah untuk PDF preview (20 MB) juga
 diatur di pool ini.
 
+**Kalau langkah 2C (`pasang-server.sh`) sudah dijalankan, pool ini SUDAH terpasang**;
+lewati perintah di bawah dan langsung ke `ls /run/php/`. Cara manual (angka untuk
+server 2 GB; untuk 8 GB: 16, 4, 4, 8):
+
 ```bash
 cd /var/www/tartila-press-v2
-sed -e "s/__USER__/$USER/g" -e "s/__GROUP__/$(id -gn)/g" deploy/php-fpm-pool-v2.conf | sudo tee /etc/php/$PHPVER/fpm/pool.d/tartila-v2.conf > /dev/null
+sed -e "s|__USER__|$USER|g" -e "s|__GROUP__|$(id -gn)|g" -e "s|__MAX_CHILDREN__|5|g" -e "s|__START_SERVERS__|2|g" -e "s|__MIN_SPARE__|1|g" -e "s|__MAX_SPARE__|3|g" deploy/php-fpm-pool-v2.conf | sudo tee /etc/php/$PHPVER/fpm/pool.d/tartila-v2.conf > /dev/null
 sudo php-fpm$PHPVER -t
 sudo systemctl reload php$PHPVER-fpm
 ls /run/php/
@@ -554,7 +597,10 @@ otomatis**. Baris ini **menambah**; baris website lama (kalau ada) tetap:
 crontab -l
 ```
 
-Tidak perlu worker antrean: aplikasi ini tidak memakai queue.
+Tidak perlu worker antrean: aplikasi ini tidak memakai queue (notifikasi dan email
+dikirim langsung setelah halaman selesai).
+
+Cadangan otomatis juga lewat cron: lihat bagian "Cadangan" di akhir panduan.
 
 ---
 
@@ -608,12 +654,13 @@ berhasil dan kegagalannya tercatat di `storage/logs/laravel.log`. Ganti juga
 Lewati bagian ini kalau situs boleh mulai dari kosong. Yang ikut dibawa: semua
 isi database lokal (buku, artikel, event, paket, layanan, profil, **pengguna,
 pesanan**, dan seterusnya) serta berkas unggahan. Tidak ikut: token login, sesi,
-cache, dan antrean, jadi semua orang cukup login ulang. Database lokal juga berisi
-akun dan pesanan uji (mis. akun berakhiran `@example.com`); bersihkan lewat panel
-admin sesudahnya, atau mulai dari kosong kalau tidak diinginkan.
+cache, dan antrean, jadi semua orang cukup login ulang (dan token pengembangan
+tidak bocor ke server). Database lokal juga berisi akun dan pesanan uji (mis. akun
+berakhiran `@example.com`) dan log login pengembangan; bersihkan lewat panel admin
+sesudahnya, atau mulai dari kosong kalau tidak diinginkan.
 
-**Berkas unggahan** (sama untuk 10A dan 10B). Dari komputer Anda (PowerShell,
-folder proyek); `USER` adalah user login server:
+**Berkas unggahan.** Dari komputer Anda (PowerShell, folder proyek); `USER` adalah
+user login server:
 
 ```powershell
 cd "C:\Users\HP OMEN\Documents\NEW SOFTWARE_TARTILA PRESS"
@@ -621,80 +668,44 @@ scp -r tartila-press_backend\storage\app\public USER@IP_SERVER:/var/www/tartila-
 scp -r tartila-press_backend\storage\app\private USER@IP_SERVER:/var/www/tartila-press-v2/tartila-press_backend/storage/app/
 ```
 
-`public` berisi cover/foto/PDF preview (±32 MB), `private` berisi naskah pengguna
-(±28 MB).
+`public` berisi cover/foto/PDF preview, `private` berisi naskah pengguna (ukurannya
+bertambah sesuai pemakaian; per 2026-10-17 total ±80 MB).
 
-### 10A. MySQL (dari PostgreSQL lokal)
+### 10A. Ekspor data (di komputer Anda)
 
-Berkas `deploy/pg-ke-mysql.php` membaca database lokal (hanya membaca) dan menulis
-berkas SQL untuk MySQL. `--base` adalah alamat **akhir** situs; alamat gambar
-lokal (`http://127.0.0.1:8000/…`) otomatis diganti dengannya.
-
-**Di komputer Anda** (PowerShell):
-
-```powershell
-cd "C:\Users\HP OMEN\Documents\NEW SOFTWARE_TARTILA PRESS\tartila-press_backend"
-php ..\deploy\pg-ke-mysql.php --base=https://DOMAIN_ANDA --out=..\tartila_press_mysql.sql
-```
+MariaDB lokal harus hidup (XAMPP). `-Base` adalah alamat **akhir** situs (atau
+`http://IP_SERVER:8080` untuk uji coba); alamat lokal `http://127.0.0.1:8000` dan
+`http://localhost:5173` di data otomatis diganti dengannya. Database lokal hanya
+dibaca.
 
 ```powershell
-scp ..\tartila_press_mysql.sql USER@IP_SERVER:~/
+cd "C:\Users\HP OMEN\Documents\NEW SOFTWARE_TARTILA PRESS"
+powershell -ExecutionPolicy Bypass -File deploy\ekspor-data-lokal.ps1 -Base https://DOMAIN_ANDA -Out tartila_press_data.sql
+scp tartila_press_data.sql USER@IP_SERVER:~/
 ```
 
-Skrip menampilkan jumlah baris tiap tabel dan total alamat yang diganti. Kalau ia
-melaporkan "PERHATIAN: masih ada teks berisi 127.0.0.1/localhost", kirim daftarnya.
+Skrip menampilkan jumlah alamat yang diganti dan memperingatkan kalau masih ada
+alamat web lokal lain (mis. port `5174` Tartila Book, yang harus Anda ganti sendiri
+dengan alamat Tartila Book).
 
-**Di server**: buat tabelnya dulu, lalu muat datanya. Databasenya harus baru dan
-kosong; seluruh isi dimuat dalam satu transaksi, jadi kalau ada galat tidak ada
-data setengah jadi yang tersisa.
+### 10B. Muat di server
+
+Tabel dibuat dulu lewat migrasi, lalu `muat-data.sh` mengosongkan tabel (migrasi
+sudah mengisi beberapa baris bawaan yang juga ada di data lokal) dan memuat seluruh
+data dalam satu transaksi (kalau ada galat, tidak ada data setengah jadi; cukup
+ulangi). Ia meminta Anda mengetik `GANTI` sebagai konfirmasi:
 
 ```bash
 cd /var/www/tartila-press-v2/tartila-press_backend
 php artisan migrate --force
-mysql -u tartila_v2 -p tartila_press_v2 < ~/tartila_press_mysql.sql
+cd .. && bash deploy/muat-data.sh ~/tartila_press_data.sql
 ```
 
-Tidak ada keluaran = berhasil. Kalau muncul `Duplicate entry`, databasenya belum
-kosong (mis. `RoleSeeder` sudah terlanjur dijalankan); kosongkan lalu ulangi:
+Hasilnya diuji pada 2026-10-17: ekspor → database kosong hasil migrasi → muat,
+jumlah baris dan isi setiap tabel identik (hanya 8 tabel berisi alamat gambar yang
+berbeda, sesuai penggantian alamat).
 
-```bash
-sudo mysql -e "DROP DATABASE tartila_press_v2; CREATE DATABASE tartila_press_v2 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-```
-
-Lalu kembali ke `migrate` + `mysql < …` di atas.
-
-### 10B. PostgreSQL
-
-**Di komputer Anda** (PowerShell). `-U` adalah `DB_USERNAME` di `.env` lokal:
-
-```powershell
-& "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" -h 127.0.0.1 -U postgres -d tartila_press_v2 --no-owner --no-acl -f tartila_press.sql
-scp tartila_press.sql USER@IP_SERVER:~/
-```
-
-**Di server**: pulihkan ke database yang masih **kosong** (belum di-`migrate`;
-kalau sudah terlanjur, hapus dan buat ulang: `sudo -u postgres psql -c "DROP
-DATABASE tartila_press;"` lalu `CREATE DATABASE` seperti di langkah 2B). Pulihkan
-sebagai user `tartila` supaya tabelnya dimiliki user itu:
-
-```bash
-psql -h 127.0.0.1 -U tartila -d tartila_press -f ~/tartila_press.sql
-```
-
-Peringatan seperti `unrecognized configuration parameter "transaction_timeout"`
-atau `invalid command \restrict` karena versi PostgreSQL berbeda boleh diabaikan.
-Sesudah itu ganti alamat gambar lokal dengan alamat akhir situs, dan jalankan
-migrasi (kalau ada yang baru):
-
-```bash
-cd /var/www/tartila-press-v2
-psql -h 127.0.0.1 -U tartila -d tartila_press -v base="https://$DOMAIN" -f deploy/ganti-url-lokal.sql
-cd tartila-press_backend && php artisan migrate --force
-```
-
-(Untuk uji coba di port 8080, isi `base` dengan `http://IP_SERVER:8080`.)
-
-### Sesudah 10A atau 10B: ganti akun bawaan
+### Sesudah membawa data lokal: ganti akun bawaan
 
 **Wajib.** Database lokal membawa akun bawaan seeder, yang sandinya tertulis di
 kode. Ganti email + sandi admin bawaan dan hapus akun `test@example.com` (ganti
@@ -721,6 +732,11 @@ bash deploy/deploy.sh
 
 Skrip itu menjalankan `git pull`, `composer install`, migrasi database, cache
 Laravel, build frontend, dan memuat ulang PHP-FPM (tanpa mengganggu website lain).
+Di server 2 GB, frontend dibangun di komputer (langkah 4A), jadi jalankan:
+
+```bash
+SKIP_FRONTEND_BUILD=1 bash deploy/deploy.sh
+```
 
 ---
 
@@ -742,7 +758,9 @@ yang terpisah, jadi cukup satu backend di server.
    yang sudah terpasang, salin ulang kedua berkas itu ke tempatnya lalu
    `sudo systemctl reload php*-fpm nginx`. Validasi Laravel membatasi ebook 200 MB.
 
-**Build frontend**
+**Build frontend.** Di server 2 GB bangun di komputer: jalankan
+`deploy\unggah-frontend.ps1` dengan tambahan `-BookDomain https://$DOMAIN_BOOK`
+(langkah 4A); lewati blok di bawah. Di server besar:
 
 ```bash
 cd /var/www/tartila-press-v2/tartila-book-frontend
@@ -811,8 +829,8 @@ bash deploy/reset-v2.sh --hapus-unggahan
 ```
 
 Setelah ini, folder v2 kembali seperti baru di-`clone`. Lanjutkan lagi dari
-**langkah 1** (paket) sampai **langkah 2B** (PostgreSQL), lalu **langkah 3** dan
-seterusnya seperti biasa.
+**langkah 1** (paket) sampai **langkah 2C** (database dan penyetelan server), lalu
+**langkah 3** dan seterusnya seperti biasa.
 
 ---
 
@@ -825,14 +843,23 @@ seterusnya seperti biasa.
   `ls /run/php/` (harus ada `tartila-v2.sock`) lalu `sudo php-fpm$PHPVER -t` dan
   `sudo systemctl status php$PHPVER-fpm`.
 - **`could not find driver`** — ekstensi PHP untuk database belum ada:
-  `php -m | grep -E "pdo_mysql|pdo_pgsql"`. Pasang `php$PHPVER-mysql` atau
-  `php$PHPVER-pgsql`, lalu `sudo systemctl reload php$PHPVER-fpm`. Ingat: `php`
+  `php -m | grep pdo_mysql`. Pasang `php$PHPVER-mysql`, lalu
+  `sudo systemctl reload php$PHPVER-fpm`. Ingat: `php`
   di terminal dan PHP-FPM yang melayani situs bisa berbeda versi; keduanya harus
   8.2 atau lebih baru.
 - **`Access denied for user` (MySQL)** — periksa `DB_USERNAME`/`DB_PASSWORD` di
   `.env`, lalu `php artisan config:cache`.
 - **`Connection refused` ke database** — server database mati atau `DB_HOST` /
-  `DB_PORT` salah: `sudo systemctl status mysql` (atau `postgresql`).
+  `DB_PORT` salah: `sudo systemctl status mariadb` (atau `mysql`).
+- **`Access denied` padahal sandi benar, hanya lewat `127.0.0.1`** — user dibuat
+  hanya untuk `'localhost'`; buat juga `'tartila_v2'@'127.0.0.1'` (langkah 2A).
+- **Server lambat / swap penuh / 502 di jam ramai** — `free -h`, `uptime`, dan
+  `sudo mysqldumpslow /var/log/mysql/slow.log | head -30` (query lambat → tambah
+  indeks atau perbaiki query). Server 2 GB: pertimbangkan naik paket (bagian
+  "Server 2 GB").
+- **Setelah mengubah kode manual, tidak berubah** — OPcache tidak memeriksa berkas
+  (sengaja, demi kecepatan): `sudo systemctl reload php$PHPVER-fpm`. `deploy.sh`
+  sudah melakukannya.
 - **Mengubah `.env` tidak berpengaruh** — konfigurasi di-cache:
   `cd tartila-press_backend && php artisan config:cache`.
 - **"Permission denied" di `storage` atau `bootstrap/cache`** —
@@ -843,8 +870,8 @@ seterusnya seperti biasa.
 - **Unggah gagal (413 / "terlalu besar")** — periksa `client_max_body_size` di
   Nginx dan `upload_max_filesize`/`post_max_size` di
   `/etc/php/$PHPVER/fpm/pool.d/tartila-v2.conf`, lalu reload PHP-FPM dan Nginx.
-- **Build frontend "Killed"** — memori kurang. Tambah swap 2 GB lalu ulangi:
-  `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`
+- **Build frontend "Killed"** — memori kurang (server 2 GB). Bangun di komputer
+  Anda (langkah 4A), atau pasang swap lewat `bash deploy/pasang-server.sh 2gb`.
 - **Build frontend menolak versi Node** — `node -v` harus 20.19+ (lihat langkah 1).
 - **Sertifikat (PDF) gagal dibuat atau unggah gambar templat ditolak** — lihat
   `storage/logs/laravel-*.log`. Pastikan `php -m | grep gd` menampilkan `gd`
@@ -861,11 +888,43 @@ seterusnya seperti biasa.
 ## Cadangan (backup)
 
 Yang perlu dicadangkan: database dan folder `tartila-press_backend/storage/app`
-(unggahan dan naskah). Contoh manual:
+(unggahan dan naskah). Skrip `deploy/backup.sh` mengerjakannya: dump database
+(dikompres, diperiksa utuh) setiap kali dijalankan, arsip `storage/app` seminggu
+sekali (Minggu), lalu membuang cadangan lama (database 14 hari, berkas 35 hari).
+Sandi database dibaca dari `.env` dan tidak muncul di daftar proses.
+
+Coba sekali dulu:
 
 ```bash
-mysqldump -u tartila_v2 -p tartila_press_v2 > ~/tartila_press_v2-$(date +%F).sql
-tar -czf ~/storage-$(date +%F).tar.gz -C /var/www/tartila-press-v2/tartila-press_backend storage/app
+cd /var/www/tartila-press-v2
+bash deploy/backup.sh
+ls -lh ~/cadangan-tartila
 ```
 
-(PostgreSQL: `pg_dump -h 127.0.0.1 -U tartila -d tartila_press --no-owner --no-acl -f ~/tartila_press-$(date +%F).sql`.)
+Lalu jadwalkan tiap malam pukul 02:30 (menambah baris cron; baris lain dibiarkan):
+
+```bash
+(crontab -l 2>/dev/null; echo "30 2 * * * /bin/bash /var/www/tartila-press-v2/deploy/backup.sh >> \$HOME/backup-tartila.log 2>&1") | crontab -
+crontab -l
+```
+
+**Cadangan yang hanya ada di server yang sama tidak menyelamatkan Anda kalau diska
+server rusak.** Salin keluar secara berkala: unduh ke komputer
+(`scp -r USER@IP_SERVER:~/cadangan-tartila .`), atau otomatis ke server lain dengan
+`BACKUP_REMOTE=user@host:/folder/` (rsync lewat SSH, mis. di baris cron).
+
+**Memulihkan database** (ke database kosong/yang akan ditimpa; hentikan penulisan
+dulu dengan `php artisan down`):
+
+```bash
+cd /var/www/tartila-press-v2/tartila-press_backend
+php artisan down
+zcat ~/cadangan-tartila/db-TANGGAL_JAM.sql.gz | mysql -u tartila_v2 -p tartila_press_v2
+php artisan up
+```
+
+Dump sudah berisi struktur tabel, jadi tidak perlu `migrate` sebelumnya. **Memulihkan
+berkas**: `tar -xzf ~/cadangan-tartila/storage-TANGGAL_JAM.tar.gz -C /var/www/tartila-press-v2/tartila-press_backend`.
+Latihlah pemulihan sekali di database cadangan (bukan yang hidup) supaya Anda tahu
+cadangannya bisa dipakai; pemulihan ini sudah diuji pada 2026-10-17 (hasilnya
+identik dengan sumber).
