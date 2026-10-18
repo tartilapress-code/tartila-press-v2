@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Package;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomPackageItem;
+use App\Models\Package;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -78,13 +79,39 @@ class CustomPackageItemController extends Controller
     {
         $validated = $this->validateItem($request, sometimes: true);
 
+        $oldName = $customPackageItem->name;
+        $type = $customPackageItem->type;
+
         $customPackageItem->update($validated);
+
+        // Paket menyimpan NAMA item; kalau namanya diganti di sini, paket ikut diganti
+        // supaya daftar paket tidak tertinggal dengan nama lama.
+        if ($customPackageItem->wasChanged('name')) {
+            $this->renameInPackages($type, $oldName, $customPackageItem->name);
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Item berhasil diperbarui.',
             'data' => $customPackageItem,
         ]);
+    }
+
+    /** Mengganti nama item di fasilitas/layanan semua paket yang memuatnya. */
+    private function renameInPackages(string $type, string $from, string $to): void
+    {
+        $column = $type === 'facility' ? 'facilities' : 'services';
+
+        Package::query()->get()->each(function (Package $package) use ($column, $from, $to) {
+            $list = (array) $package->{$column};
+
+            if (in_array($from, $list, true)) {
+                $package->update([$column => array_values(array_unique(array_map(
+                    fn ($name) => $name === $from ? $to : $name,
+                    $list
+                )))]);
+            }
+        });
     }
 
     /*

@@ -82,6 +82,10 @@ class PackageOrderTest extends TestCase
         $admin = $this->makeUser(['admin']);
         Sanctum::actingAs($admin);
 
+        // Fasilitas/layanan paket dipilih dari daftar Item Custom.
+        CustomPackageItem::create(['type' => 'facility', 'name' => 'Fasilitas A', 'price' => 0]);
+        CustomPackageItem::create(['type' => 'service', 'name' => 'Layanan A', 'price' => 0]);
+
         $response = $this->postJson('/api/v1/admin/packages', [
             'name' => 'Paket Baru',
             'price' => 500000,

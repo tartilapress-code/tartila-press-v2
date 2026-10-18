@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import Input from '@/components/Input/Input';
 import ImageInput from '@/components/Input/ImageInput';
 import Button from '@/components/Button/Button';
+import PackageItemPicker, {
+    type CustomItemOption,
+} from '@/components/package/PackageItemPicker';
 import * as adminApi from '@/data/admin/adminApi';
 import { ApiError } from '@/lib/http';
 import { ISBN_TYPES, type IsbnType } from '@/lib/isbnTypes';
@@ -127,6 +130,7 @@ export default function PackagesPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [statusMessage, setStatusMessage] = useState<string>('');
+    const [itemOptions, setItemOptions] = useState<CustomItemOption[]>([]);
 
     function loadPackages() {
         adminApi
@@ -137,6 +141,12 @@ export default function PackagesPage() {
 
     useEffect(() => {
         loadPackages();
+        // Fasilitas/layanan paket dipilih dari daftar Item Custom.
+        adminApi
+            .listCustomItems()
+            .then((response) =>
+                setItemOptions(response.data as CustomItemOption[])
+            );
     }, []);
 
     function startEdit(pkg: PackageItem) {
@@ -348,16 +358,22 @@ export default function PackagesPage() {
                     }
                 />
 
-                <ListEditor
+                <PackageItemPicker
                     label="Fasilitas"
-                    items={form.facilities}
+                    options={itemOptions.filter(
+                        (item) => item.type === 'facility'
+                    )}
+                    selected={form.facilities}
                     onChange={(items) =>
                         setForm({ ...form, facilities: items })
                     }
                 />
-                <ListEditor
+                <PackageItemPicker
                     label="Layanan"
-                    items={form.services}
+                    options={itemOptions.filter(
+                        (item) => item.type === 'service'
+                    )}
+                    selected={form.services}
                     onChange={(items) => setForm({ ...form, services: items })}
                 />
                 <ListEditor

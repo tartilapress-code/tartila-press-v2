@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Package;
 
 use App\Http\Controllers\Controller;
+use App\Models\CustomPackageItem;
 use App\Models\Package;
 use App\Support\IsbnTypes;
 use Illuminate\Http\JsonResponse;
@@ -96,7 +97,7 @@ class PackageController extends Controller
 
     public function update(Request $request, Package $package): JsonResponse
     {
-        $validated = $this->validatePackage($request, sometimes: true);
+        $validated = $this->validatePackage($request, sometimes: true, package: $package);
         $validated = $this->normalizeIsbnPrices($validated, $package);
 
         $package->update($validated);
@@ -160,7 +161,29 @@ class PackageController extends Controller
         return $validated;
     }
 
-    private function validatePackage(Request $request, bool $sometimes = false): array
+    /**
+     * Fasilitas/layanan paket HARUS berupa nama item di menu Item Custom (jenis yang sesuai),
+     * supaya admin tidak mengetik ulang daftar yang sama. Nilai lama yang sudah tersimpan di
+     * paket ini tetap boleh (paket lama dengan teks bebas tidak gagal disimpan; admin
+     * membersihkannya sendiri). Yang disimpan tetap nama (teks), sehingga deteksi HKI/ISBN,
+     * MOU, dan tampilan paket yang membaca teks itu tidak berubah.
+     *
+     * @param  list<string>|null  $current
+     */
+    private function itemNameRule(string $type, ?array $current): \Closure
+    {
+        $allowed = CustomPackageItem::where('type', $type)->pluck('name')->all();
+        $allowed = array_merge($allowed, array_map('strval', $current ?? []));
+        $label = $type === 'facility' ? 'fasilitas' : 'layanan';
+
+        return function (string $attribute, mixed $value, \Closure $fail) use ($allowed, $label) {
+            if (! in_array($value, $allowed, true)) {
+                $fail("\"{$value}\" belum ada di menu Item Custom (jenis {$label}). Tambahkan dulu di sana, lalu pilih di paket.");
+            }
+        };
+    }
+
+    private function validatePackage(Request $request, bool $sometimes = false, ?Package $package = null): array
     {
         $rule = fn (array $rules) => $sometimes
             ? ['sometimes', ...$rules]
@@ -183,9 +206,9 @@ class PackageController extends Controller
             'terms' => ['nullable', 'array'],
             'terms.*' => ['string'],
             'facilities' => ['nullable', 'array'],
-            'facilities.*' => ['string'],
+            'facilities.*' => ['string', $this->itemNameRule('facility', $package?->facilities)],
             'services' => ['nullable', 'array'],
-            'services.*' => ['string'],
+            'services.*' => ['string', $this->itemNameRule('service', $package?->services)],
             'notes' => ['nullable', 'array'],
             'notes.*' => ['string'],
             'is_active' => ['nullable', 'boolean'],

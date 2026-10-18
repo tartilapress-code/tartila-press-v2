@@ -4946,6 +4946,13 @@ LAMPIRAN G. MODUL YANG DITAMBAHKAN SETELAH VERSI 1.1
   |                            | muat-data.sh (bawa data lokal), unggah-frontend.ps1 (build di|
   |                            | komputer; deploy.sh SKIP_FRONTEND_BUILD=1). Alat PostgreSQL  |
   |                            | diarsipkan di deploy/arsip-postgresql/.                      |
+  | Fasilitas/layanan paket    | Form Paket memilih fasilitas/layanan dari daftar Item Custom |
+  | dari Item Custom           | (type facility/service), bukan ketik ulang; yang disimpan  |
+  | (2026-10-19)               | tetap NAMA item (teks), jadi deteksi HKI/ISBN/fisik, MOU    |
+  |                            | dan tampilan paket tak berubah. Server menolak nama yang    |
+  |                            | tak ada di Item Custom (nilai lama di paket itu boleh tetap |
+  |                            | sampai dihapus admin). Ganti nama item ikut mengganti nama  |
+  |                            | di semua paket. Tes: PackageItemListTest.                   |
   +----------------------------+--------------------------------------------------------------+
   Perbaikan penting saat uji kapasitas (Lampiran H): migrasi 2026_10_22_090000 gagal di MySQL/
   MariaDB karena nama indeks > 64 karakter (sudah diberi nama pendek). Wajib dijalankan ulang
