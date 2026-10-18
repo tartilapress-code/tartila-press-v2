@@ -169,6 +169,8 @@ export default function BookChapterProjectsPage() {
                   price: toNumber(price),
                   discount: toNumber(discount),
                   chapters: chapterRowsToCostInput(filledChapters),
+                  // Fee editor ikut dipotong hanya bila proyek punya editor pemilik.
+                  has_owner_editor: ownerEditorId !== '',
               },
               settings,
               packageItems
@@ -444,8 +446,8 @@ export default function BookChapterProjectsPage() {
                                             !project.cost_summary
                                                 .meets_minimum && (
                                                 <p className="text-red-700 text-xs">
-                                                    Sisa biaya di bawah minimal
-                                                    1 buku (kurang{' '}
+                                                    Sisa biaya belum memenuhi
+                                                    biaya wajib (kurang{' '}
                                                     {rupiahFormatter.format(
                                                         project.cost_summary
                                                             .shortfall

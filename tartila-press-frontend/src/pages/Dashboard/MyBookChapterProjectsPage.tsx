@@ -138,6 +138,8 @@ export default function MyBookChapterProjectsPage() {
                   price: toNumber(price),
                   discount: toNumber(discount),
                   chapters: chapterRowsToCostInput(filledChapters),
+                  // Proyek buatan editor selalu dimiliki editor itu.
+                  has_owner_editor: true,
               },
               settings,
               packageItems
@@ -193,12 +195,13 @@ export default function MyBookChapterProjectsPage() {
                             : ''}
                         , harga minimal{' '}
                         {rupiahFormatter.format(toNumber(settings.min_price))},
-                        diskon maksimal {settings.max_discount}%, sisa biaya
-                        minimal 1 buku{' '}
+                        diskon maksimal {settings.max_discount}%, biaya wajib{' '}
                         {rupiahFormatter.format(
                             toNumber(settings.min_book_cost)
-                        )}
-                        .
+                        )}{' '}
+                        per buku (sisa biaya setelah HKI, ISBN, fasilitas &amp;
+                        layanan, dan fee maksimal editor harus sama dengan atau
+                        lebih dari ini).
                     </p>
                 )}
 
@@ -414,8 +417,8 @@ export default function MyBookChapterProjectsPage() {
                                             !project.cost_summary
                                                 .meets_minimum && (
                                                 <p className="text-red-700 text-xs">
-                                                    Biaya di bawah minimal
-                                                    (kurang{' '}
+                                                    Sisa biaya belum memenuhi
+                                                    biaya wajib (kurang{' '}
                                                     {rupiahFormatter.format(
                                                         project.cost_summary
                                                             .shortfall

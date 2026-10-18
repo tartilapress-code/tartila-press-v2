@@ -10,7 +10,7 @@ use App\Models\CustomPackageItem;
 /**
  * Aturan biaya minimal 1 buku untuk proyek Book Chapter.
  *
- * - Proyek baru buatan editor: sisa biaya harus memenuhi minimal.
+ * - Proyek baru buatan editor: sisa biaya harus sama dengan atau lebih dari biaya wajib (minimal biaya total buku).
  * - Mengubah proyek / mengubah atau menghapus bab (editor & admin): hasil
  *   akhirnya tidak boleh di bawah minimal. Proyek yang SUDAH di bawah minimal
  *   (mis. dibuat admin sebelum aturan ini) tetap boleh diubah selama
@@ -40,6 +40,8 @@ class BookChapterCostGuard
             'includes_hki' => (bool) ($project['includes_hki'] ?? false),
             'includes_isbn_print' => (bool) ($project['includes_isbn_print'] ?? false),
             'includes_isbn_electronic' => (bool) ($project['includes_isbn_electronic'] ?? false),
+            // Proyek buatan editor selalu dimiliki editor itu (fee pemilik ikut dipotong).
+            'has_owner_editor' => true,
             'isbn_type' => $project['isbn_type'] ?? null,
             'item_costs' => $this->itemCosts($itemIds),
         ], $settings);
@@ -63,6 +65,11 @@ class BookChapterCostGuard
 
         if (array_key_exists('package_item_ids', $changes)) {
             $after['item_costs'] = $this->itemCosts($changes['package_item_ids'] ?? []);
+        }
+
+        // Admin dapat menetapkan/mencabut editor pemilik (menentukan ada-tidaknya potongan fee).
+        if (array_key_exists('owner_editor_id', $changes)) {
+            $after['has_owner_editor'] = $changes['owner_editor_id'] !== null;
         }
 
         $this->assertNotWorse($before, $after, $settings);
@@ -113,10 +120,9 @@ class BookChapterCostGuard
         }
 
         abort(422, sprintf(
-            'Perubahan ditolak: sisa biaya 1 buku menjadi %s, di bawah minimal %s (kurang %s). Tambah bab atau naikkan harga bab terlebih dahulu.',
+            'Perubahan ditolak: sisa biaya 1 buku menjadi %s, harus sama dengan atau lebih dari biaya wajib %s. Tambah bab atau naikkan harga bab terlebih dahulu.',
             $this->rupiah($afterSummary['net']),
-            $this->rupiah($afterSummary['min_book_cost']),
-            $this->rupiah($afterSummary['shortfall'])
+            $this->rupiah($afterSummary['min_book_cost'])
         ));
     }
 
@@ -126,11 +132,10 @@ class BookChapterCostGuard
     private function newProjectMessage(array $summary): string
     {
         return sprintf(
-            'Biaya 1 buku belum cukup: total harga bab %s dikurangi biaya HKI/ISBN/layanan %s = %s, kurang %s dari minimal %s. Tambah bab atau naikkan harga bab.',
+            'Biaya 1 buku belum cukup: total harga bab %s dikurangi biaya HKI/ISBN/layanan dan fee editor %s = %s, harus sama dengan atau lebih dari biaya wajib %s. Tambah bab atau naikkan harga bab.',
             $this->rupiah($summary['chapters_total']),
             $this->rupiah($summary['deductions']['total']),
             $this->rupiah($summary['net']),
-            $this->rupiah($summary['shortfall']),
             $this->rupiah($summary['min_book_cost'])
         );
     }

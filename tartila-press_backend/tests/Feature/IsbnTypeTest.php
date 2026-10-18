@@ -139,7 +139,9 @@ class IsbnTypeTest extends TestCase
 
     public function test_book_chapter_minimum_cost_depends_on_the_isbn_type_and_the_editor_must_choose_one(): void
     {
+        // Diskon maksimal 0%: tidak ada potongan fee editor, supaya angka di bawah murni biaya ISBN.
         BookChapterSetting::current()->update([
+            'max_discount' => 0,
             'isbn_print_cost' => 100000, 'isbn_electronic_cost' => 50000,
             'min_book_cost_print' => 1000000, 'min_book_cost_electronic' => 1100000, 'min_book_cost_both' => 1500000,
         ]);

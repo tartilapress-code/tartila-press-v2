@@ -3,12 +3,19 @@
  * backend (App\Services\BookChapterCostCalculator) — backend tetap yang
  * menentukan (menolak simpan/ubah/hapus bila sisa biaya di bawah minimal).
  *
- *   sisa       = Σ harga bab − biaya HKI − biaya ISBN − biaya fasilitas/layanan
- *   syarat     : sisa ≥ minimal biaya 1 buku (pengaturan admin)
- *   fee editor = (diskon maksimal admin − diskon yang diberikan)% dari harga bab
+ *   a = Σ harga bab        b = biaya HKI     c = biaya ISBN
+ *   d = fasilitas/layanan  e = biaya wajib (minimal biaya total 1 buku, pengaturan admin)
+ *   f = fee maksimal editor = P% × a, P = diskon maksimal admin (hanya bila proyek punya
+ *       editor pemilik); bertambah seiring total harga bab
  *
- * Diskon TIDAK memengaruhi syarat biaya minimal; diskon hanya mengurangi fee
- * editor.
+ *   biaya        = b + c + d + e + f          (total biaya wajib 1 proyek)
+ *   syarat       : a ≥ biaya  (boleh tepat sama)
+ *   sisa         = a − (b + c + d + f), dan syarat di atas ≡ sisa ≥ e
+ *
+ * Perkiraan awal (sebelum bab lengkap): biaya ≈ (b+c+d+e) + P% × (b+c+d+e).
+ *
+ * Fee yang DITERIMA editor lain lagi: (P − diskon yang diberikan)% × harga bab. Diskon
+ * (0–P%) TIDAK memengaruhi syarat biaya; diskon hanya mengurangi fee yang diterima editor.
  */
 
 import { isbnFromFlags, type IsbnType } from '@/lib/isbnTypes';
@@ -59,6 +66,8 @@ export type CostInput = PackageOptions & {
     price: number;
     discount: number;
     chapters: { price?: number | null; discount?: number | null }[];
+    // Proyek punya editor pemilik: fee maksimalnya ikut dipotong dari sisa biaya.
+    has_owner_editor: boolean;
 };
 
 export type CostSummary = {
@@ -69,11 +78,17 @@ export type CostSummary = {
         isbn_print: number;
         isbn_electronic: number;
         items: number;
+        // Fee maksimal editor = P% × total harga bab; 0 bila tak ada editor pemilik.
+        max_fee: number;
         total: number;
     };
     net: number;
     isbn_type: IsbnType | null;
     min_book_cost: number;
+    // Biaya = biaya wajib + HKI + ISBN + fasilitas/layanan + fee maksimal editor.
+    required_total: number;
+    // Perkiraan awal sebelum bab lengkap: (b+c+d+e) + P% × (b+c+d+e).
+    estimated_required: number;
     meets_minimum: boolean;
     shortfall: number;
     max_discount: number;
@@ -153,17 +168,12 @@ export function calculateBookChapterCost(
         items: items
             .filter((item) => selected.has(item.id))
             .reduce((sum, item) => sum + toNumber(item.book_chapter_cost), 0),
+        max_fee: 0,
         total: 0,
     };
-    deductions.total = roundMoney(
-        deductions.hki +
-            deductions.isbn_print +
-            deductions.isbn_electronic +
-            deductions.items
-    );
-
     chaptersTotal = roundMoney(chaptersTotal);
-    const net = roundMoney(chaptersTotal - deductions.total);
+
+    // Biaya wajib (e) mengikuti jenis ISBN (cetak / digital / keduanya).
     const isbnType =
         input.isbn_type ??
         isbnFromFlags(
@@ -172,6 +182,27 @@ export function calculateBookChapterCost(
         );
     const minimum = minimumFor(settings, isbnType);
 
+    // f = P% × a: fee maksimal editor mengikuti total harga bab (tanpa diskon yang diberikan).
+    const costBase = roundMoney(
+        deductions.hki +
+            deductions.isbn_print +
+            deductions.isbn_electronic +
+            deductions.items +
+            minimum
+    );
+    deductions.max_fee = input.has_owner_editor
+        ? roundMoney((chaptersTotal * Math.max(0, maxDiscount)) / 100)
+        : 0;
+    deductions.total = roundMoney(
+        deductions.hki +
+            deductions.isbn_print +
+            deductions.isbn_electronic +
+            deductions.items +
+            deductions.max_fee
+    );
+
+    const net = roundMoney(chaptersTotal - deductions.total);
+
     return {
         chapter_count: input.chapters.length,
         chapters_total: chaptersTotal,
@@ -179,6 +210,10 @@ export function calculateBookChapterCost(
         net,
         isbn_type: isbnType,
         min_book_cost: minimum,
+        required_total: roundMoney(minimum + deductions.total),
+        estimated_required: input.has_owner_editor
+            ? roundMoney(costBase * (1 + Math.max(0, maxDiscount) / 100))
+            : costBase,
         meets_minimum: net + 0.005 >= minimum,
         shortfall: roundMoney(Math.max(0, minimum - net)),
         max_discount: maxDiscount,

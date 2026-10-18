@@ -169,7 +169,7 @@ export default function PackageOptionsField({
                     }
                     footer={(type) => (
                         <span className="text-xs font-semibold text-oxford-navy-700">
-                            Minimal biaya 1 buku (jenis ini):{' '}
+                            Biaya wajib (jenis ini):{' '}
                             {rupiahFormatter.format(minimumFor(settings, type))}
                         </span>
                     )}

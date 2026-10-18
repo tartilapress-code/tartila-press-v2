@@ -72,15 +72,69 @@ class BookChapterCostCalculatorTest extends TestCase
         $this->assertSame(500000.0, $result['shortfall']);
     }
 
-    public function test_exactly_the_minimum_is_enough(): void
+    public function test_exactly_the_required_cost_is_enough(): void
     {
-        $result = (new BookChapterCostCalculator)->calculate(
-            $this->input(250000, 2),
-            $this->settings()
-        );
+        $calculator = new BookChapterCostCalculator;
 
-        $this->assertSame(500000.0, $result['net']);
-        $this->assertTrue($result['meets_minimum']);
+        // Tepat sama dengan biaya wajib (500.000) boleh; kurang sedikit saja tidak.
+        $exact = $calculator->calculate($this->input(250000, 2), $this->settings());
+        $this->assertSame(500000.0, $exact['net']);
+        $this->assertTrue($exact['meets_minimum']);
+
+        $below = $calculator->calculate($this->input(249999, 2), $this->settings());
+        $this->assertFalse($below['meets_minimum']);
+    }
+
+    public function test_the_owner_editors_maximum_fee_is_deducted_from_the_remaining_cost(): void
+    {
+        $calculator = new BookChapterCostCalculator;
+        $extra = ['includes_hki' => true, 'discount' => 5];
+
+        // Tanpa editor pemilik: tidak ada potongan fee.
+        $none = $calculator->calculate($this->input(300000, 3, $extra), $this->settings());
+        $this->assertSame(0.0, $none['deductions']['max_fee']);
+        $this->assertSame(600000.0, $none['net']);
+
+        // Editor pemilik: fee dipotong pada persentase MAKSIMAL dari total bab (10% × 900.000), bukan (10% − 5%).
+        $owned = $calculator->calculate($this->input(300000, 3, $extra + ['has_owner_editor' => true]), $this->settings());
+        $this->assertSame(90000.0, $owned['deductions']['max_fee']);
+        $this->assertSame(390000.0, $owned['deductions']['total']);
+        $this->assertSame(510000.0, $owned['net']);
+        $this->assertTrue($owned['meets_minimum']);
+        // Biaya wajib 1 proyek = minimal 500.000 + HKI 300.000 + fee maks 90.000
+        $this->assertSame(890000.0, $owned['required_total']);
+        // Fee yang benar-benar diterima editor tetap memakai diskon yang diberikan (10% − 5%).
+        $this->assertSame(45000.0, $owned['potential_fee']);
+        $this->assertSame(5, $owned['fee_percent']);
+        // Perkiraan awal sebelum bab lengkap: (HKI 300.000 + biaya wajib 500.000) × 1,10 = 880.000
+        $this->assertSame(880000.0, $owned['estimated_required']);
+        $this->assertSame(800000.0, $none['estimated_required']);
+    }
+
+    public function test_the_fee_and_the_required_cost_grow_with_the_chapter_total(): void
+    {
+        $calculator = new BookChapterCostCalculator;
+
+        $small = $calculator->calculate($this->input(100000, 3, ['has_owner_editor' => true]), $this->settings());
+        $large = $calculator->calculate($this->input(400000, 3, ['has_owner_editor' => true]), $this->settings());
+
+        $this->assertSame(30000.0, $small['deductions']['max_fee']);
+        $this->assertSame(120000.0, $large['deductions']['max_fee']);
+        $this->assertSame(530000.0, $small['required_total']);
+        $this->assertSame(620000.0, $large['required_total']);
+        $this->assertFalse($small['meets_minimum']);
+        $this->assertTrue($large['meets_minimum']);
+    }
+
+    public function test_the_discount_does_not_change_the_remaining_cost(): void
+    {
+        $calculator = new BookChapterCostCalculator;
+
+        $a = $calculator->calculate($this->input(300000, 3, ['has_owner_editor' => true, 'discount' => 0]), $this->settings());
+        $b = $calculator->calculate($this->input(300000, 3, ['has_owner_editor' => true, 'discount' => 10]), $this->settings());
+
+        $this->assertSame($a['net'], $b['net']);
+        $this->assertNotSame($a['potential_fee'], $b['potential_fee']);
     }
 
     public function test_print_isbn_and_electronic_isbn_have_different_costs(): void

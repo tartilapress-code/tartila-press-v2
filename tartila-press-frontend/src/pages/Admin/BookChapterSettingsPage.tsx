@@ -146,10 +146,21 @@ export default function BookChapterSettingsPage() {
                     Biaya Produksi 1 Buku
                 </h5>
                 <p className="text-oxford-navy-900/65 text-sm">
-                    Sisa biaya = total harga bab − biaya HKI − biaya ISBN −
-                    biaya fasilitas &amp; layanan yang dicentang pada proyek.
-                    Sisa ini harus tidak kurang dari minimal biaya 1 buku.
-                    Diskon tidak memengaruhi perhitungan ini. Aturan ini juga
+                    Biaya proyek = biaya HKI + biaya ISBN + biaya fasilitas
+                    &amp; layanan yang dicentang + biaya wajib (minimal biaya
+                    total 1 buku di bawah, ditampilkan ke editor sebagai{' '}
+                    <strong>&ldquo;Biaya wajib&rdquo;</strong>) + fee maksimal
+                    editor. Fee maksimal editor = diskon maksimal (%) × total
+                    harga bab, hanya bila proyek punya editor pemilik (perkiraan
+                    awal sebelum bab lengkap: diskon maksimal × (HKI + ISBN +
+                    fasilitas &amp; layanan + biaya wajib)). Syaratnya: total
+                    harga bab sama dengan atau lebih dari biaya proyek (sisa
+                    biaya = total harga bab − HKI − ISBN − fasilitas &amp;
+                    layanan − fee maksimal ≥ biaya wajib), sehingga biaya wajib
+                    perusahaan selalu tertutup. Diskon yang diberikan editor (0
+                    sampai diskon maksimal) tidak memengaruhi perhitungan ini;
+                    diskon hanya mengurangi fee yang diterima editor, dan fee
+                    itu bertambah seiring total harga bab. Aturan ini juga
                     berlaku bagi editor <em>dan</em> admin saat mengubah atau
                     menghapus bab.
                 </p>

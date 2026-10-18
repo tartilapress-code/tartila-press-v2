@@ -31,7 +31,7 @@ function Row({
 
 /**
  * Perhitungan biaya 1 buku + (opsional) fee editor, diperbarui langsung saat
- * form diisi. Peringatan tampil bila sisa biaya di bawah minimal.
+ * form diisi. Peringatan tampil bila sisa biaya tidak melebihi biaya wajib.
  */
 export default function BookChapterCostPanel({
     summary,
@@ -82,42 +82,67 @@ export default function BookChapterCostPanel({
                         value={rupiahFormatter.format(deductions.items)}
                     />
                 )}
+                {deductions.max_fee > 0 && (
+                    <Row
+                        label={`− Fee maksimal editor (${summary.max_discount}% × total bab)`}
+                        value={rupiahFormatter.format(deductions.max_fee)}
+                    />
+                )}
                 <Row
                     label="Sisa biaya"
                     value={rupiahFormatter.format(summary.net)}
                     strong
                 />
                 <Row
-                    label="Minimal biaya 1 buku (ketentuan admin)"
+                    label="Biaya wajib"
                     value={rupiahFormatter.format(summary.min_book_cost)}
                 />
             </div>
 
+            <p className="text-oxford-navy-900/65 text-xs">
+                Sisa biaya harus sama dengan atau lebih dari biaya wajib. Total
+                biaya proyek ini (biaya wajib + HKI + ISBN + fasilitas &amp;
+                layanan
+                {deductions.max_fee > 0 ? ' + fee maksimal editor' : ''}) ={' '}
+                <strong>
+                    {rupiahFormatter.format(summary.required_total)}
+                </strong>
+                ; total harga bab tidak boleh kurang dari itu.
+            </p>
+
             {summary.chapter_count === 0 ? (
                 <p className="text-oxford-navy-900/65 text-sm">
                     Belum ada bab. Tambahkan bab dan isi harganya — sisa biaya
-                    harus mencapai minimal{' '}
+                    harus sama dengan atau lebih dari biaya wajib{' '}
                     {rupiahFormatter.format(summary.min_book_cost)} per buku.
+                    Perkiraan awal total biaya proyek (sebelum bab lengkap):{' '}
+                    <strong>
+                        {rupiahFormatter.format(summary.estimated_required)}
+                    </strong>
+                    ; angkanya berubah mengikuti total harga bab dan fee editor.
                 </p>
             ) : summary.meets_minimum ? (
                 <p className="text-forest-moss-700 text-sm">
-                    ✓ Biaya sudah mencukupi minimal 1 buku.
+                    ✓ Sisa biaya sudah memenuhi biaya wajib 1 buku.
                 </p>
             ) : (
                 <p
                     role="alert"
                     className="text-red-700 text-sm bg-red-500/10 rounded-lg px-3 py-2"
                 >
-                    Biaya belum cukup — kurang{' '}
-                    {rupiahFormatter.format(summary.shortfall)} dari minimal{' '}
-                    {rupiahFormatter.format(summary.min_book_cost)} per buku.
-                    Tambah bab atau naikkan harga bab.
+                    Biaya belum cukup — sisa biaya harus sama dengan atau lebih
+                    dari biaya wajib{' '}
+                    {rupiahFormatter.format(summary.min_book_cost)} per buku
+                    (kurang {rupiahFormatter.format(summary.shortfall)}). Tambah
+                    bab atau naikkan harga bab.
                 </p>
             )}
 
             <p className="text-oxford-navy-900/55 text-xs">
-                Diskon tidak memengaruhi perhitungan ini — diskon hanya
-                mengurangi fee editor.
+                Diskon 0–{summary.max_discount}% tidak memengaruhi perhitungan
+                ini (fee maksimal editor tetap {summary.max_discount}% dari
+                total harga bab) — diskon hanya mengurangi fee yang Anda terima.
+                Biaya dan fee berubah seiring total harga bab.
             </p>
 
             {showFee && (

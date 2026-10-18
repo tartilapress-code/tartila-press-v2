@@ -257,6 +257,7 @@ export default function BookChapterProjectDetailPage() {
                           chapter.price === null ? null : Number(chapter.price),
                       discount: chapter.discount,
                   })),
+                  has_owner_editor: form.owner_editor_id !== '',
               },
               settings,
               items
@@ -287,7 +288,7 @@ export default function BookChapterProjectDetailPage() {
                 <p className="text-oxford-navy-900/65 text-xs">
                     Perubahan harga, diskon, HKI/ISBN, fasilitas &amp; layanan,
                     serta mengubah/menghapus bab ditolak bila sisa biaya 1 buku
-                    menjadi di bawah minimal (berlaku juga untuk admin).
+                    di bawah biaya wajib (berlaku juga untuk admin).
                 </p>
 
                 <Input

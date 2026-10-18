@@ -308,10 +308,10 @@ class BookChapterCostTest extends TestCase
             'chapters' => [['title' => 'Bab 1'], ['title' => 'Bab 2']],
         ]));
 
-        // 2 bab × 100.000 = 200.000; minimal 500.000 → kurang 300.000
+        // 2 bab × 100.000 = 200.000 − fee editor maksimal 10% (20.000) = 180.000; biaya wajib 500.000
         $response->assertStatus(422);
         $this->assertStringContainsString('Biaya 1 buku belum cukup', $response->json('message'));
-        $this->assertStringContainsString('kurang Rp 300.000 dari minimal Rp 500.000', $response->json('message'));
+        $this->assertStringContainsString('= Rp 180.000, harus sama dengan atau lebih dari biaya wajib Rp 500.000', $response->json('message'));
         $this->assertStringContainsString('Tambah bab atau naikkan harga bab', $response->json('message'));
         $this->assertDatabaseCount('books', 0);
     }
@@ -323,7 +323,10 @@ class BookChapterCostTest extends TestCase
         $this->postJson('/api/v1/editor/book-chapter-projects', $this->payload())
             ->assertStatus(201)
             ->assertJsonPath('data.cost_summary.chapters_total', 900000)
-            ->assertJsonPath('data.cost_summary.net', 900000)
+            // fee editor pemilik dipotong pada persentase maksimal: 10% × 900.000 = 90.000
+            ->assertJsonPath('data.cost_summary.deductions.max_fee', 90000)
+            ->assertJsonPath('data.cost_summary.net', 810000)
+            ->assertJsonPath('data.cost_summary.required_total', 590000)
             ->assertJsonPath('data.cost_summary.meets_minimum', true)
             ->assertJsonPath('data.cost_summary.shortfall', 0);
     }
@@ -332,32 +335,32 @@ class BookChapterCostTest extends TestCase
     {
         Sanctum::actingAs($this->makeEditor());
 
-        // 900.000 − HKI 300.000 − ISBN cetak 300.000 = 300.000 < 500.000
+        // 900.000 − HKI 300.000 − ISBN cetak 300.000 − fee maks 90.000 = 210.000 ≤ 500.000
         $this->postJson('/api/v1/editor/book-chapter-projects', $this->payload([
             'includes_hki' => true,
             'includes_isbn_print' => true,
         ]))->assertStatus(422);
 
-        // 900.000 − HKI 300.000 = 600.000 ≥ 500.000
+        // 900.000 − HKI 300.000 − fee maks 90.000 = 510.000 ≥ 500.000
         $this->postJson('/api/v1/editor/book-chapter-projects', $this->payload(['includes_hki' => true]))
             ->assertStatus(201)
             ->assertJsonPath('data.includes_hki', true)
             ->assertJsonPath('data.includes_isbn_print', false)
             ->assertJsonPath('data.cost_summary.deductions.hki', 300000)
-            ->assertJsonPath('data.cost_summary.net', 600000);
+            ->assertJsonPath('data.cost_summary.net', 510000);
     }
 
     public function test_the_electronic_isbn_costs_less_than_the_print_isbn(): void
     {
         Sanctum::actingAs($this->makeEditor());
 
-        // e-ISBN saja: 900.000 − 200.000 = 700.000 ✓
+        // e-ISBN saja: 900.000 − 200.000 − fee maks 90.000 = 610.000 ✓
         $this->postJson('/api/v1/editor/book-chapter-projects', $this->payload(['includes_isbn_electronic' => true]))
             ->assertStatus(201)
             ->assertJsonPath('data.cost_summary.deductions.isbn_electronic', 200000)
-            ->assertJsonPath('data.cost_summary.net', 700000);
+            ->assertJsonPath('data.cost_summary.net', 610000);
 
-        // cetak + e-ISBN: 900.000 − 500.000 = 400.000 ✗
+        // cetak + e-ISBN: 900.000 − 500.000 − 90.000 = 310.000 ✗
         $this->postJson('/api/v1/editor/book-chapter-projects', $this->payload([
             'includes_isbn_print' => true,
             'includes_isbn_electronic' => true,
@@ -372,14 +375,14 @@ class BookChapterCostTest extends TestCase
 
         Sanctum::actingAs($this->makeEditor());
 
-        // 900.000 − 200.000 − (gratis) = 700.000 ✓
+        // 900.000 − 200.000 − (gratis) − fee maks 90.000 = 610.000 ✓
         $response = $this->postJson('/api/v1/editor/book-chapter-projects', $this->payload([
             'package_item_ids' => [$facility->id, $free->id],
         ]))
             ->assertStatus(201)
             ->assertJsonCount(2, 'data.package_items')
             ->assertJsonPath('data.cost_summary.deductions.items', 200000)
-            ->assertJsonPath('data.cost_summary.net', 700000);
+            ->assertJsonPath('data.cost_summary.net', 610000);
 
         $this->assertDatabaseCount('book_package_items', 2);
         $this->assertDatabaseHas('book_package_items', [
@@ -387,7 +390,7 @@ class BookChapterCostTest extends TestCase
             'custom_package_item_id' => $facility->id,
         ]);
 
-        // 900.000 − 200.000 − 500.000 = 200.000 ✗
+        // 900.000 − 200.000 − 500.000 − fee maks 90.000 = 110.000 ✗
         $this->postJson('/api/v1/editor/book-chapter-projects', $this->payload([
             'package_item_ids' => [$facility->id, $costly->id],
         ]))->assertStatus(422);
@@ -471,12 +474,12 @@ class BookChapterCostTest extends TestCase
             ->assertStatus(422);
         $this->assertDatabaseHas('books', ['id' => $project['id'], 'price' => 300000]);
 
-        // 3 × 200.000 = 600.000 ≥ 500.000 → boleh
+        // 3 × 200.000 = 600.000 − fee maks 60.000 = 540.000 ≥ 500.000 → boleh
         $this->patchJson("/api/v1/editor/book-chapter-projects/{$project['id']}", ['price' => 200000])
             ->assertOk()
-            ->assertJsonPath('data.cost_summary.net', 600000);
+            ->assertJsonPath('data.cost_summary.net', 540000);
 
-        // 3 × 150.000 = 450.000 < 500.000 → ditolak
+        // 3 × 150.000 = 450.000 − fee maks 45.000 = 405.000 < 500.000 → ditolak
         $this->patchJson("/api/v1/editor/book-chapter-projects/{$project['id']}", ['price' => 150000])
             ->assertStatus(422);
     }
@@ -486,11 +489,11 @@ class BookChapterCostTest extends TestCase
         $editor = $this->makeEditor();
         $project = $this->createEditorProject($editor);
 
-        // 900.000 − 300.000 = 600.000 ✓
+        // 900.000 − fee maks 90.000 − HKI 300.000 = 510.000 ≥ 500.000 ✓
         $this->patchJson("/api/v1/editor/book-chapter-projects/{$project['id']}", ['includes_hki' => true])
             ->assertOk();
 
-        // + ISBN cetak 300.000 → 300.000 ✗
+        // + ISBN cetak 300.000 → 210.000 ✗
         $this->patchJson("/api/v1/editor/book-chapter-projects/{$project['id']}", ['includes_isbn_print' => true])
             ->assertStatus(422);
         $this->assertDatabaseHas('books', ['id' => $project['id'], 'includes_isbn_print' => false]);
@@ -498,7 +501,7 @@ class BookChapterCostTest extends TestCase
         // Melepas HKI selalu boleh (sisa biaya naik)
         $this->patchJson("/api/v1/editor/book-chapter-projects/{$project['id']}", ['includes_hki' => false])
             ->assertOk()
-            ->assertJsonPath('data.cost_summary.net', 900000);
+            ->assertJsonPath('data.cost_summary.net', 810000);
     }
 
     public function test_ticking_a_costly_item_later_cannot_push_the_project_below_the_minimum(): void
@@ -640,7 +643,7 @@ class BookChapterCostTest extends TestCase
             ->assertStatus(422)
             ->assertJsonPath(
                 'message',
-                'Perubahan ditolak: sisa biaya 1 buku menjadi -Rp 200.000, di bawah minimal Rp 500.000 (kurang Rp 700.000). Tambah bab atau naikkan harga bab terlebih dahulu.'
+                'Perubahan ditolak: sisa biaya 1 buku menjadi -Rp 200.000, harus sama dengan atau lebih dari biaya wajib Rp 500.000. Tambah bab atau naikkan harga bab terlebih dahulu.'
             );
     }
 
