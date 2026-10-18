@@ -167,6 +167,16 @@ Kebutuhan:
   besar. Setelah `gd` terpasang, jalankan sekali `php artisan images:responsive`
   untuk gambar yang sudah ada (deploy.sh juga menjalankannya).
 
+**Ubuntu 24.04 di server baru/kosong (jalan pintas, dipakai di pemasangan 2026-10-17).** Semua
+paket ada di repositori resmi (PHP 8.3, MariaDB 10.11); Node.js tidak diperlukan kalau
+frontend dibangun di komputer (langkah 4A):
+
+```bash
+sudo apt install -y nginx php8.3-fpm php8.3-cli php8.3-mbstring php8.3-xml php8.3-curl php8.3-zip php8.3-mysql php8.3-gd mariadb-server git unzip curl composer certbot python3-certbot-nginx
+```
+
+Lanjut ke langkah 2A (buat database dan user; `mysql_secure_installation` dulu), lalu 2C.
+
 Tentukan domain dan versi PHP yang SUDAH terpasang (dipakai perintah-perintah
 berikut; ulangi kalau sesi SSH terputus):
 
@@ -575,6 +585,14 @@ echo "VITE_API_URL=https://$DOMAIN/api/v1" > .env.production.local
 npx vite build
 ```
 
+### 6C. Satu alamat resmi (www) dan pengalihan tanpa-www
+
+Pilih satu alamat resmi (di pemasangan 2026-10-17: `https://www.tartilapress.com`) dan
+alihkan yang lain ke sana: login di `www` dan tanpa-www dianggap dua situs berbeda oleh
+browser, dan mesin pencari menganggapnya duplikat. Alamat resmi dipakai di `APP_URL`,
+`FRONTEND_URL`, dan `-Domain` saat membangun frontend. Pengalihannya: lihat petunjuk di
+`deploy/nginx-apex-redirect.conf` (empat perintah; sudah diuji, hasilnya `301` ke `www`).
+
 Pembaruan sertifikat otomatis sudah diatur certbot; cek dengan
 `sudo certbot renew --dry-run`. Tutup port uji coba kalau tadi dibuka:
 `sudo ufw delete allow 8080/tcp`.
@@ -836,6 +854,25 @@ Setelah ini, folder v2 kembali seperti baru di-`clone`. Lanjutkan lagi dari
 
 ## Masalah umum
 
+- **Pemasangan nyata di Ubuntu 24.04 (2026-10-17/18), yang pernah tersandung:**
+  - **`REMOTE HOST IDENTIFICATION HAS CHANGED`** setelah rebuild atau pemasangan kunci SSH
+    di panel: ini wajar, tetapi verifikasi dulu. Di konsol web panel jalankan
+    `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` dan cocokkan sidik jarinya, baru
+    `ssh-keygen -R IP_SERVER` di komputer dan sambung lagi.
+  - **`Permission denied (publickey)`**: server hanya menerima kunci SSH. Buat kunci
+    (`ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\tartila-vps`) dan tambahkan kunci
+    publiknya (`.pub`) di panel VPS atau di `~/.ssh/authorized_keys`. Kunci pribadi tidak
+    pernah dikirim ke siapa pun.
+  - **Konsol web panel tidak mengetik `\` dan memotong baris panjang**: pakai SSH dari
+    PowerShell. Di konsol itu, hindari `\` (mis. di tinker: `$m = config("auth.providers.users.model"); $m::create([...])`).
+  - **Perintah PowerShell tertempel di sesi server** (atau sebaliknya): cek promptnya,
+    `PS C:\...>` = komputer, `user@host:...$` = server.
+  - **`ufw` "ERROR: problem running" / status inactive**: pastikan aturan `OpenSSH`
+    ditambahkan dulu, lalu `sudo ufw --force enable`; ulangi bila perlu. Jangan `ufw reset`.
+  - **`scp ... "C:\folder\"`** (garis miring di akhir) gagal "Invalid argument" di
+    PowerShell: hilangkan `\` terakhir.
+  - **`sed`/`cp` dengan nama folder salah ketik** (`tartila-pres_backend`): periksa ejaan
+    `tartila-press_backend` (dua huruf s).
 - **Halaman putih / galat 500 dari API** — lihat log:
   `tail -n 60 /var/www/tartila-press-v2/tartila-press_backend/storage/logs/laravel-*.log`
   dan `sudo tail -n 30 /var/log/nginx/error.log`.
