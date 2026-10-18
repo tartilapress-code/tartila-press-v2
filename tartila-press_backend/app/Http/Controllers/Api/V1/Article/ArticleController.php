@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Article;
 
 use App\Http\Controllers\Controller;
 use App\Models\Article;
+use App\Services\RecommendationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,13 @@ class ArticleController extends Controller
         $filtered = $search !== '' || $category !== '';
 
         $base = fn () => Article::approved()->with(self::EAGER_LOAD)->withCount('likes');
-        $highlights = $filtered || ! $request->boolean('highlight') ? collect() : $this->highlights($base);
+        $recommendations = app(RecommendationService::class);
+        $pinned = $recommendations->pinnedIds('article');
+
+        // Sorotan: artikel yang dipin admin (maksimal 3) bila ada; kalau tidak, terbaru + paling disukai.
+        $highlights = $filtered || ! $request->boolean('highlight')
+            ? collect()
+            : $this->pinnedHighlights($base, $pinned) ?? $this->highlights($base);
 
         $query = $base()
             ->whereNotIn('id', $highlights->pluck('id'))
@@ -50,11 +57,34 @@ class ArticleController extends Controller
             $query->whereHas('fieldCategory', fn (Builder $q) => $q->where('name', $category));
         }
 
-        return $this->pageResponse($query->paginate($this->perPage($request, 12)), 'Daftar artikel berhasil diambil.', meta: [
+        // Tanpa sorotan terpisah (mis. beranda), artikel yang dipin tetap paling atas.
+        $recommendations->pinFirst($query, 'article', 'articles.id');
+        $page = $query->paginate($this->perPage($request, 12));
+        $recommendations->markRecommended($page->getCollection(), 'article');
+        $recommendations->markRecommended($highlights, 'article');
+
+        return $this->pageResponse($page, 'Daftar artikel berhasil diambil.', meta: [
             'highlights' => $highlights->values(),
             'categories' => Article::approved()->with('fieldCategory:id,name')->get(['id', 'field_category_id'])
                 ->pluck('fieldCategory.name')->filter()->unique()->sort()->values(),
         ]);
+    }
+
+    /**
+     * Artikel yang dipin admin sebagai sorotan, urut posisi; null bila tidak ada yang tampil.
+     *
+     * @param  list<int>  $pinned
+     */
+    private function pinnedHighlights(callable $base, array $pinned)
+    {
+        if ($pinned === []) {
+            return null;
+        }
+
+        $found = $base()->whereIn('id', $pinned)->get()->keyBy('id');
+        $ordered = collect($pinned)->map(fn (int $id) => $found->get($id))->filter()->values();
+
+        return $ordered->isEmpty() ? null : $ordered;
     }
 
     /** Artikel terbaru + artikel paling disukai (selain yang terbaru). */

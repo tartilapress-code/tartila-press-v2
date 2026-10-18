@@ -5,6 +5,7 @@ import {
     RiCustomerService2Line,
     RiStackLine,
 } from '@remixicon/react';
+import RecommendedBadge from '@/components/ui/RecommendedBadge';
 import PillBadge from '@/components/ui/PillBadge';
 import type { CustomItem } from '@/data/customPackageItem/customPackageItemApi';
 import { useFormat } from '@/i18n/useFormat';
@@ -46,6 +47,9 @@ export default function ServiceItemCard({
 
     const content = (
         <>
+            {item.is_recommended && (
+                <RecommendedBadge className="-top-3 left-4" />
+            )}
             <div className="flex items-start justify-between gap-3">
                 <span
                     className={`flex size-11 items-center justify-center rounded-xl transition-colors ${

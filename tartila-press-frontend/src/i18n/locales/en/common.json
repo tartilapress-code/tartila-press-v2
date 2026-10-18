@@ -18,5 +18,6 @@
         "next": "Next",
         "page": "Page {{page}}",
         "summary": "{{from}}–{{to}} of {{total}}"
-    }
+    },
+    "recommended": "Recommended"
 }

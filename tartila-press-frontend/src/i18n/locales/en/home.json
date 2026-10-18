@@ -22,6 +22,11 @@
             "subtitle": "Choose the package that fits your publishing needs.",
             "all": "View all packages"
         },
+        "bookChapter": {
+            "title": "Book Chapter",
+            "subtitle": "Write one chapter and publish together in a single book.",
+            "all": "See all Book Chapter projects"
+        },
         "books": {
             "title": "Book Catalog",
             "all": "View all books"

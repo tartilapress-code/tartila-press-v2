@@ -19,6 +19,7 @@ export type ArticleAuthor = {
 
 export type Article = {
     id: number;
+    is_recommended?: boolean;
     slug: string;
     title: string;
     photo: string | null;

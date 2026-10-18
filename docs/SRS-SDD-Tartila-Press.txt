@@ -4953,6 +4953,30 @@ LAMPIRAN G. MODUL YANG DITAMBAHKAN SETELAH VERSI 1.1
   |                            | tak ada di Item Custom (nilai lama di paket itu boleh tetap |
   |                            | sampai dihapus admin). Ganti nama item ikut mengganti nama  |
   |                            | di semua paket. Tes: PackageItemListTest.                   |
+  | Biaya wajib Book Chapter   | a = total harga bab, b = HKI, c = ISBN, d = fasilitas/      |
+  | (2026-10-19)               | layanan, e = biaya wajib (minimal biaya total 1 buku, per    |
+  |                            | jenis ISBN; ke editor disebut "Biaya wajib"), f = fee       |
+  |                            | maksimal editor = P% x a (P = diskon maksimal admin; hanya   |
+  |                            | bila proyek punya editor pemilik). Biaya = b+c+d+e+f;        |
+  |                            | syarat a >= biaya (boleh tepat sama) = sisa (a-b-c-d-f) >= e.|
+  |                            | Perkiraan awal sebelum bab lengkap: (b+c+d+e) x (1+P%).      |
+  |                            | Diskon editor (0..P%) tidak memengaruhi syarat; hanya        |
+  |                            | mengurangi fee yang diterima editor ((P-diskon)% x harga     |
+  |                            | bab). Field baru required_total, estimated_required,         |
+  |                            | deductions.max_fee. Kalkulator PHP + cermin                  |
+  |                            | src/lib/bookChapterCost.ts. 755 tes.                         |
+  | Rekomendasi (pin 3 konten) | Admin -> Rekomendasi: pin maksimal 3 konten per menu       |
+  | (2026-10-19)               | (Layanan, Paket, Book Chapter, Katalog Buku, Penulis, Event, |
+  |                            | Artikel); Editor tetap lewat 'Promosikan' di Kelola Editor.  |
+  |                            | Tabel recommendations (section, item_id, position; unik per  |
+  |                            | posisi dan per item). RecommendationService::pinFirst()      |
+  |                            | menaruh yang dipin paling atas di endpoint publik (tetap     |
+  |                            | patuh filter/halaman), markRecommended() menambah            |
+  |                            | is_recommended (lencana 'Rekomendasi' di kartu). Beranda     |
+  |                            | memakai endpoint yang sama, jadi pin ikut paling depan; bagian|
+  |                            | Book Chapter baru di beranda. Artikel: pin menggantikan      |
+  |                            | sorotan otomatis. Hanya konten tampil publik yang bisa dipin.|
+  |                            | Tes: RecommendationTest (10).                                |
   +----------------------------+--------------------------------------------------------------+
   Perbaikan penting saat uji kapasitas (Lampiran H): migrasi 2026_10_22_090000 gagal di MySQL/
   MariaDB karena nama indeks > 64 karakter (sudah diberi nama pendek). Wajib dijalankan ulang

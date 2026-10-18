@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Book;
 use App\Models\PublicProfile;
 use App\Services\EditorInsightService;
+use App\Services\RecommendationService;
 use Illuminate\Http\Request;
 
 class PublicProfileController extends Controller
@@ -44,6 +45,13 @@ class PublicProfileController extends Controller
             $query->orderByRaw("CASE public_profiles.user_id {$cases} ELSE ".count($promoted).' END');
         }
 
+        // Daftar penulis: rekomendasi (maksimal 3, dipin admin) paling atas.
+        $recommendations = app(RecommendationService::class);
+
+        if ($role === 'penulis') {
+            $recommendations->pinFirst($query, 'author', 'public_profiles.user_id');
+        }
+
         match ($request->query('sort')) {
             'az' => $query->orderByRaw("{$displayName} ASC"),
             'za' => $query->orderByRaw("{$displayName} DESC"),
@@ -62,6 +70,10 @@ class PublicProfileController extends Controller
                     ->pluck('display_name')
                     ->values(),
                 'is_promoted' => in_array($profile->user_id, $promoted, true),
+                // Satu tanda untuk lencana "Rekomendasi": editor = dipromosikan, penulis = dipin admin.
+                'is_recommended' => $role === 'penulis'
+                    ? in_array((int) $profile->user_id, $recommendations->pinnedIds('author'), true)
+                    : in_array($profile->user_id, $promoted, true),
             ],
         );
     }

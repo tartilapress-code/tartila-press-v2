@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Package;
 use App\Http\Controllers\Controller;
 use App\Models\CustomPackageItem;
 use App\Models\Package;
+use App\Services\RecommendationService;
 use App\Support\IsbnTypes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,8 +21,13 @@ class PackageController extends Controller
     public function index(): JsonResponse
     {
         $packages = Package::where('is_active', true)
-            ->latest()
-            ->get();
+            ->latest();
+
+        // Rekomendasi (maksimal 3, dipin admin) paling atas.
+        $recommendations = app(RecommendationService::class);
+        $recommendations->pinFirst($packages, 'package', 'packages.id');
+        $packages = $packages->get();
+        $recommendations->markRecommended($packages, 'package');
 
         return response()->json([
             'success' => true,

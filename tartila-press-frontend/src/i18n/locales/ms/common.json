@@ -18,5 +18,6 @@
         "next": "Seterusnya",
         "page": "Halaman {{page}}",
         "summary": "{{from}}–{{to}} daripada {{total}}"
-    }
+    },
+    "recommended": "Disyorkan"
 }

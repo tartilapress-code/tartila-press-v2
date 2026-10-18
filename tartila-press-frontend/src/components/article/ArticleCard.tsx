@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RiArrowRightLine, RiArticleLine, RiHeartLine } from '@remixicon/react';
+import RecommendedBadge from '@/components/ui/RecommendedBadge';
 import logo from '@/assets/logo/logo.png';
 import type { Article } from '@/data/article/articleApi';
 import { useFormat } from '@/i18n/useFormat';
@@ -35,6 +36,7 @@ export default function ArticleCard({
             className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-forest-moss-100 bg-white shadow-[0_6px_24px_-10px_rgba(1,26,44,0.22)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-14px_rgba(1,26,44,0.34)]"
         >
             <div className="relative h-44 w-full overflow-hidden bg-forest-moss-50">
+                {article.is_recommended && <RecommendedBadge />}
                 {article.photo ? (
                     <ResponsiveImg
                         src={article.photo}

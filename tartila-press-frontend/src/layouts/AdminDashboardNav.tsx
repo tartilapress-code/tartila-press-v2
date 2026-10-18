@@ -29,6 +29,7 @@ const adminLinks: {
         categories: ['admin_manuscript'],
     },
     { to: '/admin/covers', label: 'Cover', categories: ['admin_cover'] },
+    { to: '/admin/recommendations', label: 'Rekomendasi' },
     { to: '/admin/authors', label: 'Kelola Penulis' },
     { to: '/admin/editors', label: 'Kelola Editor' },
     { to: '/admin/pool-naskah', label: 'Pengaturan Pool Naskah' },

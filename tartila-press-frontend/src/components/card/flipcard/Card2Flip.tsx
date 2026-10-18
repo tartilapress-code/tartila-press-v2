@@ -1,3 +1,4 @@
+import RecommendedBadge from '@/components/ui/RecommendedBadge';
 import IsbnPriceNote from '@/components/package/IsbnPriceNote';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -88,6 +89,9 @@ export default function Card2({
                                                 className="size-12"
                                             />
                                         </div>
+                                    )}
+                                    {pkg.is_recommended && (
+                                        <RecommendedBadge className="bottom-3 left-3" />
                                     )}
                                     {pkg.discount > 0 && (
                                         <span className="absolute left-3 top-3 rounded-full bg-forest-moss-700 px-3 py-1 text-xs font-semibold text-white shadow-sm">

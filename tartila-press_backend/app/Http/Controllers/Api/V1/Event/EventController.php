@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Event;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Services\RecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -36,10 +37,15 @@ class EventController extends Controller
                 'registrations as confirmed_registrations_count' => fn ($query) => $query->where('status', 'confirmed'),
             ])
             ->latest('starts_at')
-            ->orderByDesc('id')
-            ->paginate($this->perPage($request, 10));
+            ->orderByDesc('id');
+
+        // Rekomendasi (maksimal 3, dipin admin) paling atas.
+        $recommendations = app(RecommendationService::class);
+        $recommendations->pinFirst($events, 'event', 'events.id');
+        $events = $events->paginate($this->perPage($request, 10));
 
         $events->getCollection()->makeHidden(self::PRIVATE_COLUMNS);
+        $recommendations->markRecommended($events->getCollection(), 'event');
 
         return $this->pageResponse($events, 'Daftar event berhasil diambil.');
     }

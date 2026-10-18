@@ -28,6 +28,7 @@ type NamedItem = { id: number; name: string };
 
 export type ChapterProject = {
     id: number;
+    is_recommended?: boolean;
     title: string;
     front_cover: string | null;
     // Disembunyikan server untuk pengunjung yang belum login.

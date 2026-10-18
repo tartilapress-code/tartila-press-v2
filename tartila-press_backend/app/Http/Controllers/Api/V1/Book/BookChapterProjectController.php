@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Book;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
+use App\Services\RecommendationService;
 use App\Support\IsbnTypes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -64,8 +65,15 @@ class BookChapterProjectController extends Controller
             default => $query->latest(),
         };
 
-        $page = $query->orderByDesc('id')->paginate($this->perPage($request, 12));
+        $query->orderByDesc('id');
+
+        // Rekomendasi (maksimal 3, dipin admin) paling atas.
+        $recommendations = app(RecommendationService::class);
+        $recommendations->pinFirst($query, 'book_chapter', 'books.id');
+
+        $page = $query->paginate($this->perPage($request, 12));
         $projects = $page->getCollection();
+        $recommendations->markRecommended($projects, 'book_chapter');
 
         $this->presentIncludedPackage($projects);
 

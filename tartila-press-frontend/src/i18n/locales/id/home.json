@@ -22,6 +22,11 @@
             "subtitle": "Pilih paket yang sesuai dengan kebutuhan penerbitan Anda.",
             "all": "Lihat semua paket"
         },
+        "bookChapter": {
+            "title": "Book Chapter",
+            "subtitle": "Tulis satu bab, terbit bersama dalam satu buku.",
+            "all": "Lihat semua Book Chapter"
+        },
         "books": {
             "title": "Katalog Buku",
             "all": "Lihat semua buku"

@@ -173,9 +173,19 @@ function LayananPage() {
                         <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
                             <div className="flex flex-col gap-6">
                                 <ItemGroup
+                                    title={t('common.recommended')}
+                                    items={items.filter(
+                                        (item) => item.is_recommended
+                                    )}
+                                    selectedIds={selectedIds}
+                                    onToggle={toggleItem}
+                                />
+                                <ItemGroup
                                     title={t('services.page.groupServices')}
                                     items={items.filter(
-                                        (item) => item.type === 'service'
+                                        (item) =>
+                                            !item.is_recommended &&
+                                            item.type === 'service'
                                     )}
                                     selectedIds={selectedIds}
                                     onToggle={toggleItem}
@@ -183,7 +193,9 @@ function LayananPage() {
                                 <ItemGroup
                                     title={t('services.page.groupFacilities')}
                                     items={items.filter(
-                                        (item) => item.type === 'facility'
+                                        (item) =>
+                                            !item.is_recommended &&
+                                            item.type === 'facility'
                                     )}
                                     selectedIds={selectedIds}
                                     onToggle={toggleItem}

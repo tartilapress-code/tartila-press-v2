@@ -6,6 +6,7 @@ import {
     RiShoppingCartLine,
     RiStarFill,
 } from '@remixicon/react';
+import RecommendedBadge from '@/components/ui/RecommendedBadge';
 import BookCover from '@/components/book/catalog/BookCover';
 import { useCart } from '@/context/useCart';
 import { DEFAULT_CHAPTER_COVER } from '@/lib/bookChapterPublic';
@@ -69,6 +70,7 @@ export default function CatalogBookCard({ book }: { book: BookSummary }) {
 
     return (
         <article className="group @container relative flex h-full flex-col rounded-2xl bg-white p-3 shadow-[0_6px_24px_-10px_rgba(1,26,44,0.22)] ring-1 ring-oxford-navy-900/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-14px_rgba(1,26,44,0.34)] sm:p-4">
+            {book.is_recommended && <RecommendedBadge />}
             {book.discount > 0 && (
                 <span className="absolute right-3 top-3 z-10 rounded-full bg-forest-moss-600 px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-sm sm:right-4 sm:top-4 sm:text-xs">
                     {t('common.discount', { percent: book.discount })}

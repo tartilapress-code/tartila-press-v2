@@ -32,9 +32,15 @@ export default function Services({ limit = COUNT }: { limit?: number }) {
         );
     }
 
+    // Rekomendasi (dipin admin, maksimal 3) paling atas; lalu layanan, lalu fasilitas.
     const ordered = [
-        ...items.filter((item) => item.type === 'service'),
-        ...items.filter((item) => item.type === 'facility'),
+        ...items.filter((item) => item.is_recommended),
+        ...items.filter(
+            (item) => !item.is_recommended && item.type === 'service'
+        ),
+        ...items.filter(
+            (item) => !item.is_recommended && item.type === 'facility'
+        ),
     ];
 
     return (

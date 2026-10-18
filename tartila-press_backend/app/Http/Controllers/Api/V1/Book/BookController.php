@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Book;
 
 use App\Http\Controllers\Controller;
 use App\Models\Book;
+use App\Services\RecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -66,9 +67,14 @@ class BookController extends Controller
         // Urutan stabil antarhalaman (judul/harga/waktu bisa sama).
         $query->orderByDesc('id');
 
+        // Rekomendasi (maksimal 3, dipin admin) paling atas.
+        $recommendations = app(RecommendationService::class);
+        $recommendations->pinFirst($query, 'book', 'books.id');
+
         // Per halaman (bawaan 24; beranda cukup ?per_page=4).
         $books = $query->paginate($this->perPage($request, 24));
         $books->getCollection()->append(['author_profiles', 'editor_profile']);
+        $recommendations->markRecommended($books->getCollection(), 'book');
 
         return $this->pageResponse($books, 'Daftar buku berhasil diambil.');
     }

@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Admin\ManuscriptPoolController as AdminManuscrip
 use App\Http\Controllers\Api\V1\Admin\ManuscriptTemplateController as AdminManuscriptTemplateController;
 use App\Http\Controllers\Api\V1\Admin\MouController as AdminMouController;
 use App\Http\Controllers\Api\V1\Admin\MouTemplateController as AdminMouTemplateController;
+use App\Http\Controllers\Api\V1\Admin\RecommendationController as AdminRecommendationController;
 use App\Http\Controllers\Api\V1\Admin\RoyaltyController as AdminRoyaltyController;
 use App\Http\Controllers\Api\V1\Admin\SocialPostController as AdminSocialPostController;
 use App\Http\Controllers\Api\V1\Admin\UserManagementController;
@@ -1152,6 +1153,11 @@ Route::prefix('v1')->group(function () {
         // Pengaturan pool naskah: bidang keahlian editor.
         Route::get('/manuscript-pool', [AdminManuscriptPoolController::class, 'index']);
         Route::put('/manuscript-pool/editors/{user}', [AdminManuscriptPoolController::class, 'updateEditorFields']);
+
+        // Rekomendasi: pin maksimal 3 konten per menu (tampil paling atas di menu dan di beranda).
+        Route::get('/recommendations', [AdminRecommendationController::class, 'index']);
+        Route::get('/recommendations/{section}/options', [AdminRecommendationController::class, 'options']);
+        Route::put('/recommendations/{section}', [AdminRecommendationController::class, 'update']);
 
         // Kelola Editor: statistik, performa, level, fee, dalam pemantauan (ban) dan promosi.
         Route::get('/editors', [EditorManagementController::class, 'index']);

@@ -4,6 +4,8 @@ import type { IsbnOption, IsbnType } from '@/lib/isbnTypes';
 /** Paket di katalog publik: cukup untuk kartu, perbandingan, dan hitungan hemat. */
 export type PackageSummary = {
     id: number;
+    // Dipin admin sebagai rekomendasi (tampil paling atas).
+    is_recommended?: boolean;
     name: string;
     category: string | null;
     photo: string | null;

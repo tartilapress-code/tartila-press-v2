@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RiArrowRightLine, RiCalendarLine, RiTimeLine } from '@remixicon/react';
+import RecommendedBadge from '@/components/ui/RecommendedBadge';
 import ChapterCover from '@/components/bookChapter/ChapterCover';
 import { useContentLanguages } from '@/components/language/useContentLanguages';
 import { useFormat } from '@/i18n/useFormat';
@@ -39,6 +40,7 @@ export default function ChapterProjectCard({
 
     return (
         <article className="group relative flex h-full min-w-0 flex-col rounded-2xl border border-forest-moss-100 bg-white p-3 shadow-[0_6px_24px_-10px_rgba(1,26,44,0.22)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-14px_rgba(1,26,44,0.34)] sm:p-4">
+            {project.is_recommended && <RecommendedBadge />}
             {project.discount > 0 && (
                 <span className="absolute right-3 top-3 z-10 rounded-full bg-forest-moss-600 px-2.5 py-1 text-[11px] font-semibold leading-none text-white shadow-sm sm:right-4 sm:top-4 sm:text-xs">
                     {t('common.discount', { percent: project.discount })}

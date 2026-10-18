@@ -3,6 +3,7 @@ import { http } from '@/lib/http';
 /** Item satuan (fasilitas/layanan) yang bisa dirakit menjadi paket custom. */
 export type CustomItem = {
     id: number;
+    is_recommended?: boolean;
     type: 'facility' | 'service';
     name: string;
     price: string;

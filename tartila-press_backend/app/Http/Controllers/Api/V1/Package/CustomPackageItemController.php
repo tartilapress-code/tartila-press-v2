@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Package;
 use App\Http\Controllers\Controller;
 use App\Models\CustomPackageItem;
 use App\Models\Package;
+use App\Services\RecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,9 +23,13 @@ class CustomPackageItemController extends Controller
         // Biaya khusus Book Chapter adalah biaya internal: tidak untuk publik.
         $items = CustomPackageItem::where('is_active', true)
             ->orderBy('type')
-            ->orderBy('name')
-            ->get()
-            ->makeHidden('book_chapter_cost');
+            ->orderBy('name');
+
+        // Rekomendasi (maksimal 3, dipin admin) paling atas.
+        $recommendations = app(RecommendationService::class);
+        $recommendations->pinFirst($items, 'service', 'custom_package_items.id');
+        $items = $items->get()->makeHidden('book_chapter_cost');
+        $recommendations->markRecommended($items, 'service');
 
         return response()->json([
             'success' => true,

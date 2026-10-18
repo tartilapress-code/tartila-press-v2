@@ -6,6 +6,7 @@ import {
     RiCalendarEventLine,
     RiGroupLine,
 } from '@remixicon/react';
+import RecommendedBadge from '@/components/ui/RecommendedBadge';
 import type { Event } from '@/data/event/eventApi';
 import { useFormat } from '@/i18n/useFormat';
 import { EVENT_DATE, EVENT_TIME } from '@/lib/eventTime';
@@ -33,6 +34,7 @@ export default function EventCard({ event }: { event: Event }) {
             className="group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-forest-moss-100 bg-white shadow-[0_6px_24px_-10px_rgba(1,26,44,0.22)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-14px_rgba(1,26,44,0.34)] lg:flex-row"
         >
             <div className="relative h-44 w-full shrink-0 overflow-hidden bg-forest-moss-50 lg:h-auto lg:min-h-full lg:w-64">
+                {event.is_recommended && <RecommendedBadge />}
                 {event.banner ? (
                     <ResponsiveImg
                         src={event.banner}

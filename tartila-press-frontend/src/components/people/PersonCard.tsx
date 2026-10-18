@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RiArrowRightLine } from '@remixicon/react';
+import RecommendedBadge from '@/components/ui/RecommendedBadge';
 import PersonAvatar from '@/components/people/PersonAvatar';
 import PillBadge from '@/components/ui/PillBadge';
 import {
@@ -15,6 +16,8 @@ export type Person = {
     bio: string | null;
     profile_photo: string | null;
     roles: string[];
+    // Penulis: dipin admin; editor: dipromosikan.
+    is_recommended?: boolean;
 };
 
 /**
@@ -38,6 +41,9 @@ export default function PersonCard({
 
     return (
         <article className="group relative flex min-w-0 gap-4 rounded-2xl border border-forest-moss-100 bg-white p-4 shadow-[0_2px_14px_-8px_rgba(1,26,44,0.18)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-16px_rgba(1,26,44,0.32)] sm:p-5">
+            {person.is_recommended && (
+                <RecommendedBadge className="right-3 top-3" />
+            )}
             <PersonAvatar
                 name={person.name}
                 photo={person.profile_photo}

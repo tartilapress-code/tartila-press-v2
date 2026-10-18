@@ -16,6 +16,7 @@ export type ProfileLinkable = {
 
 export type BookSummary = {
     id: number;
+    is_recommended?: boolean;
     slug: string;
     title: string;
     authors_text: string | null;

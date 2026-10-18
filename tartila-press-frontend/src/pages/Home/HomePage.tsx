@@ -6,6 +6,7 @@ import Services from '@/components/Services';
 import Title from '@/components/Tittle';
 import Wrapper from '@/components/Wrapper';
 import BookCatalogHome from '@/components/book/BookCatalogHome';
+import BookChapterHome from '@/components/bookChapter/BookChapterHome';
 import HomePackages from '@/components/package/HomePackages';
 import Top from '@/components/Top';
 import PeopleDirectory from '@/components/people/PeopleDirectory';
@@ -43,7 +44,20 @@ export default function Home() {
                 <HomePackages />
             </Wrapper>
 
-            <Wrapper id="katalog">
+            <Wrapper id="book-chapter">
+                <Title
+                    subtitle={t('home.sections.bookChapter.subtitle')}
+                    action={{
+                        to: '/buku-bab',
+                        label: t('home.sections.bookChapter.all'),
+                    }}
+                >
+                    {t('home.sections.bookChapter.title')}
+                </Title>
+                <BookChapterHome />
+            </Wrapper>
+
+            <Wrapper id="katalog" tone="tint">
                 <Title
                     action={{
                         to: '/buku',
@@ -55,7 +69,7 @@ export default function Home() {
                 <BookCatalogHome />
             </Wrapper>
 
-            <Wrapper id="penulis" tone="tint">
+            <Wrapper id="penulis">
                 <Title
                     action={{
                         to: '/penulis',
@@ -67,7 +81,7 @@ export default function Home() {
                 <PeopleDirectory role="penulis" limit={4} />
             </Wrapper>
 
-            <Wrapper id="editor">
+            <Wrapper id="editor" tone="tint">
                 <Title
                     action={{
                         to: '/editor',
@@ -79,7 +93,7 @@ export default function Home() {
                 <PeopleDirectory role="editor" limit={4} />
             </Wrapper>
 
-            <Wrapper id="artikel" tone="tint">
+            <Wrapper id="artikel">
                 <Title
                     subtitle={t('home.sections.articles.subtitle')}
                     action={{
@@ -92,7 +106,7 @@ export default function Home() {
                 <Information />
             </Wrapper>
 
-            <Wrapper id="event">
+            <Wrapper id="event" tone="tint">
                 <Title
                     action={{
                         to: '/event',

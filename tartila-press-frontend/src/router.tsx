@@ -40,6 +40,7 @@ import NotificationsPage from './pages/Dashboard/NotificationsPage';
 import AuthorsManagementPage from './pages/Admin/AuthorsManagementPage';
 import CoverProjectPage from './pages/Admin/CoverProjectPage';
 import CoversPage from './pages/Admin/CoversPage';
+import RecommendationsPage from './pages/Admin/RecommendationsPage';
 import EditorsManagementPage from './pages/Admin/EditorsManagementPage';
 import EditorCoauthorManuscriptsPage from './pages/Dashboard/EditorCoauthorManuscriptsPage';
 import EditorCoauthorPoolPage from './pages/Dashboard/EditorCoauthorPoolPage';
@@ -442,6 +443,10 @@ const router = createBrowserRouter([
                             {
                                 path: 'tentang-kami',
                                 element: <AboutSettingsPage />,
+                            },
+                            {
+                                path: 'recommendations',
+                                element: <RecommendationsPage />,
                             },
                             {
                                 path: 'covers',

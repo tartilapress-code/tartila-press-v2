@@ -5,6 +5,7 @@ export type EventCategory = { id: number; name: string };
 
 export type Event = {
     id: number;
+    is_recommended?: boolean;
     slug: string;
     title: string;
     description: string | null;
