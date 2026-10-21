@@ -372,7 +372,10 @@ berisi peran dan akun) dan kerjakan **bagian 10**, lalu kembali ke 3.3.
 
 ### 3.3 Simpan konfigurasi ke cache
 
-Wajib diulang setiap `.env` diubah:
+Wajib diulang setiap `.env` diubah, **disusul memuat ulang PHP-FPM** (`sudo systemctl reload php$PHPVER-fpm`).
+OPcache di server (`deploy/server/php-tuning.ini`, `validate_timestamps=0`) tidak memeriksa ulang
+berkas, jadi tanpa reload PHP-FPM tetap memakai konfigurasi lama dari memori, sedangkan perintah
+`php artisan ...` di terminal (CLI) sudah membaca yang baru:
 
 ```bash
 cd /var/www/tartila-press-v2/tartila-press_backend
@@ -574,6 +577,7 @@ Isi alamat sebenarnya: ubah `APP_URL` dan `FRONTEND_URL` di
 ```bash
 cd /var/www/tartila-press-v2/tartila-press_backend
 php artisan config:cache
+sudo systemctl reload php$PHPVER-fpm
 ```
 
 Ganti isi `tartila-press-frontend/.env.production.local` menjadi
@@ -652,7 +656,15 @@ ubah `MAIL_MAILER=smtp`, lalu:
 ```bash
 cd /var/www/tartila-press-v2/tartila-press_backend
 php artisan config:cache
+sudo systemctl reload php$PHPVER-fpm
 ```
+
+Gmail: pakai **Sandi Aplikasi** (akun harus ber-verifikasi 2 langkah), 16 huruf tanpa spasi di
+`MAIL_PASSWORD`, dan `MAIL_FROM_ADDRESS` sama dengan `MAIL_USERNAME` (Gmail menulis ulang pengirim
+menjadi akun yang login). Tes cepat dari terminal: `php artisan tinker --execute='Mail::raw("tes", fn($m) => $m->to("ALAMAT")->subject("Tes"));'`
+(CLI membaca konfigurasi baru walau PHP-FPM belum dimuat ulang, jadi tes ini belum membuktikan
+situsnya; uji juga lewat Lupa Password di situs). `ORDER_NOTIFICATION_EMAIL` diisi email kantor
+(kosong = email kontak di halaman Tentang Kami, yang di situs baru masih kosong).
 
 Biarkan `REQUIRE_VERIFIED_EMAIL=false` sampai email terbukti terkirim; kalau
 `true`, akun yang emailnya belum diverifikasi tidak bisa membuat pesanan,
@@ -897,8 +909,11 @@ Setelah ini, folder v2 kembali seperti baru di-`clone`. Lanjutkan lagi dari
 - **Setelah mengubah kode manual, tidak berubah** — OPcache tidak memeriksa berkas
   (sengaja, demi kecepatan): `sudo systemctl reload php$PHPVER-fpm`. `deploy.sh`
   sudah melakukannya.
-- **Mengubah `.env` tidak berpengaruh** — konfigurasi di-cache:
-  `cd tartila-press_backend && php artisan config:cache`.
+- **Mengubah `.env` tidak berpengaruh (padahal `tinker`/artisan sudah memakai nilai baru)** —
+  konfigurasi di-cache dan OPcache menahannya di memori PHP-FPM:
+  `cd tartila-press_backend && php artisan config:cache && sudo systemctl reload php$PHPVER-fpm`.
+  Contoh nyata (2026-10-21): "Email gagal dikirim" di Lupa Password dengan log SMTP 535 untuk akun lama,
+  padahal `.env` sudah diganti; sembuh setelah `reload php8.3-fpm`.
 - **"Permission denied" di `storage` atau `bootstrap/cache`** —
   `sudo chown -R $USER:$(id -gn) tartila-press_backend/storage tartila-press_backend/bootstrap/cache`
   lalu `chmod -R ug+rwX` pada dua folder itu.
